@@ -1,0 +1,10 @@
+{
+  "repo_owner": "abdulkarimnoah01",
+  "repo_name": "LAN_FPS",
+  "branch": "main",
+  "git_url": "https://github.com/abdulkarimnoah01/LAN_FPS.git",
+  "raw_base_url": "https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main",
+  "version_url": "https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/version.json",
+  "bundle_url": "https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/LAN_FPS.html",
+  "auto_launch": true
+}

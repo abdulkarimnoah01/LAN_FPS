@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LAN_FPS</title>
+<!--STYLE-->
+</head>
+<body>
+<main id="lobby">
+  <header>
+    <div class="header-row">
+      <h1>LAN<span>_</span>FPS</h1>
+      <div class="version-row">
+        <span id="game-version" class="badge-none">v1.1.0</span>
+        <button id="btn-check-update" class="ghost" type="button">Check for updates</button>
+      </div>
+    </div>
+    <p>Low-poly deathmatch for the studio network · first to 10 kills · 2–6 players</p>
+    <div id="update-banner" hidden>
+      <div class="update-info">
+        <b id="update-title">New update available!</b>
+        <span id="update-notes"></span>
+      </div>
+      <div class="update-actions">
+        <a id="btn-download-update" href="#" download="LAN_FPS.html">Download Update</a>
+        <button id="btn-dismiss-update" class="ghost" type="button">✕</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="panel">
+    <h2>1 · You</h2>
+    <label>Name <input id="name" maxlength="20" placeholder="Your name" autocomplete="off"></label>
+    <div class="row">
+      <label>Mouse <input id="sens" type="range" min="5" max="100"></label>
+      <label>Volume <input id="volume" type="range" min="0" max="100"></label>
+      <button id="btn-settings-lobby" class="ghost" type="button" style="margin-left: auto;">⚙ Controls & Sensitivity</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>2 · Shared folder</h2>
+    <p class="hint">Pick the same network folder on every PC (for example the studio share). It is only used to list rooms and introduce PCs to each other; the game itself runs over a direct link.</p>
+    <div class="row">
+      <button id="choose">Choose shared folder…</button>
+      <button id="reconnect" hidden></button>
+      <button id="local" class="ghost">This PC only (test in two tabs)</button>
+    </div>
+    <p class="hint">Folder: <b id="folder-name">none</b></p>
+  </section>
+
+  <section class="panel" id="rooms-panel" hidden>
+    <h2>3 · Rooms</h2>
+    <ul id="rooms"></ul>
+    <p id="no-rooms" class="hint">No rooms yet. Create one below.</p>
+    <div class="row">
+      <input id="room-name" maxlength="32" placeholder="Room name" autocomplete="off">
+      <select id="map-select" title="Choose map mode">
+        <option value="aftermath">Aftermath (Medal of Honor Ruins)</option>
+        <option value="river">River Forest (River Valley & Bridges)</option>
+        <option value="forest">Pine Forest (Classic)</option>
+        <option value="sandbox">Random Sandbox (Procedural)</option>
+        <option value="arena">Arena (Retro)</option>
+      </select>
+      <select id="mode-select" title="Choose game mode">
+        <option value="ffa">Free For All (Deathmatch)</option>
+        <option value="tdm">Team Deathmatch (TDM)</option>
+      </select>
+      <button id="create">Create room</button>
+    </div>
+  </section>
+
+  <p id="message" hidden></p>
+  <footer>WASD move · C / Ctrl crouch · Space jump · Mouse aim · Click shoot · Right-click aim · V / F melee attack · G grenade · 1–6 / Scroll switch weapons · Q quick switch · R reload · Tab scores · Esc settings / release mouse</footer>
+</main>
+
+<div id="select" hidden>
+  <div class="select-card">
+    <h2>Choose your character</h2>
+    <p id="select-sub" class="hint"></p>
+    <div class="stage">
+      <button id="char-prev" class="ghost arrow" aria-label="Previous character">‹</button>
+      <canvas id="preview"></canvas>
+      <button id="char-next" class="ghost arrow" aria-label="Next character">›</button>
+    </div>
+    <div id="char-name"></div>
+    <div id="char-list"></div>
+    <div class="row actions">
+      <button id="select-back" class="ghost">Back</button>
+      <button id="select-go">Play</button>
+    </div>
+    <p class="hint">← → to browse · Enter to play · Esc to go back</p>
+  </div>
+</div>
+
+<div id="settings-modal" hidden>
+  <div class="settings-card">
+    <div class="settings-header">
+      <h2>⚙ Settings & Controls</h2>
+      <button id="settings-close" class="ghost icon-btn" aria-label="Close settings">✕</button>
+    </div>
+
+    <div class="settings-tabs">
+      <button class="tab-btn on" data-tab="tab-mouse">Sensitivity & Aim</button>
+      <button class="tab-btn" data-tab="tab-controls">Controls / Binds</button>
+    </div>
+
+    <!-- Mouse & Sensitivity Tab -->
+    <div id="tab-mouse" class="tab-content">
+      <div class="setting-item">
+        <div class="setting-label">
+          <span>Look Sensitivity</span>
+          <span id="opt-sens-num" class="badge">22</span>
+        </div>
+        <input id="opt-sens" type="range" min="5" max="100" value="22">
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label">
+          <span>ADS Zoom Sensitivity</span>
+          <span id="opt-ads-sens-num" class="badge">0.80x</span>
+        </div>
+        <input id="opt-ads-sens" type="range" min="10" max="200" step="5" value="80">
+      </div>
+
+      <div class="setting-item row-setting">
+        <label for="opt-invert-y">Invert Y-Axis (Pitch)</label>
+        <input id="opt-invert-y" type="checkbox">
+      </div>
+
+      <div class="setting-item row-setting">
+        <span>Crouch Mode</span>
+        <div class="btn-group">
+          <button id="opt-crouch-hold" class="btn-choice on" type="button">Hold</button>
+          <button id="opt-crouch-toggle" class="btn-choice" type="button">Toggle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Keybindings Tab -->
+    <div id="tab-controls" class="tab-content" hidden>
+      <p class="hint">Click a binding button and press any key to reassign it. Press Esc to cancel.</p>
+      <div id="bind-grid" class="bind-grid"></div>
+      <div class="row actions" style="margin-top: 10px;">
+        <button id="opt-reset-binds" class="ghost" type="button">Reset All Binds</button>
+      </div>
+    </div>
+
+    <div class="settings-footer">
+      <button id="settings-done" type="button">Apply & Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="game" hidden>
+  <canvas id="view"></canvas>
+  <div id="crosshair"></div>
+  <div id="damage-arc" hidden></div>
+  <div id="hitmarker"></div>
+  <div id="damage"></div>
+  <div id="sniper-scope" hidden>
+    <div class="scope-cross-h"></div>
+    <div class="scope-cross-v"></div>
+    <div class="scope-ring"></div>
+  </div>
+  <div id="elim-skull" class="elim-skull">
+    <svg viewBox="0 0 100 100" class="skull-svg">
+      <path class="skull-glint" d="M50 4 L53 47 L96 50 L53 53 L50 96 L47 53 L4 50 L47 47 Z" />
+      <path class="skull-glint diagonal" d="M18 18 L48 48 L82 18 L52 48 L82 82 L52 52 L18 82 L48 52 Z" />
+      <path class="skull-body" d="M22 40 C20 18 32 12 50 12 C68 12 80 18 78 40 C77 50 74 56 71 60 L73 70 L65 72 L63 80 L57 80 L56 72 L50 72 L44 72 L43 80 L37 80 L35 72 L27 70 L29 60 C26 56 23 50 22 40 Z" />
+      <path class="skull-eye" d="M29 39 Q38 46 44 38 Q38 31 29 39 Z" />
+      <path class="skull-eye" d="M71 39 Q62 46 56 38 Q62 31 71 39 Z" />
+      <polygon class="skull-nose" points="50,45 46,53 54,53" />
+    </svg>
+  </div>
+  <div id="elim-feed"></div>
+  <ul id="feed"></ul>
+  <div id="topbar">
+    <span id="link"></span>
+    <span id="tdm-score" class="tdm-score-banner" hidden></span>
+    <span id="myscore"></span>
+    <div id="host-bot-controls" class="btn-group" hidden>
+      <button id="btn-add-bot" class="ghost" type="button" title="Add Practice AI Bot">+ Bot</button>
+      <button id="btn-remove-bot" class="ghost" type="button" title="Remove AI Bot">- Bot</button>
+    </div>
+    <button id="btn-settings-game" class="ghost" type="button">⚙ Settings</button>
+    <button id="leave">Leave</button>
+  </div>
+  <div id="vitals">
+    <div class="bar"><div id="hpbar"></div></div>
+    <b id="hp">100</b><span>HP</span>
+    <span id="stance" class="stance-pill">STAND</span>
+  </div>
+  <div id="weapons">
+    <div class="wep on" data-w="0"><span class="key">1</span><span class="wname">AK-47</span><span class="ammo-count">30</span></div>
+    <div class="wep" data-w="1"><span class="key">2</span><span class="wname">Shotgun</span><span class="ammo-count">8</span></div>
+    <div class="wep" data-w="2"><span class="key">3</span><span class="wname">Sniper</span><span class="ammo-count">5</span></div>
+    <div class="wep" data-w="3"><span class="key">4</span><span class="wname">SMG</span><span class="ammo-count">40</span></div>
+    <div class="wep" data-w="4"><span class="key">5</span><span class="wname">LMG</span><span class="ammo-count">75</span></div>
+    <div class="wep" data-w="5"><span class="key">6</span><span class="wname">Knife</span><span class="ammo-count">∞</span></div>
+  </div>
+  <div id="ammo-row">
+    <div id="grenades" title="Grenades (G)">💣 2</div>
+    <div id="ammo">30 / 30</div>
+  </div>
+  <div id="center" hidden></div>
+  <div id="scoreboard" hidden><table></table></div>
+</div>
+<!--SCRIPT-->
+</body>
+</html>

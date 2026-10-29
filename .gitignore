@@ -1,0 +1,21 @@
+# LAN_FPS .gitignore
+
+# Runtime match data & peer notice board
+_LAN_FPS_DATA/
+
+# Node.js dependencies
+source/node_modules/
+
+# Test artifacts and temporary screenshots
+source/test/screenshot*
+source/test/debug*
+
+# Backups and temporary files
+*.bak
+*.tmp
+*.log
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
