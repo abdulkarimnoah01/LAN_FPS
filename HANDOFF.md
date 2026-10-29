@@ -1,6 +1,6 @@
-# LAN_FPS — Agent Handoff Document
+# Spectre Orbit — Agent Handoff Document
 
-> **Project**: LAN_FPS  
+> **Project**: Spectre Orbit (repo and file names remain LAN_FPS)  
 > **Repository**: [https://github.com/abdulkarimnoah01/LAN_FPS](https://github.com/abdulkarimnoah01/LAN_FPS)  
 > **Current Version**: `v1.4.2` (Branch: `main`)  
 > **Architecture**: Zero-dependency standalone HTML5 bundle (`LAN_FPS.html`), P2P WebRTC DataChannel, shared-folder signaling, client prediction + authoritative host.
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary & Philosophy
 
-`LAN_FPS` is a serverless, zero-install, zero-dependency multiplayer first-person shooter designed for PCs on the same local studio or home network. 
+`Spectre Orbit` (file: `LAN_FPS.html`) is a serverless, zero-install, zero-dependency multiplayer first-person shooter designed for PCs on the same local studio or home network. 
 
 ### Core Design Rules
 1. **Single File Distribution**: The entire game compiles into a single, standalone HTML file (`LAN_FPS.html`, ~12.5 MB) containing inlined scripts, Three.js, styles, procedural audio synthesizers, 8 base64-encoded rigged humanoid operatives, and 3 open-source FPS arenas.

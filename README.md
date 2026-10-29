@@ -1,4 +1,4 @@
-# LAN_FPS
+# Spectre Orbit
 
 A small low-poly first-person deathmatch for PCs on the same studio network.
 It is one HTML file (`LAN_FPS.html`) with everything built in: no install, no server, no internet.
