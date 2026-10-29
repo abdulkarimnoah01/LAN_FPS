@@ -47,6 +47,15 @@ async function downloadUpdateFile(e) {
   }
 }
 
+// True when version a is newer than b (dotted numbers); a stale or older remote never counts as an update.
+function isNewer(a, b) {
+  const pa = String(a).split('.').map(n => parseInt(n, 10) || 0), pb = String(b).split('.').map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0);
+  }
+  return false;
+}
+
 async function checkUpdate(manual = false) {
   const btn = $('btn-check-update');
   const banner = $('update-banner');
@@ -55,7 +64,7 @@ async function checkUpdate(manual = false) {
     const res = await fetch(UPDATE_CONFIG.versionUrl, { cache: 'no-cache' });
     if (!res.ok) throw new Error('Status ' + res.status);
     const data = await res.json();
-    if (data.version && data.version !== CURRENT_VERSION) {
+    if (data.version && isNewer(data.version, CURRENT_VERSION)) {
       if (banner) {
         $('update-title').textContent = `New update available: v${data.version}`;
         $('update-notes').textContent = data.notes ? `(${data.notes})` : '';
