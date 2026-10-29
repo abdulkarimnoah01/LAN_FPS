@@ -25,25 +25,62 @@ const UPDATE_CONFIG = {
   bundleUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/LAN_FPS.html',
 };
 
-async function downloadUpdateFile(e) {
-  if (e) e.preventDefault();
-  const dlBtn = $('btn-download-update');
-  if (dlBtn) dlBtn.textContent = 'Downloading…';
+/* In-place update: the page asks once for its own LAN_FPS.html (File System Access API), keeps
+   that handle, and rewrites the file with the published build, then reloads. Browsers without the
+   API fall back to a plain download. */
+const canWriteInPlace = () => typeof window.showSaveFilePicker === 'function';
+
+// Needs a user gesture: re-asks permission for the remembered file, or opens the picker the first time.
+async function getUpdateTarget() {
+  const saved = await idb('readonly', s => s.get('updateTarget')).catch(() => null);
+  if (saved) {
+    try {
+      const opts = { mode: 'readwrite' };
+      if ((await saved.queryPermission(opts)) === 'granted' || (await saved.requestPermission(opts)) === 'granted') return saved;
+    } catch {}
+  }
+  const handle = await window.showSaveFilePicker({
+    suggestedName: 'LAN_FPS.html',
+    types: [{ description: 'LAN_FPS game file', accept: { 'text/html': ['.html'] } }],
+  });
+  idb('readwrite', s => s.put(handle, 'updateTarget')).catch(() => {});  // remembered for next time; never blocks the update
+  return handle;
+}
+
+async function applyUpdate(info, setStatus) {
+  let target = null;
+  if (canWriteInPlace()) {
+    setStatus('Choose your LAN_FPS.html to update it…');
+    try { target = await getUpdateTarget(); }
+    catch (e) { if (e?.name === 'AbortError') { setStatus('Update cancelled'); return; } }
+  }
+  setStatus(`Downloading v${info.version}…`);
   try {
-    const res = await fetch(UPDATE_CONFIG.bundleUrl);
+    const res = await fetch(UPDATE_CONFIG.bundleUrl, { cache: 'no-cache' });
     if (!res.ok) throw new Error('Status ' + res.status);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+    const text = await res.text();
+    // Never overwrite the game with a truncated page or a stale cached build.
+    if (text.length < 1e6 || !/^\s*<!doctype html/i.test(text) || !text.includes('LANFPS_VERSION=' + JSON.stringify(info.version))) {
+      setStatus('Build still publishing, try again in a few minutes');
+      return;
+    }
+    if (target) {
+      const out = await target.createWritable();
+      await out.write(text);
+      await out.close();
+      setStatus(`Updated to v${info.version}, restarting…`);
+      setTimeout(() => location.reload(), 900);
+      return;
+    }
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/html' }));
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'LAN_FPS.html';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    a.href = url; a.download = 'LAN_FPS.html';
+    document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
-    if (dlBtn) dlBtn.textContent = '✓ Downloaded! Replace LAN_FPS.html';
+    setStatus('Downloaded: replace LAN_FPS.html with it');
   } catch (err) {
-    window.open(UPDATE_CONFIG.bundleUrl, '_blank');
+    console.warn('Update failed:', err);
+    setStatus('Update failed. Try again');
   }
 }
 
@@ -65,17 +102,21 @@ async function checkUpdate(manual = false) {
     if (!res.ok) throw new Error('Status ' + res.status);
     const data = await res.json();
     if (data.version && isNewer(data.version, CURRENT_VERSION)) {
+      const dlBtn = $('btn-download-update');
+      const setStatus = text => { if (dlBtn) dlBtn.textContent = text; if (btn) btn.textContent = text; };
       if (banner) {
         $('update-title').textContent = `New update available: v${data.version}`;
         $('update-notes').textContent = data.notes ? `(${data.notes})` : '';
-        const dlBtn = $('btn-download-update');
         if (dlBtn) {
           dlBtn.href = UPDATE_CONFIG.bundleUrl;
-          dlBtn.onclick = downloadUpdateFile;
+          dlBtn.textContent = canWriteInPlace() ? 'Update Now' : 'Download Update';
+          dlBtn.onclick = e => { e.preventDefault(); applyUpdate(data, setStatus); };
         }
         banner.hidden = false;
       }
       if (btn) btn.textContent = `Update available (v${data.version})`;
+      // Pressing the button means "update me": do it right away, while the click still counts as a gesture.
+      if (manual) await applyUpdate(data, setStatus);
     } else {
       if (btn) {
         btn.textContent = `Up to date (v${CURRENT_VERSION})`;
