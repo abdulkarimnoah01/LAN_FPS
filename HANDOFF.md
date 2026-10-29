@@ -2,7 +2,7 @@
 
 > **Project**: LAN_FPS  
 > **Repository**: [https://github.com/abdulkarimnoah01/LAN_FPS](https://github.com/abdulkarimnoah01/LAN_FPS)  
-> **Current Version**: `v1.1.0` (Branch: `main`)  
+> **Current Version**: `v1.2.0` (Branch: `main`)  
 > **Architecture**: Zero-dependency standalone HTML5 bundle (`LAN_FPS.html`), P2P WebRTC DataChannel, shared-folder signaling, client prediction + authoritative host.
 
 ---
@@ -54,6 +54,12 @@
    - In-game `Check for updates` button in the lobby header.
    - `Publish_Update.bat` / `publish_update.ps1`: 1-click build, test, version bump, commit, and push.
    - Public GitHub repository: [https://github.com/abdulkarimnoah01/LAN_FPS](https://github.com/abdulkarimnoah01/LAN_FPS).
+
+9. **FieldLink Tactical UI & Hero Roster 3D Showcase (v1.2.0)**:
+   - Modernized tactical interface (`source/src/ui.js`, `source/src/heroes.js`, `source/style.css`): step indicators (Identify -> Connect -> Deploy), operator profiles, and link architecture diagram.
+   - Dedicated 3D operative roster screen with real-time character inspection, archetype badges, and weapon signatures.
+   - Fixed character skeletal rigs and combat animations.
+
 
 ---
 
