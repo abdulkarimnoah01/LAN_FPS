@@ -341,8 +341,8 @@ export class NetGuest {
       if (pc.connectionState === 'failed') break;
       await sleep(answered ? 50 : 250);
     }
-    if (!answered) fail(`${room.host}'s game did not answer. Their LAN_FPS tab may be closed or asleep, or the shared folder is slow to update. Try again in a moment.`);
-    fail(`Could not open a direct link to ${room.host}'s PC. LAN_FPS needs a direct PC-to-PC connection on the local network; the shared folder is only used to find each other and is far too slow for real-time play. Check that both PCs are on the same network (no VPN), and that the firewall allows Chrome/Edge on private networks.`);
+    if (!answered) fail(`${room.host}'s game did not answer. Their Spectre Orbit tab may be closed or asleep, or the shared folder is slow to update. Try again in a moment.`);
+    fail(`Could not open a direct link to ${room.host}'s PC. Spectre Orbit needs a direct PC-to-PC connection on the local network; the shared folder is only used to find each other and is far too slow for real-time play. Check that both PCs are on the same network (no VPN), and that the firewall allows Chrome/Edge on private networks.`);
   }
   send(msg, fast = false) {
     const ch = fast ? this.fast : this.rel;

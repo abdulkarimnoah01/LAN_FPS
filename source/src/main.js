@@ -41,7 +41,7 @@ async function getUpdateTarget() {
   }
   const handle = await window.showSaveFilePicker({
     suggestedName: 'LAN_FPS.html',
-    types: [{ description: 'LAN_FPS game file', accept: { 'text/html': ['.html'] } }],
+    types: [{ description: 'Spectre Orbit game file', accept: { 'text/html': ['.html'] } }],
   });
   idb('readwrite', s => s.put(handle, 'updateTarget')).catch(() => {});  // remembered for next time; never blocks the update
   return handle;

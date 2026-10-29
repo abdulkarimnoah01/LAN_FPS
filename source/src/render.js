@@ -23,7 +23,7 @@ export async function loadAssets(embedded = globalThis.LANFPS_ASSETS || {}) {
       const gltf = await loader.parseAsync(gz ? await unzip(b64) : Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer, '');
       return { scene: gltf.scene, animations: gltf.animations || [] };
     } catch (e) {
-      console.warn(`LAN_FPS: could not load ${label}, using the placeholder`, e); return null;
+      console.warn(`Spectre Orbit: could not load ${label}, using the placeholder`, e); return null;
     }
   };
   for (const name of ['arena', 'player', 'weapon']) if (embedded[name]) {
@@ -404,7 +404,7 @@ export function buildWorld(assets, mapType = 'foundry', mapSeed = 0) {
       const b = new THREE.Box3().setFromObject(o);
       return [b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z];
     });
-    if (spawns.length < 2) console.warn('LAN_FPS: arena.glb has fewer than 2 SPAWN_ empties; using built-in spawn points');
+    if (spawns.length < 2) console.warn('Spectre Orbit: arena.glb has fewer than 2 SPAWN_ empties; using built-in spawn points');
     return { boxes, spawns: spawns.length >= 2 ? spawns : defaultArena().spawns, gltf: scene, theme: 'arena' };
   }
   return getMap(mapType, mapSeed);
