@@ -17,9 +17,10 @@ export const charId = name => String(name || '').toLowerCase().replace(/[^a-z0-9
 
 export async function loadAssets(embedded = globalThis.LANFPS_ASSETS || {}) {
   const loader = new GLTFLoader(), out = { config: embedded.config || {} };
-  const parse = async (b64, label) => {
+  const unzip = async b64 => new Response(new Blob([Uint8Array.from(atob(b64), c => c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  const parse = async (b64, label, gz = false) => {
     try {
-      const gltf = await loader.parseAsync(Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer, '');
+      const gltf = await loader.parseAsync(gz ? await unzip(b64) : Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer, '');
       return { scene: gltf.scene, animations: gltf.animations || [] };
     } catch (e) {
       console.warn(`LAN_FPS: could not load ${label}, using the placeholder`, e); return null;
@@ -34,8 +35,8 @@ export async function loadAssets(embedded = globalThis.LANFPS_ASSETS || {}) {
   if (embedded.maps) {
     for (const [id, m] of Object.entries(embedded.maps)) {
       out.maps[id] = { ...m };
-      if (m.glb) {
-        const res = await parse(m.glb, `maps/${id}.glb`);
+      if (m.glb || m.glbz) {
+        const res = await parse(m.glbz || m.glb, `maps/${id}.glb`, !!m.glbz);
         if (res) out.maps[id].scene = res.scene;
       }
     }
@@ -569,8 +570,9 @@ export class View {
     // Sky as the clear colour, not scene.background: a colour background would
     // clear the frame again during the separate weapon pass.
     r.setClearColor(world.sky || SKY); scene.fog = new THREE.Fog(world.fog || SKY, 30, 95);
-    scene.add(new THREE.HemisphereLight('#eaf4ff', '#5b5246', 1.6));
-    const sun = new THREE.DirectionalLight('#fff3df', 2.2);
+    const hemi = this.hemi = new THREE.HemisphereLight('#eaf4ff', '#5b5246', 1.6);
+    scene.add(hemi);
+    const sun = this.sun = new THREE.DirectionalLight('#fff3df', 2.2);
     sun.position.set(14, 30, 8); sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -28, right: 28, top: 28, bottom: -28, near: 1, far: 80 });
     sun.shadow.bias = -0.0005;
@@ -645,6 +647,23 @@ export class View {
     this.buildVisuals(world);
   }
 
+  makeStars() {
+    const n = 900, pos = new Float32Array(n * 3);
+    let seed = 7;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < n; i++) {
+      const u = rnd() * Math.PI * 2, v = Math.acos(rnd() * 0.92 + 0.04);   // upper dome
+      const r = 180;
+      pos.set([Math.cos(u) * Math.sin(v) * r, Math.cos(v) * r, Math.sin(u) * Math.sin(v) * r], i * 3);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: '#cfe4ff', size: 1.6, sizeAttenuation: false, fog: false }));
+    pts.frustumCulled = false;
+    this.scene.add(pts);
+    return pts;
+  }
+
   buildVisuals(world) {
     const g = this.worldGroup;
     this.barrelMeshes.clear();
@@ -660,8 +679,34 @@ export class View {
     this.renderer.setClearColor(skyColor);
     this.scene.fog.color.set(world.fog || skyColor);
 
+    // Imported arenas carry baked lighting in their vertex colours, so they are drawn unlit
+    // (texture x baked light) and the live sun and shadows are not needed on them.
+    const baked = !!world.gltf && ['foundry', 'reactor', 'zenith'].includes(world.theme);
+    this.sun.castShadow = !baked;
+    this.sun.intensity = baked ? 0.45 : 2.2;
+    this.hemi.intensity = baked ? 1.25 : 1.6;
+    this.scene.fog.near = baked ? 40 : 30;
+    this.scene.fog.far = baked ? 170 : 95;
+    if (this.stars) { this.scene.remove(this.stars); this.stars.geometry.dispose(); this.stars = null; }
+    if (baked && world.theme === 'zenith') this.stars = this.makeStars();
     if (world.gltf) {
-      world.gltf.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } });
+      world.gltf.traverse(o => {
+        if (!o.isMesh) return;
+        if (baked) {
+          const swap = m => {
+            const n = m.name || '';
+            if (!n.startsWith('M_') && !n.startsWith('E_')) return m;
+            if (m.map) m.map.anisotropy = 4;
+            const mat = new THREE.MeshBasicMaterial({ map: m.map, vertexColors: !n.startsWith('E_'), side: THREE.DoubleSide });
+            mat.name = n;
+            return mat;
+          };
+          o.material = Array.isArray(o.material) ? o.material.map(swap) : swap(o.material);
+          o.castShadow = o.receiveShadow = false;
+        } else {
+          o.castShadow = o.receiveShadow = true;
+        }
+      });
       g.add(world.gltf);
 
       // Barrels for GLTF maps

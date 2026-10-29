@@ -2,7 +2,7 @@
 
 > **Project**: LAN_FPS  
 > **Repository**: [https://github.com/abdulkarimnoah01/LAN_FPS](https://github.com/abdulkarimnoah01/LAN_FPS)  
-> **Current Version**: `v1.4.0` (Branch: `main`)  
+> **Current Version**: `v1.4.2` (Branch: `main`)  
 > **Architecture**: Zero-dependency standalone HTML5 bundle (`LAN_FPS.html`), P2P WebRTC DataChannel, shared-folder signaling, client prediction + authoritative host.
 
 ---
@@ -19,7 +19,14 @@
 
 ---
 
-## 2. Recent Upgrades (v1.4.0: OPERATION: MAPFORGE)
+## 2. Recent Upgrades
+### v1.4.2: map rebuild
+- Map pipeline lives in `source/tools/map_pipeline/`; run with Blender 5.2.3: `blender -b --python tools/map_pipeline/convert_map.py -- foundry glowplant zenith`, then `node tools/map_pipeline/generate_registry.mjs`. Paths are relative to the script. Scale is 0.025 m/unit (Xonotic 72 u = 1.8 m).
+- `textures.py` generates procedural tileable textures; `convert_map.py` bakes entity lights into vertex colours (Cycles). Runtime draws these maps unlit (`MeshBasicMaterial`, `DoubleSide`). Map GLBs are gzip-embedded (`glbz`) and unpacked via `DecompressionStream`.
+- `sim.js` has a grid broadphase for big maps, `world.hazards` (kill volumes) and the `killY` floor. Spawns are grounded, carry yaw and team (red/blue). Bots have a ledge guard.
+- Curved patches (pipes, lava surface) are not converted; textures are approximations.
+
+## 2b. v1.4.0: OPERATION: MAPFORGE
 
 1. **Three New Multiplayer Arenas**:
    - **Sector 06: Foundry Core (`foundry`)**: Compact industrial arena (FFA 2–6) based on Xonotic *Boil* by kuniu the frogg & Mirio. Molten casting pit, elevated catwalks, 201 collision boxes, 7 spawns, 2 jump pads, lava kill floor.

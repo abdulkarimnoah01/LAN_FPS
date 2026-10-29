@@ -6,6 +6,7 @@
 import { build } from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -38,8 +39,10 @@ if (fs.existsSync(mapsDir)) {
     const imgFile = path.join(mapsDir, id + '.jpg');
     assets.maps[id] = {};
     if (fs.existsSync(glbFile)) {
-      assets.maps[id].glb = fs.readFileSync(glbFile).toString('base64');
-      console.log(`  + assets/maps/${id}.glb (${(fs.statSync(glbFile).size / 1024).toFixed(0)} KB)`);
+      // Map vertex data is large and compresses well; the game unpacks it with DecompressionStream.
+      const raw = fs.readFileSync(glbFile), packed = zlib.gzipSync(raw, { level: 9 });
+      assets.maps[id].glbz = packed.toString('base64');
+      console.log(`  + assets/maps/${id}.glb (${(raw.length / 1024).toFixed(0)} KB, ${(packed.length / 1024).toFixed(0)} KB packed)`);
     }
     if (fs.existsSync(imgFile)) {
       assets.maps[id].preview = 'data:image/jpeg;base64,' + fs.readFileSync(imgFile).toString('base64');
@@ -50,7 +53,7 @@ const cfg = path.join(root, 'assets', 'assets.json');
 if (fs.existsSync(cfg)) assets.config = JSON.parse(fs.readFileSync(cfg, 'utf8'));
 
 const verFile = path.join(root, '..', 'version.json');
-let version = '1.4.1';
+let version = '1.4.2';
 if (fs.existsSync(verFile)) {
   try { version = JSON.parse(fs.readFileSync(verFile, 'utf8')).version || version; } catch {}
 }

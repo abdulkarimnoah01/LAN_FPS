@@ -1,6 +1,6 @@
 /* Authoritative match state. Only the host runs this: it applies every player's
    inputs, resolves shots, and owns health, kills, respawns, bots, barrels, grenades, and the round. */
-import { DT, RULES, WEAPONS, newPlayer, stepPlayer, castShot, PREDICTED, aim, rayBox, B } from './sim.js';
+import { DT, RULES, WEAPONS, newPlayer, stepPlayer, castShot, PREDICTED, aim, rayBox, supported, B } from './sim.js';
 
 const MAX_CREDIT = 10;   // inputs a player may bank (absorbs network bursts, stops speed-ups)
 const MAX_QUEUE = 120;
@@ -156,7 +156,7 @@ export class HostGame {
       p.threwGrenade = false;
       this.spawnGrenade(p);
     }
-    if (p.alive && p.y < -30) this.kill(p, null, false);
+    if (p.alive && (p.hp <= 0 || p.y < (this.world.killY ?? -30))) this.kill(p, null, false);
   }
 
   spawnGrenade(p) {
@@ -389,22 +389,31 @@ export class HostGame {
     this.events.push({ t: 'restart' });
   }
 
-  // Spawn at the point farthest from living opponents
+  // Spawn at the point farthest from living opponents (floors count, so a spawn
+  // directly above or below an enemy is no safer than one in the same room).
   spawn(p) {
-    const others = [...this.players.values()].filter(o => o !== p && o.alive);
-    let best = null, bestScore = -Infinity;
-    for (const s of this.world.spawns) {
-      const near = others.length ? Math.min(...others.map(o => Math.hypot(o.x - s.x, o.z - s.z))) : 100;
-      const score = near + this.random() * 2;
+    const others = [...this.players.values()].filter(o => o !== p && o.alive && (this.mode !== 'tdm' || o.team !== p.team));
+    let pool = this.world.spawns;
+    if (this.mode === 'tdm') {
+      const mine = pool.filter(s => s.team === p.team);
+      if (mine.length >= 2) pool = mine;
+    }
+    this.recentSpawns = this.recentSpawns || new Map();
+    let best = pool[0], bestScore = -Infinity;
+    for (const s of pool) {
+      const near = others.length ? Math.min(...others.map(o => Math.hypot(o.x - s.x, (o.y - s.y) * 1.5, o.z - s.z))) : 100;
+      const used = this.time - (this.recentSpawns.get(s) ?? -99);
+      const score = near + Math.min(0, used - 6) * 2 + this.random() * 2;
       if (score > bestScore) { bestScore = score; best = s; }
     }
+    this.recentSpawns.set(best, this.time);
     p.w = p.w || 0;
     p.ammos = WEAPONS.map(w => w.mag);
     p.grenades = 2;
     p.grenadeCd = 0;
     const curWep = WEAPONS[p.w] || WEAPONS[0];
     Object.assign(p, { x: best.x, y: best.y, z: best.z, vx: 0, vy: 0, vz: 0, g: false, hp: RULES.hp, ammo: curWep.mag, cd: 0, rl: 0, alive: true });
-    p.yaw = Math.atan2(best.x, best.z);
+    p.yaw = best.yaw ?? Math.atan2(best.x, best.z);
     p.pitch = 0;
     p.sp++;
   }
@@ -482,6 +491,28 @@ export class HostGame {
       } else {
         // Patrol
         buttons |= B.FWD;
+      }
+
+      // Never walk or jump off a ledge into a pit or the void: stop and turn instead.
+      if (bot.g) {
+        const f = ((buttons & B.FWD) ? 1 : 0) - ((buttons & B.BACK) ? 1 : 0);
+        const sd = ((buttons & B.RIGHT) ? 1 : 0) - ((buttons & B.LEFT) ? 1 : 0);
+        const sn = Math.sin(bot.yaw), cs = Math.cos(bot.yaw);
+        let mx = -sn * f + cs * sd, mz = -cs * f - sn * sd;
+        const spd = Math.hypot(bot.vx, bot.vz);
+        if (spd > 1.5) { mx = bot.vx; mz = bot.vz; }
+        const ml = Math.hypot(mx, mz);
+        // A jump near an edge carries the bot over it, so only jump with floor all around.
+        if ((buttons & B.JUMP) && !([[2.2, 0], [-2.2, 0], [0, 2.2], [0, -2.2]].every(([dx, dz]) => supported(this.world, bot.x + dx, bot.y, bot.z + dz)))) buttons &= ~B.JUMP;
+        if (ml > 0.01) {
+          const reach = 1.2 + spd * 0.3;
+          const ax = bot.x + mx / ml * reach, az = bot.z + mz / ml * reach;
+          const padAhead = (this.world.jumpPads || []).some(j => ax > j.box[0] - 0.6 && ax < j.box[3] + 0.6 && az > j.box[2] - 0.6 && az < j.box[5] + 0.6 && bot.y < j.box[4] + 0.5 && bot.y > j.box[1] - 2);
+          if (padAhead || !supported(this.world, ax, bot.y, az)) {
+            buttons &= ~(B.FWD | B.BACK | B.LEFT | B.RIGHT | B.JUMP);
+            bot.yaw += 0.6 + Math.random();
+          }
+        }
       }
 
       this.apply(bot, { seq: ++bot.seq, b: buttons, yaw: bot.yaw, pitch: bot.pitch, w: bot.w });

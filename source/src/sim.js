@@ -48,15 +48,53 @@ export function aim(yaw, pitch) {
 function overlaps(b, x, y, z, h = H_STAND) {
   return x + R > b[0] && x - R < b[3] && y + h > b[1] && y < b[4] && z + R > b[2] && z - R < b[5];
 }
+
+/* Big imported maps carry thousands of boxes, so movement only tests the ones near the
+   player. The index is built once per box list and lives on the world object. */
+const GRID = 4, REACH = 1.5;
+function nearBoxes(world, x, z) {
+  const boxes = world.boxes;
+  if (boxes.length < 64) return boxes;
+  let g = world._grid;
+  if (!g || g.src !== boxes || g.n !== boxes.length) {
+    g = world._grid = { src: boxes, n: boxes.length, cells: new Map() };
+    for (let i = 0; i < boxes.length; i++) {
+      const b = boxes[i];
+      for (let cx = Math.floor(b[0] / GRID); cx <= Math.floor(b[3] / GRID); cx++) {
+        for (let cz = Math.floor(b[2] / GRID); cz <= Math.floor(b[5] / GRID); cz++) {
+          const k = cx * 100003 + cz;
+          const c = g.cells.get(k);
+          if (c) c.push(i); else g.cells.set(k, [i]);
+        }
+      }
+    }
+  }
+  const out = [], seen = new Set();
+  for (let cx = Math.floor((x - REACH) / GRID); cx <= Math.floor((x + REACH) / GRID); cx++) {
+    for (let cz = Math.floor((z - REACH) / GRID); cz <= Math.floor((z + REACH) / GRID); cz++) {
+      const c = g.cells.get(cx * 100003 + cz);
+      if (c) for (const i of c) if (!seen.has(i)) { seen.add(i); out.push(i); }
+    }
+  }
+  out.sort((a, b) => a - b);
+  return out.map(i => boxes[i]);
+}
+/* True when something solid lies within `depth` below (or a step above) the point; bots use it to avoid ledges. */
+export function supported(world, x, y, z, depth = 1) {
+  for (const b of nearBoxes(world, x, z)) {
+    if (x >= b[0] && x <= b[3] && z >= b[2] && z <= b[5] && b[4] <= y + STEP && b[4] >= y - depth) return true;
+  }
+  return false;
+}
 function free(world, x, y, z, h = H_STAND) {
-  for (const b of world.boxes) if (overlaps(b, x, y, z, h)) return false;
+  for (const b of nearBoxes(world, x, z)) if (overlaps(b, x, y, z, h)) return false;
   return true;
 }
 
 function moveHorizontal(p, axis, d, world, h = H_STAND) {
   if (!d) return;
   p[axis] += d;
-  for (const b of world.boxes) {
+  for (const b of nearBoxes(world, p.x, p.z)) {
     if (!overlaps(b, p.x, p.y, p.z, h)) continue;
     const rise = b[4] - p.y;
     // Walk up low ledges and stairs instead of stopping dead.
@@ -69,7 +107,7 @@ function moveHorizontal(p, axis, d, world, h = H_STAND) {
 
 function moveVertical(p, d, world, h = H_STAND) {
   p.y += d; p.g = false;
-  for (const b of world.boxes) {
+  for (const b of nearBoxes(world, p.x, p.z)) {
     if (!overlaps(b, p.x, p.y, p.z, h)) continue;
     if (d <= 0) { p.y = b[4]; p.g = true; } else p.y = b[1] - h - EPS;
     p.vy = 0;
@@ -194,6 +232,9 @@ export function stepPlayer(p, inp, world) {
   // Hazard kill floor (pit/void/lava)
   if (world.killY !== undefined && p.y < world.killY) {
     p.hp = 0;
+  }
+  if (world.hazards) {
+    for (const hz of world.hazards) if (overlaps(hz, p.x, p.y, p.z, curH)) { p.hp = 0; break; }
   }
 
   return fired;

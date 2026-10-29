@@ -586,6 +586,7 @@ export function getMap(type = 'foundry', seed = 0) {
       spawns: m.spawns,
       barrels: (m.barrels || []).map(b => ({ ...b })),
       jumpPads: m.jumpPads || [],
+      hazards: m.hazards || [],
       killY: m.killY,
       sky: m.sky || '#101e28',
       fog: m.fog || '#152432',

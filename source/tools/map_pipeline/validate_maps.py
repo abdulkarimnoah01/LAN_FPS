@@ -17,7 +17,7 @@ def floor_below(boxes, x, y, z, r=0.35):
     return best
 
 def validate_map(map_key):
-    path = f'X:/Projects/game/LAN_FPS/source/assets/maps/processed/{map_key}.json'
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'assets', 'maps', 'processed', f'{map_key}.json')
     with open(path, 'r') as f:
         data = json.load(f)
         

@@ -768,6 +768,46 @@ test('jump pads launch players upward and hazard kill floors eliminate players',
   assert.equal(p.hp, 0, 'player eliminated when dropping below killY');
 });
 
+test('imported map spawns are standing on solid floor and stay put', async () => {
+  const { getMap } = await import('../src/arena.js');
+  const { newPlayer, stepPlayer } = await import('../src/sim.js');
+  for (const id of ['foundry', 'glowplant', 'zenith']) {
+    const world = getMap(id);
+    world.spawns.forEach((s, i) => {
+      const p = newPlayer('t', 't', 0);
+      Object.assign(p, { x: s.x, y: s.y, z: s.z, alive: true });
+      for (let k = 0; k < 180; k++) stepPlayer(p, { b: 0, yaw: 0, pitch: 0, w: 0 }, world);
+      assert.ok(p.g && p.hp > 0, `${id} spawn ${i} is grounded and alive after 3 s`);
+      assert.ok(Math.abs(p.y - s.y) < 0.05 && Math.hypot(p.x - s.x, p.z - s.z) < 0.05, `${id} spawn ${i} does not fall or slide`);
+    });
+  }
+});
+
+test('imported maps: team spawns, hazard volumes and the kill floor', async () => {
+  const { getMap } = await import('../src/arena.js');
+  const { HostGame } = await import('../src/hostgame.js');
+  const { newPlayer, stepPlayer } = await import('../src/sim.js');
+  const z = getMap('zenith');
+  assert.ok(z.spawns.filter(s => s.team === 'red').length >= 4 && z.spawns.filter(s => s.team === 'blue').length >= 4, 'zenith has team spawns');
+  const g = new HostGame(z, { mode: 'tdm', random: () => 0.5 });
+  const a = g.addPlayer('A', 'A', '', 'red'), b = g.addPlayer('B', 'B', '', 'blue');
+  for (let i = 0; i < 8; i++) {
+    g.spawn(a); g.spawn(b);
+    assert.equal(z.spawns.find(s => s.x === a.x && s.z === a.z).team, 'red', 'red spawns on a red point');
+    assert.equal(z.spawns.find(s => s.x === b.x && s.z === b.z).team, 'blue', 'blue spawns on a blue point');
+  }
+  const w = { boxes: [[-10, -1, -10, 10, 0, 10]], hazards: [[-2, -0.5, -2, 2, 2, 2]], killY: -20 };
+  const p = newPlayer('P', 'P', 0); Object.assign(p, { x: 0, y: 0, z: 0, alive: true, g: true });
+  stepPlayer(p, { b: 0, yaw: 0, pitch: 0, w: 0 }, w);
+  assert.equal(p.hp, 0, 'standing in a hazard volume is lethal');
+  const h = new HostGame({ boxes: [[-10, -1, -10, 10, 0, 10]], spawns: [{ x: 0, y: 0, z: 0 }, { x: 5, y: 0, z: 5 }], killY: -3 }, { random: () => 0 });
+  const q = h.addPlayer('Q', 'Q'); h.spawn(q);
+  q.x = 50; q.y = -3.5;
+  h.queueInput('Q', [[1, 0, 0, 0, 0]]);
+  for (let i = 0; i < 3; i++) h.step();
+  assert.equal(q.alive, false, 'falling under the kill floor is a death, not a zero-hp ghost');
+});
+
 test('rayBox stops weapon fire on imported map collision boxes', async () => {
   const { rayBox } = await import('../src/sim.js');
   const { getMap } = await import('../src/arena.js');
