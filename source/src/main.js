@@ -19,7 +19,7 @@ let lobby = null, session = null, view = null, world = null, assets = null, refr
 const hud = new Hud(), sound = new Sound();
 
 /* ---- online updater & version check ---- */
-const CURRENT_VERSION = window.LANFPS_VERSION || '1.3.3';
+const CURRENT_VERSION = window.LANFPS_VERSION || '1.4.1';
 const UPDATE_CONFIG = {
   versionUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/version.json',
   bundleUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/LAN_FPS.html',
@@ -233,6 +233,18 @@ const rosterChars = () => assets.characters.filter(c => !SKIN_OF[c.id]);
 let currentRosterColor = '#f0a640';
 let currentRosterAnim = 'idle';
 
+let lobbyPortrait = null;
+function drawLobbyPortrait() {
+  if (!lobbyPortrait) return;
+  const canvas = $('lobby-portrait'), w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return;
+  lobbyPortrait.renderer.setSize(w, h, false);
+  lobbyPortrait.camera.aspect = w / h;
+  lobbyPortrait.camera.position.set(0, 1.6, 1.55);
+  lobbyPortrait.camera.lookAt(0, 1.45, 0);
+  lobbyPortrait.camera.updateProjectionMatrix();
+  lobbyPortrait.renderer.render(lobbyPortrait.scene, lobbyPortrait.camera);
+}
 function updateLobbyHeroCard() {
   if (!assets || !assets.characters || assets.characters.length === 0) return;
   const activeId = store.get('char', assets.characters[0]?.id || 'abdulkarim');
@@ -244,6 +256,16 @@ function updateLobbyHeroCard() {
   if ($('hero-equipped-name')) $('hero-equipped-name').textContent = hero.name;
   if ($('hero-equipped-badge')) $('hero-equipped-badge').textContent = hero.classType || 'ASSAULT';
   if ($('hero-equipped-role')) $('hero-equipped-role').textContent = `${hero.title} · Signature: ${hero.signatureWeapon}`;
+  // A still portrait from the equipped game model; no extra animation loop.
+  if ($('lobby-portrait')) {
+    if (!lobbyPortrait) {
+      lobbyPortrait = new CharacterPreview($('lobby-portrait'), assets);
+      new ResizeObserver(drawLobbyPortrait).observe($('lobby-portrait'));
+    }
+    lobbyPortrait.show(heroChar.id);
+    lobbyPortrait.previewModel?.userData?.mixer?.update(0);
+    drawLobbyPortrait();
+  }
 }
 
 function openHeroRoster(selectedHeroId = null) {

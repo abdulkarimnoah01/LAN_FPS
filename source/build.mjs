@@ -50,7 +50,7 @@ const cfg = path.join(root, 'assets', 'assets.json');
 if (fs.existsSync(cfg)) assets.config = JSON.parse(fs.readFileSync(cfg, 'utf8'));
 
 const verFile = path.join(root, '..', 'version.json');
-let version = '1.3.3';
+let version = '1.4.1';
 if (fs.existsSync(verFile)) {
   try { version = JSON.parse(fs.readFileSync(verFile, 'utf8')).version || version; } catch {}
 }
@@ -59,10 +59,17 @@ const script = s => '<script>' + s.replace(/<\/script/gi, '<\\/script') + '</scr
 // Allow raw.githubusercontent.com for online update checks and downloads
 const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; worker-src blob:; style-src 'unsafe-inline'; img-src data: blob:; connect-src data: blob: https://raw.githubusercontent.com; media-src data: blob:; base-uri 'none'; form-action 'none'">`;
 
+// Bundle the local UI artwork as data URLs, preserving single-file offline play.
+const css = ['style.css', 'reference.css'].map(name => fs.readFileSync(path.join(root, name), 'utf8')).join('\n')
+  .replace(/url\(["']?assets\/ui\/([^"')]+)["']?\)/g, (_, name) => {
+    const mime = /\.png$/i.test(name) ? 'image/png' : 'image/jpeg';
+    return `url("data:${mime};base64,${fs.readFileSync(path.join(root, 'assets', 'ui', name)).toString('base64')}")`;
+  });
+
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8')
   .replace('<meta charset="utf-8">', '<meta charset="utf-8">' + csp)
   .replace(/id="game-version"([^>]*)>v[^<]*</, `id="game-version"$1>v${version}<`)
-  .replace('<!--STYLE-->', () => '<style>' + fs.readFileSync(path.join(root, 'style.css'), 'utf8') + '</style>')
+  .replace('<!--STYLE-->', () => '<style>' + css + '</style>')
   .replace('<!--SCRIPT-->', () => script(`window.LANFPS_VERSION=${JSON.stringify(version)};window.LANFPS_ASSETS=` + JSON.stringify(assets) + ';') + '\n' + script(js));
 
 fs.writeFileSync(out, html);

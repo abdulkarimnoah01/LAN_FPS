@@ -18,6 +18,10 @@ export function updateBriefing() {
   $('map-description').textContent = data[1];
   $('map-index').textContent = `SECTOR ${String(Object.keys(MAPS).indexOf(map) + 1).padStart(2, '0')} / 08`;
   document.querySelector('.map-briefing').dataset.map = map;
+  const sourcePreview = window.LANFPS_ASSETS?.maps?.[map]?.preview;
+  $('map-thumbnail').style.backgroundImage = sourcePreview ? `url("${sourcePreview}")` : '';
+  $('map-thumbnail').setAttribute('aria-label', sourcePreview ? `${data[0]}: original source map preview` : `${data[0]}: actual in-game ${map === 'sandbox' ? 'sample; each room generates different terrain' : 'capture'}`);
+  $('map-capture-label').textContent = sourcePreview ? 'SOURCE MAP PREVIEW' : map === 'sandbox' ? 'IN-GAME SAMPLE' : 'IN-GAME CAPTURE';
   $('match-rules').innerHTML = `<b>${$('mode-select').value === 'tdm' ? 25 : 10}</b> kills to win <span> / </span> 2–6 players`;
 }
 
@@ -36,6 +40,8 @@ export function connectedUI(label) {
   $('create-hint').textContent = local ? 'Practice mode uses this browser’s storage. Open a second tab to join.' : 'Your room stays available while the host’s game is open.';
   $('term-uplink').textContent = local ? 'local / practice' : 'shared / mounted';
   $('terminal-session-status').textContent = 'Uplink ready. Join a room or create a match.';
+  $('lamp-network').classList.add('lit');
+  $('lamp-network').setAttribute('aria-label', local ? 'Local practice uplink configured' : 'Shared folder uplink configured');
 }
 
 export function roomCountUI(count) {
@@ -69,12 +75,15 @@ export function initInterface() {
   const identity = () => {
     const name = $('name').value.trim();
     $('term-operator').textContent = name || 'not assigned';
-    $('identity-step').classList.toggle('complete', !!name);
-    $('identity-step').querySelector('.step-state').textContent = name ? '✓' : '—';
-    $('rail-identity-label').textContent = name || 'Set your callsign';
+    $('lamp-identity').classList.toggle('lit', !!name);
+    $('lamp-identity').setAttribute('aria-label', name ? 'Callsign assigned' : 'Callsign not assigned');
   };
   $('name').addEventListener('input', identity);
   identity();
+  $('network-step').addEventListener('click', () => {
+    if ($('create').disabled) $('choose').click();
+    else $('network-panel').scrollIntoView({ block:'nearest', behavior:document.documentElement.classList.contains('reduce-motion') ? 'auto' : 'smooth' });
+  });
   // Mirror real connection/recovery messages at the top of the terminal.
   // This status region is the single live announcer; the detailed message remains below.
   const message = $('message');
@@ -82,7 +91,10 @@ export function initInterface() {
   const reflectStatus = () => {
     const hasMessage = !message.hidden && !!message.textContent;
     sessionStatus.textContent = hasMessage ? message.textContent : ($('create').disabled ? 'Select an uplink to begin.' : 'Uplink ready. Join a room or create a match.');
-    sessionStatus.parentElement.classList.toggle('terminal-error', hasMessage && message.classList.contains('error'));
+    const error = hasMessage && message.classList.contains('error');
+    sessionStatus.parentElement.classList.toggle('terminal-error', error);
+    $('lamp-alert').classList.toggle('lit', error);
+    $('lamp-alert').setAttribute('aria-label', error ? 'Session error; see status message' : 'No session error');
   };
   new MutationObserver(reflectStatus).observe(message, { childList:true, characterData:true, subtree:true, attributes:true, attributeFilter:['hidden','class'] });
   updateBriefing();

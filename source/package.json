@@ -1,1 +1,1 @@
-{"name":"lan-fps","private":true,"type":"module","scripts":{"build":"node build.mjs","test":"node test/run.mjs"},"devDependencies":{"esbuild":"0.24.0","three":"0.170.0"}}
+{"name":"lan-fps","private":true,"type":"module","scripts":{"build":"node build.mjs","test":"node test/run.mjs","test:ui":"node test/ui-bundle.mjs"},"devDependencies":{"esbuild":"0.24.0","three":"0.170.0"}}
