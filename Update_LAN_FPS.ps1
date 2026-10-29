@@ -24,6 +24,11 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir
 
+# Ensure modern TLS protocols for GitHub API / raw downloads
+try {
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]'Tls12,Tls13'
+} catch {}
+
 # Colors & Formatting
 function Write-Header {
     Write-Host ""
@@ -97,10 +102,9 @@ $Updated = $false
 # -------------------------------------------------------------
 if ($IsGitInstalled -and $IsGitRepo) {
     Write-Info "Git detected in local repository. Using Git update mode..."
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     try {
-        $prevEAP = $ErrorActionPreference
-        $ErrorActionPreference = "Continue"
-
         # Check remote origin
         $remotes = & git remote
         if (-not ($remotes -contains "origin")) {
@@ -114,8 +118,6 @@ if ($IsGitInstalled -and $IsGitRepo) {
         $localHash = (& git rev-parse HEAD 2>$null).Trim()
         $remoteHash = (& git rev-parse "origin/$($Config.branch)" 2>$null).Trim()
 
-        $ErrorActionPreference = $prevEAP
-
         if ($localHash -and $remoteHash -and $localHash -eq $remoteHash -and -not $Force) {
             Write-Success "LAN_FPS is already up to date! (Commit: $($localHash.Substring(0,7)))"
             $Updated = $true
@@ -126,8 +128,11 @@ if ($IsGitInstalled -and $IsGitRepo) {
             }
 
             Write-Info "Pulling updates from origin/$($Config.branch)..."
-            $pullOut = & git pull --rebase origin $Config.branch 2>&1
-            Write-Host $pullOut -ForegroundColor DarkGray
+            $pullOut = & git pull --rebase origin $Config.branch 2>$null
+            if ($LASTEXITCODE -ne 0) {
+                throw "Git pull returned exit code $LASTEXITCODE"
+            }
+            if ($pullOut) { Write-Host $pullOut -ForegroundColor DarkGray }
 
             $Updated = $true
             Write-Success "Git update completed successfully!"
@@ -143,13 +148,15 @@ if ($IsGitInstalled -and $IsGitRepo) {
         }
     } catch {
         Write-Warn "Git update encountered an issue: $_. Falling back to direct Web download..."
+    } finally {
+        $ErrorActionPreference = $prevEAP
     }
 }
 
 # -------------------------------------------------------------
 # MODE 2: Web API / Direct Download Update (Zero-dependency fallback)
 # -------------------------------------------------------------
-if (-not $Updated -and (-not $IsGitRepo -or -not $IsGitInstalled -or $Force)) {
+if (-not $Updated) {
     Write-Info "Using Web download updater mode..."
 
     # 1. Fetch remote version info
