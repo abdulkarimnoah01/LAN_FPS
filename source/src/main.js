@@ -19,11 +19,33 @@ let lobby = null, session = null, view = null, world = null, assets = null, refr
 const hud = new Hud(), sound = new Sound();
 
 /* ---- online updater & version check ---- */
-const CURRENT_VERSION = '1.1.0';
+const CURRENT_VERSION = window.LANFPS_VERSION || '1.2.0';
 const UPDATE_CONFIG = {
   versionUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/version.json',
   bundleUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/LAN_FPS.html',
 };
+
+async function downloadUpdateFile(e) {
+  if (e) e.preventDefault();
+  const dlBtn = $('btn-download-update');
+  if (dlBtn) dlBtn.textContent = 'Downloading…';
+  try {
+    const res = await fetch(UPDATE_CONFIG.bundleUrl);
+    if (!res.ok) throw new Error('Status ' + res.status);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'LAN_FPS.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    if (dlBtn) dlBtn.textContent = '✓ Downloaded! Replace LAN_FPS.html';
+  } catch (err) {
+    window.open(UPDATE_CONFIG.bundleUrl, '_blank');
+  }
+}
 
 async function checkUpdate(manual = false) {
   const btn = $('btn-check-update');
@@ -38,21 +60,25 @@ async function checkUpdate(manual = false) {
         $('update-title').textContent = `New update available: v${data.version}`;
         $('update-notes').textContent = data.notes ? `(${data.notes})` : '';
         const dlBtn = $('btn-download-update');
-        if (dlBtn) dlBtn.href = UPDATE_CONFIG.bundleUrl;
+        if (dlBtn) {
+          dlBtn.href = UPDATE_CONFIG.bundleUrl;
+          dlBtn.onclick = downloadUpdateFile;
+        }
         banner.hidden = false;
       }
       if (btn) btn.textContent = `Update available (v${data.version})`;
     } else {
       if (btn) {
-        btn.textContent = 'Up to date';
-        setTimeout(() => { if (btn) btn.textContent = 'Check for updates'; }, 3000);
+        btn.textContent = `Up to date (v${CURRENT_VERSION})`;
+        setTimeout(() => { if (btn) btn.textContent = 'Check for updates'; }, 4000);
       }
       if (manual && banner) banner.hidden = true;
     }
   } catch (e) {
+    console.warn('Update check failed:', e);
     if (btn) {
       btn.textContent = manual ? 'Offline / Unreachable' : 'Check for updates';
-      if (manual) setTimeout(() => { if (btn) btn.textContent = 'Check for updates'; }, 3000);
+      if (manual) setTimeout(() => { if (btn) btn.textContent = 'Check for updates'; }, 4000);
     }
   }
 }
