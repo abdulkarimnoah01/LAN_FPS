@@ -161,8 +161,8 @@ def build_idle(total):
         t = (f - 1) / (total - 1) * math.pi * 2
         # Hips breathing
         pb_hips = arm_obj.pose.bones['Hips']
-        pb_hips.location.z = math.sin(t) * 0.006
-        pb_hips.keyframe_insert(data_path='location', index=2, frame=f)
+        pb_hips.location.y = math.sin(t) * 0.006
+        pb_hips.keyframe_insert(data_path='location', index=1, frame=f)
 
         # Chest breathing
         pb_chest = arm_obj.pose.bones['Chest']
@@ -202,10 +202,10 @@ def build_run(total):
         t = (f - 1) / total * math.pi * 2
         # Hips vertical bounce and yaw sway
         pb_hips = arm_obj.pose.bones['Hips']
-        pb_hips.location.z = -abs(math.sin(t * 2)) * 0.05
-        pb_hips.rotation_euler.z = math.sin(t) * 0.08
-        pb_hips.keyframe_insert(data_path='location', index=2, frame=f)
-        pb_hips.keyframe_insert(data_path='rotation_euler', index=2, frame=f)
+        pb_hips.location.y = -abs(math.sin(t * 2)) * 0.05
+        pb_hips.rotation_euler.y = math.sin(t) * 0.08
+        pb_hips.keyframe_insert(data_path='location', index=1, frame=f)
+        pb_hips.keyframe_insert(data_path='rotation_euler', index=1, frame=f)
 
         # Forward athletic lean
         pb_chest = arm_obj.pose.bones['Chest']
@@ -213,7 +213,8 @@ def build_run(total):
         pb_chest.rotation_euler.z = -math.sin(t) * 0.06
         pb_chest.keyframe_insert(data_path='rotation_euler', frame=f)
 
-        # Legs stride: thighs swing forward/back, knees bend BACKWARD (negative X)
+        # Legs stride. The character faces -Y, so bone-local +X swings a leg backward:
+        # thighs swing +/-, knees only flex positive (shin folds behind the thigh)
         leg_amp = math.radians(44)
         knee_amp = math.radians(65)
         pb_uleg_l = arm_obj.pose.bones['UpperLeg.L']
@@ -222,9 +223,9 @@ def build_run(total):
         pb_lleg_r = arm_obj.pose.bones['LowerLeg.R']
 
         pb_uleg_l.rotation_euler.x = math.sin(t) * leg_amp
-        pb_lleg_l.rotation_euler.x = min(0.0, math.sin(t - 0.5) * knee_amp)
+        pb_lleg_l.rotation_euler.x = max(0.0, math.sin(t - math.pi / 2) * knee_amp)
         pb_uleg_r.rotation_euler.x = -math.sin(t) * leg_amp
-        pb_lleg_r.rotation_euler.x = min(0.0, -math.sin(t - 0.5) * knee_amp)
+        pb_lleg_r.rotation_euler.x = max(0.0, math.sin(t + math.pi / 2) * knee_amp)
 
         pb_uleg_l.keyframe_insert(data_path='rotation_euler', frame=f)
         pb_lleg_l.keyframe_insert(data_path='rotation_euler', frame=f)
@@ -262,10 +263,10 @@ def build_walk(total):
     for f in range(1, total + 1):
         t = (f - 1) / total * math.pi * 2
         pb_hips = arm_obj.pose.bones['Hips']
-        pb_hips.location.z = -abs(math.sin(t * 2)) * 0.025
-        pb_hips.rotation_euler.z = math.sin(t) * 0.04
-        pb_hips.keyframe_insert(data_path='location', index=2, frame=f)
-        pb_hips.keyframe_insert(data_path='rotation_euler', index=2, frame=f)
+        pb_hips.location.y = -abs(math.sin(t * 2)) * 0.025
+        pb_hips.rotation_euler.y = math.sin(t) * 0.04
+        pb_hips.keyframe_insert(data_path='location', index=1, frame=f)
+        pb_hips.keyframe_insert(data_path='rotation_euler', index=1, frame=f)
 
         leg_amp = math.radians(26)
         knee_amp = math.radians(38)
@@ -275,9 +276,9 @@ def build_walk(total):
         pb_lleg_r = arm_obj.pose.bones['LowerLeg.R']
 
         pb_uleg_l.rotation_euler.x = math.sin(t) * leg_amp
-        pb_lleg_l.rotation_euler.x = min(0.0, math.sin(t - 0.4) * knee_amp)
+        pb_lleg_l.rotation_euler.x = max(0.0, math.sin(t - math.pi / 2) * knee_amp)
         pb_uleg_r.rotation_euler.x = -math.sin(t) * leg_amp
-        pb_lleg_r.rotation_euler.x = min(0.0, -math.sin(t - 0.4) * knee_amp)
+        pb_lleg_r.rotation_euler.x = max(0.0, math.sin(t + math.pi / 2) * knee_amp)
 
         pb_uleg_l.keyframe_insert(data_path='rotation_euler', frame=f)
         pb_lleg_l.keyframe_insert(data_path='rotation_euler', frame=f)
@@ -313,12 +314,14 @@ create_action('walk', 32, build_walk)
 def build_crouch(total):
     for f in range(1, total + 1):
         t = (f - 1) / (total - 1) * math.pi * 2
-        # Hips lower to 0.60m and move slightly back to balance center of gravity
+        # Deep crouch: thighs forward (-70 deg), shins fold back (+120 deg), feet flat (-50 deg).
+        # With those angles the ankle sits 0.107 m ahead of the hip and the hip drops 0.43 m,
+        # so shifting Hips by (+0.107 back, -0.43 down) keeps the feet planted on the floor.
+        # Hips is a +Z bone, so its pose-space location is (x, y = world up, z = world back-to-front).
         pb_hips = arm_obj.pose.bones['Hips']
-        pb_hips.location = Vector((0, -0.10, -0.36 + math.sin(t) * 0.005))
+        pb_hips.location = Vector((0, -0.43 + math.sin(t) * 0.005, -0.107))
         pb_hips.keyframe_insert(data_path='location', frame=f)
 
-        # Thighs forward (+52 deg), calves backward (-82 deg), feet flat (+30 deg)
         pb_uleg_l = arm_obj.pose.bones['UpperLeg.L']
         pb_lleg_l = arm_obj.pose.bones['LowerLeg.L']
         pb_foot_l = arm_obj.pose.bones['Foot.L']
@@ -327,13 +330,13 @@ def build_crouch(total):
         pb_lleg_r = arm_obj.pose.bones['LowerLeg.R']
         pb_foot_r = arm_obj.pose.bones['Foot.R']
 
-        pb_uleg_l.rotation_euler.x = math.radians(52)
-        pb_lleg_l.rotation_euler.x = -math.radians(82)
-        pb_foot_l.rotation_euler.x = math.radians(30)
+        pb_uleg_l.rotation_euler.x = -math.radians(70)
+        pb_lleg_l.rotation_euler.x = math.radians(120)
+        pb_foot_l.rotation_euler.x = -math.radians(50)
 
-        pb_uleg_r.rotation_euler.x = math.radians(52)
-        pb_lleg_r.rotation_euler.x = -math.radians(82)
-        pb_foot_r.rotation_euler.x = math.radians(30)
+        pb_uleg_r.rotation_euler.x = -math.radians(70)
+        pb_lleg_r.rotation_euler.x = math.radians(120)
+        pb_foot_r.rotation_euler.x = -math.radians(50)
 
         pb_uleg_l.keyframe_insert(data_path='rotation_euler', frame=f)
         pb_lleg_l.keyframe_insert(data_path='rotation_euler', frame=f)
@@ -382,7 +385,7 @@ def build_die(total):
         slide_y = -0.35 * fall_prog
 
         pb_hips = arm_obj.pose.bones['Hips']
-        pb_hips.location = Vector((0, slide_y, drop_z))
+        pb_hips.location = Vector((0, drop_z, slide_y))  # y = world up, z = world fore/aft
         pb_hips.rotation_euler.x = fall_angle
         pb_hips.keyframe_insert(data_path='location', frame=f)
         pb_hips.keyframe_insert(data_path='rotation_euler', frame=f)
