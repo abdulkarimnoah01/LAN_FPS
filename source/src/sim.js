@@ -176,6 +176,26 @@ export function stepPlayer(p, inp, world) {
   moveHorizontal(p, 'x', p.vx * DT, world, curH);
   moveHorizontal(p, 'z', p.vz * DT, world, curH);
   moveVertical(p, p.vy * DT, world, curH);
+
+  // Jump pads
+  if (world.jumpPads && world.jumpPads.length) {
+    for (let j = 0; j < world.jumpPads.length; j++) {
+      const pad = world.jumpPads[j];
+      if (overlaps(pad.box, p.x, p.y, p.z, curH)) {
+        p.vy = pad.vy || 14.5;
+        if (pad.vx) p.vx = pad.vx;
+        if (pad.vz) p.vz = pad.vz;
+        p.g = false;
+        p.onJumpPad = true;
+      }
+    }
+  }
+
+  // Hazard kill floor (pit/void/lava)
+  if (world.killY !== undefined && p.y < world.killY) {
+    p.hp = 0;
+  }
+
   return fired;
 }
 

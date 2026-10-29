@@ -1,6 +1,6 @@
 {
-  "version": "1.3.3",
+  "version": "1.4.0",
   "name": "LAN_FPS",
   "date": "2026-10-29",
-  "notes": "Check for updates now updates LAN_FPS.html in place and restarts, no manual download"
+  "notes": "OPERATION: MAPFORGE - Added 3 new open-source FPS arenas (Foundry Core, Reactor Complex, Zenith Atrium) with velocity jump pads, hazard floors, and full collision pipeline"
 }

@@ -574,7 +574,25 @@ export function riverForestMap() {
 }
 
 /* Factory returning the map requested */
-export function getMap(type = 'aftermath', seed = 0) {
+import { MAPS_REGISTRY } from './maps_registry.js';
+
+export function getMap(type = 'foundry', seed = 0) {
+  if (MAPS_REGISTRY && MAPS_REGISTRY[type]) {
+    const m = MAPS_REGISTRY[type];
+    return {
+      id: m.id,
+      boxes: m.boxes,
+      visuals: [],
+      spawns: m.spawns,
+      barrels: (m.barrels || []).map(b => ({ ...b })),
+      jumpPads: m.jumpPads || [],
+      killY: m.killY,
+      sky: m.sky || '#101e28',
+      fog: m.fog || '#152432',
+      theme: m.theme || type,
+      getSurface: (x, y, z) => (m.theme === 'foundry' || m.theme === 'reactor' ? 'metal' : 'concrete'),
+    };
+  }
   if (type === 'aftermath') return aftermathMap();
   if (type === 'river') return riverForestMap();
   if (type === 'forest') return forestMap();

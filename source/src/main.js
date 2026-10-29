@@ -571,10 +571,19 @@ function showGame(on) {
 async function host(char) {
   if (session || !assets) return;
   const roomName = cleanName($('room-name').value, 32, playerName() + "'s room");
-  const map = $('map-select')?.value || 'aftermath';
+  const map = $('map-select')?.value || 'foundry';
   const mode = $('mode-select')?.value || 'ffa';
   const seed = map === 'sandbox' ? Math.floor(Math.random() * 900000 + 100000) : 0;
-  const mapTitle = { aftermath: 'Aftermath (MoH Ruins)', river: 'River Forest', forest: 'Pine Forest', sandbox: 'Random Sandbox', arena: 'Classic Arena' }[map] || 'Aftermath';
+  const mapTitle = {
+    foundry: 'Foundry Core',
+    glowplant: 'Reactor Complex',
+    zenith: 'Zenith Atrium',
+    aftermath: 'Aftermath (MoH Ruins)',
+    river: 'River Forest',
+    forest: 'Pine Forest',
+    sandbox: 'Random Sandbox',
+    arena: 'Classic Arena'
+  }[map] || 'Foundry Core';
   const modeTitle = mode === 'tdm' ? 'Team Deathmatch' : 'Free For All';
   if (typeof char !== 'string') char = await chooseCharacter(`Creating "${roomName}" · ${mapTitle} · ${modeTitle}`);
   if (!char || session) return;
@@ -596,10 +605,19 @@ async function host(char) {
 
 async function join(room, char) {
   if (session || !assets) return;
-  const map = room.map || 'aftermath';
+  const map = room.map || 'foundry';
   const seed = room.seed || 0;
   const mode = room.mode || 'ffa';
-  const mapTitle = { aftermath: 'Aftermath (MoH Ruins)', river: 'River Forest', forest: 'Pine Forest', sandbox: 'Random Sandbox', arena: 'Classic Arena' }[map] || 'Aftermath';
+  const mapTitle = {
+    foundry: 'Foundry Core',
+    glowplant: 'Reactor Complex',
+    zenith: 'Zenith Atrium',
+    aftermath: 'Aftermath (MoH Ruins)',
+    river: 'River Forest',
+    forest: 'Pine Forest',
+    sandbox: 'Random Sandbox',
+    arena: 'Classic Arena'
+  }[map] || 'Foundry Core';
   const modeTitle = mode === 'tdm' ? 'Team Deathmatch' : 'Free For All';
   if (typeof char !== 'string') char = await chooseCharacter(`Joining "${room.name}" · ${mapTitle} · ${modeTitle} · hosted by ${room.host}`);
   if (!char || session) return;

@@ -29,6 +29,17 @@ export async function loadAssets(embedded = globalThis.LANFPS_ASSETS || {}) {
     const res = await parse(embedded[name], name + '.glb');
     if (res) out[name] = res.scene;
   }
+  // Processed maps: assets/maps/processed/<id>.glb
+  out.maps = {};
+  if (embedded.maps) {
+    for (const [id, m] of Object.entries(embedded.maps)) {
+      out.maps[id] = { ...m };
+      if (m.glb) {
+        const res = await parse(m.glb, `maps/${id}.glb`);
+        if (res) out.maps[id].scene = res.scene;
+      }
+    }
+  }
   // Selectable characters: assets/characters/*.glb, then player.glb, then the built-in robot.
   out.characters = [];
   for (const c of embedded.characters || []) {
@@ -367,7 +378,17 @@ export class HeroViewer {
    meshes named COL_* are invisible colliders (their world bounding boxes),
    empties named SPAWN_* are spawn points. Without COL_ meshes, every mesh's
    bounding box collides. */
-export function buildWorld(assets, mapType = 'forest', mapSeed = 0) {
+export function buildWorld(assets, mapType = 'foundry', mapSeed = 0) {
+  if (assets?.maps?.[mapType]) {
+    const base = getMap(mapType, mapSeed);
+    const m = assets.maps[mapType];
+    const scene = m.scene ? m.scene.clone() : null;
+    return {
+      ...base,
+      gltf: scene,
+      preview: m.preview || null,
+    };
+  }
   if (mapType === 'arena' && assets.arena) {
     const scene = assets.arena;
     scene.updateMatrixWorld(true);
@@ -642,6 +663,39 @@ export class View {
     if (world.gltf) {
       world.gltf.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } });
       g.add(world.gltf);
+
+      // Barrels for GLTF maps
+      if (world.barrels) {
+        for (const b of world.barrels) {
+          const r = b.r || 0.42, bh = b.h || 1.1;
+          const barrel = new THREE.Mesh(new THREE.CylinderGeometry(r, r, bh, 10), flatMat(b.color || 'barrelRust'));
+          barrel.position.set(b.x, (b.y || 0) + bh / 2, b.z);
+          barrel.castShadow = true; barrel.receiveShadow = true;
+          if (b.id) this.barrelMeshes.set(b.id, barrel);
+          g.add(barrel);
+        }
+      }
+
+      // Jump pad launch platforms
+      if (world.jumpPads && world.jumpPads.length) {
+        for (const jp of world.jumpPads) {
+          const [minX, minY, minZ, maxX, maxY, maxZ] = jp.box;
+          const w = Math.max(1.4, maxX - minX), d = Math.max(1.4, maxZ - minZ);
+          const padMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(w, 0.14, d),
+            new THREE.MeshStandardMaterial({
+              color: '#0284c7',
+              emissive: '#38bdf8',
+              emissiveIntensity: 0.8,
+              roughness: 0.3,
+              metalness: 0.8
+            })
+          );
+          padMesh.position.set((minX + maxX) / 2, minY + 0.07, (minZ + maxZ) / 2);
+          padMesh.receiveShadow = true;
+          g.add(padMesh);
+        }
+      }
     } else {
       for (const v of world.visuals) {
         if (v.type === 'tree') {

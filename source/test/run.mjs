@@ -699,6 +699,89 @@ test('hero roster defines all tactical operatives and provides dynamic fallback 
   assert.ok(custom.stats.mobility > 0, 'fallback has stats');
 });
 
+test('MAPS_REGISTRY defines foundry, glowplant, and zenith with complete schemas', async () => {
+  const { MAPS_REGISTRY, getRegisteredMap } = await import('../src/maps_registry.js');
+  assert.ok(MAPS_REGISTRY.foundry, 'foundry registered');
+  assert.ok(MAPS_REGISTRY.glowplant, 'glowplant registered');
+  assert.ok(MAPS_REGISTRY.zenith, 'zenith registered');
+
+  for (const id of ['foundry', 'glowplant', 'zenith']) {
+    const m = getRegisteredMap(id);
+    assert.ok(m, `${id} found via getRegisteredMap`);
+    assert.ok(m.title, `${id} has title`);
+    assert.ok(m.sector, `${id} has sector`);
+    assert.ok(m.boxes && m.boxes.length > 50, `${id} has collision boxes`);
+    assert.ok(m.spawns && m.spawns.length >= 4, `${id} has at least 4 spawns`);
+    assert.ok(m.supportedModes.includes('ffa'), `${id} supports FFA`);
+    assert.ok(m.supportedModes.includes('tdm'), `${id} supports TDM`);
+    assert.ok(Array.isArray(m.recommendedPlayers) && m.recommendedPlayers.length === 2, `${id} has player range`);
+  }
+});
+
+test('imported maps have collision boxes, valid spawns, and jump pads', async () => {
+  const { getMap } = await import('../src/arena.js');
+  const { R, H_STAND } = await import('../src/sim.js');
+
+  const overlaps = (b, x, y, z) => (
+    x + R > b[0] && x - R < b[3] &&
+    y + H_STAND > b[1] && y < b[4] &&
+    z + R > b[2] && z - R < b[5]
+  );
+
+  for (const id of ['foundry', 'glowplant', 'zenith']) {
+    const world = getMap(id);
+    assert.ok(world.boxes.length > 0, `${id} world has boxes`);
+    assert.ok(world.spawns.length >= 4, `${id} world has spawns`);
+    
+    // Check that NO spawn is stuck inside a collision box
+    for (let i = 0; i < world.spawns.length; i++) {
+      const s = world.spawns[i];
+      const inBox = world.boxes.some(b => overlaps(b, s.x, s.y, s.z));
+      assert.ok(!inBox, `${id} spawn ${i} at (${s.x}, ${s.y}, ${s.z}) is clear of collision boxes`);
+    }
+
+    if (world.jumpPads && world.jumpPads.length) {
+      assert.ok(world.jumpPads.every(jp => Array.isArray(jp.box) && jp.box.length === 6), `${id} jump pads valid`);
+    }
+  }
+});
+
+test('jump pads launch players upward and hazard kill floors eliminate players', async () => {
+  const { stepPlayer, newPlayer } = await import('../src/sim.js');
+  const customWorld = {
+    boxes: [[-10, -1, -10, 10, 0, 10]],
+    jumpPads: [{ box: [-1, 0, -1, 1, 0.5, 1], vy: 16.0 }],
+    killY: -5.0
+  };
+
+  const p = newPlayer('P1', 'Tester', 0);
+  p.x = 0; p.y = 0.05; p.z = 0; p.g = true; p.alive = true;
+  
+  // Step onto jump pad
+  stepPlayer(p, { b: 0, yaw: 0, pitch: 0, w: 0 }, customWorld);
+  assert.ok(p.vy >= 15.0, `player launched by jump pad (vy=${p.vy})`);
+  assert.equal(p.g, false, 'player is airborne');
+
+  // Fall into void below killY
+  p.y = -6.0;
+  stepPlayer(p, { b: 0, yaw: 0, pitch: 0, w: 0 }, customWorld);
+  assert.equal(p.hp, 0, 'player eliminated when dropping below killY');
+});
+
+test('rayBox stops weapon fire on imported map collision boxes', async () => {
+  const { rayBox } = await import('../src/sim.js');
+  const { getMap } = await import('../src/arena.js');
+  const world = getMap('foundry');
+
+  const b0 = world.boxes[0];
+  const center = [(b0[0] + b0[3]) / 2, (b0[1] + b0[4]) / 2, (b0[2] + b0[5]) / 2];
+  const origin = [center[0], center[1], b0[2] - 5]; // 5m outside front face
+  const dir = [0, 0, 1]; // fire straight at front face
+
+  const hitDist = rayBox(origin, dir, b0, 100);
+  assert.ok(hitDist >= 4.9 && hitDist <= 5.1, `rayBox intersected map box at dist ${hitDist}`);
+});
+
 let failed = 0;
 for (const t of tests) {
   try { await t.fn(); console.log('  ok  ' + t.name); }

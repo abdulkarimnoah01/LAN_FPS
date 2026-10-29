@@ -1,6 +1,9 @@
 /* Presentation-only state, accessible menu shells, and offline map briefings. */
 const $ = id => document.getElementById(id);
 const MAPS = {
+  foundry: ['Foundry Core', 'Molten industrial casting pit. Elevated catwalks. Fast CQB encounters.'],
+  glowplant: ['Reactor Complex', 'Sub-orbital nuclear facility with pulsating blue plasma cores and dual jump pads.'],
+  zenith: ['Zenith Atrium', 'High-altitude vertical multi-tier sky arena with velocity jump pads and vertigo sightlines.'],
   aftermath: ['Aftermath', 'Ruined streets. Tight corners. Urban combat.'],
   river: ['River Forest', 'A river valley divided by bridges and sightlines.'],
   forest: ['Pine Forest', 'Pine cover and open ground. Watch your flanks.'],
@@ -10,10 +13,10 @@ const MAPS = {
 
 export function updateBriefing() {
   const map = $('map-select').value;
-  const data = MAPS[map] || MAPS.aftermath;
+  const data = MAPS[map] || MAPS.foundry;
   $('map-title').textContent = data[0];
   $('map-description').textContent = data[1];
-  $('map-index').textContent = `SECTOR ${String(Object.keys(MAPS).indexOf(map) + 1).padStart(2, '0')} / 05`;
+  $('map-index').textContent = `SECTOR ${String(Object.keys(MAPS).indexOf(map) + 1).padStart(2, '0')} / 08`;
   document.querySelector('.map-briefing').dataset.map = map;
   $('match-rules').innerHTML = `<b>${$('mode-select').value === 'tdm' ? 25 : 10}</b> kills to win <span> / </span> 2–6 players`;
 }

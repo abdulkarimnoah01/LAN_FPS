@@ -29,6 +29,23 @@ if (fs.existsSync(charDir)) {
   assets.characters = fs.readdirSync(charDir).filter(f => /\.glb$/i.test(f)).sort()
     .map(f => { console.log(`  + assets/characters/${f}`); return { name: f.replace(/\.glb$/i, ''), glb: fs.readFileSync(path.join(charDir, f)).toString('base64') }; });
 }
+// Processed multiplayer maps: assets/maps/processed/<id>.glb
+const mapsDir = path.join(root, 'assets', 'maps', 'processed');
+if (fs.existsSync(mapsDir)) {
+  assets.maps = {};
+  for (const id of ['foundry', 'glowplant', 'zenith']) {
+    const glbFile = path.join(mapsDir, id + '.glb');
+    const imgFile = path.join(mapsDir, id + '.jpg');
+    assets.maps[id] = {};
+    if (fs.existsSync(glbFile)) {
+      assets.maps[id].glb = fs.readFileSync(glbFile).toString('base64');
+      console.log(`  + assets/maps/${id}.glb (${(fs.statSync(glbFile).size / 1024).toFixed(0)} KB)`);
+    }
+    if (fs.existsSync(imgFile)) {
+      assets.maps[id].preview = 'data:image/jpeg;base64,' + fs.readFileSync(imgFile).toString('base64');
+    }
+  }
+}
 const cfg = path.join(root, 'assets', 'assets.json');
 if (fs.existsSync(cfg)) assets.config = JSON.parse(fs.readFileSync(cfg, 'utf8'));
 
