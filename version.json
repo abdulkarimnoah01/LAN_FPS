@@ -1,6 +1,6 @@
 {
-  "version": "1.2.0",
+  "version": "1.2.1",
   "name": "LAN_FPS",
   "date": "2026-10-29",
-  "notes": "FieldLink UI overhaul, 3D Hero Roster showcase, and fixed character skeletal rigs & combat animations"
+  "notes": "Fixed crouch, walk and run animations: legs, knees and hips on all rigged characters"
 }
