@@ -1,6 +1,6 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "name": "LAN_FPS",
   "date": "2026-10-29",
-  "notes": "Added AI Bots, Grenades & Throwables, Exploding Barrels, Team Deathmatch (TDM), Surface Footstep Audio, 3D glTF Skeletal Animations, and Lobby Fixes"
+  "notes": "FieldLink UI overhaul, 3D Hero Roster showcase, and fixed character skeletal rigs & combat animations"
 }
