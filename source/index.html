@@ -3,20 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LAN_FPS</title>
+<title>LAN_FPS · Fieldlink</title>
 <!--STYLE-->
 </head>
 <body>
 <main id="lobby">
-  <header>
+  <header class="masthead">
     <div class="header-row">
-      <h1>LAN<span>_</span>FPS</h1>
+      <a class="wordmark" href="#lobby" aria-label="LAN FPS home"><span class="brand-mark" aria-hidden="true">╬</span> LAN_FPS <span class="wordmark-sub">FIELDLINK / LOCAL COMBAT SYSTEM</span></a>
       <div class="version-row">
         <span id="game-version" class="badge-none">v1.1.0</span>
+        <button id="btn-header-roster" class="ghost" type="button">Operative roster ↗</button>
         <button id="btn-check-update" class="ghost" type="button">Check for updates</button>
       </div>
     </div>
-    <p>Low-poly deathmatch for the studio network · first to 10 kills · 2–6 players</p>
     <div id="update-banner" hidden>
       <div class="update-info">
         <b id="update-title">New update available!</b>
@@ -28,76 +28,107 @@
       </div>
     </div>
   </header>
-
-  <section class="panel">
-    <h2>1 · You</h2>
-    <label>Name <input id="name" maxlength="20" placeholder="Your name" autocomplete="off"></label>
-    <div class="row">
-      <label>Mouse <input id="sens" type="range" min="5" max="100"></label>
-      <label>Volume <input id="volume" type="range" min="0" max="100"></label>
-      <button id="btn-settings-lobby" class="ghost" type="button" style="margin-left: auto;">⚙ Controls & Sensitivity</button>
+  <section class="hero-banner" aria-labelledby="game-title">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="tiny-cross" aria-hidden="true">+</span> STUDIO DEATHMATCH / 2–6 PLAYERS</p>
+      <h1 id="game-title">LAN<span>_</span>FPS<span class="title-period">/01</span></h1>
+      <div class="hero-baseline"><h2>Close network.<br>Close quarters.</h2><p>Your people. Your battleground.<br>Direct peer-to-peer combat on your local network.</p></div>
+    </div>
+    <div class="network-schematic" aria-label="Connection architecture: shared folder for discovery, direct PC-to-PC link for gameplay">
+      <div class="schematic-heading"><span>LINK ARCHITECTURE</span><span>01 / P2P</span></div>
+      <svg viewBox="0 0 360 146" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1"><path class="discovery-path" d="M66 90V34H294V90M180 34V17" stroke-dasharray="4 5"/><rect x="146" y="5" width="68" height="24" rx="1"/><path d="M134 108H226" stroke-width="2"/><path d="m142 103-8 5 8 5m76-10 8 5-8 5"/><rect x="20" y="74" width="112" height="64"/><rect x="228" y="74" width="112" height="64"/><path d="M30 126h92m116 0h92M40 84h12m196 0h12"/></g><g fill="currentColor" font-family="Consolas,monospace" font-size="12" text-anchor="middle"><text x="180" y="22">FOLDER</text><text x="76" y="112">HOST PC</text><text x="284" y="112">YOUR PC</text><text x="180" y="93">DIRECT</text></g></svg>
+      <div class="schematic-footer"><span>NO CENTRAL SERVER</span><span>100% LOCAL</span></div>
     </div>
   </section>
-
-  <section class="panel">
-    <h2>2 · Shared folder</h2>
-    <p class="hint">Pick the same network folder on every PC (for example the studio share). It is only used to list rooms and introduce PCs to each other; the game itself runs over a direct link.</p>
+  <nav class="deployment-rail" aria-label="Deployment setup">
+    <a href="#identity-panel" class="rail-step complete"><span class="step-number">01</span><span>IDENTIFY <small>Set your callsign</small></span><span class="step-state" aria-hidden="true">✓</span></a>
+    <a href="#network-panel" class="rail-step current" id="network-step" aria-current="step"><span class="step-number">02</span><span>CONNECT <small id="rail-network-label">Choose a shared folder</small></span><span class="step-state" aria-hidden="true">↗</span></a>
+    <a href="#rooms-panel" class="rail-step" id="match-step"><span class="step-number">03</span><span>DEPLOY <small>Join or create a match</small></span><span class="step-state" aria-hidden="true">→</span></a>
+  </nav>
+  <div class="console-grid">
+  <div class="setup-column">
+  <section class="panel" id="identity-panel" aria-labelledby="identity-title">
+    <div class="panel-heading"><h2 id="identity-title"><span class="section-index">01</span> Operator profile</h2><span class="micro-label">PERSONNEL</span></div>
+    <label class="field-label" for="name">Callsign</label><input id="name" maxlength="20" placeholder="Enter your name" autocomplete="off">
+    <div class="hero-equipped-card" id="hero-equipped-card">
+      <div class="hero-equipped-avatar" id="hero-equipped-avatar" aria-hidden="true">01</div>
+      <div class="hero-equipped-info">
+        <span class="hero-equipped-label">ACTIVE OPERATIVE</span>
+        <div class="hero-equipped-name-row">
+          <b id="hero-equipped-name">Kimo</b>
+          <span id="hero-equipped-badge" class="badge">ASSAULT</span>
+        </div>
+        <span id="hero-equipped-role" class="hint">Assault Specialist · Signature: AK-47</span>
+      </div>
+      <button id="btn-lobby-roster" class="btn-roster-launch" type="button" aria-label="Change operative in hero roster">↗</button>
+    </div>
     <div class="row">
-      <button id="choose">Choose shared folder…</button>
+      <label>Mouse <output id="sens-value" for="sens">22</output><input id="sens" aria-label="Mouse sensitivity" type="range" min="5" max="100"></label>
+      <label>Audio <output id="volume-value" for="volume">50%</output><input id="volume" aria-label="Audio volume" type="range" min="0" max="100"></label>
+    </div>
+    <button id="btn-settings-lobby" class="ghost settings-launch" type="button">Controls & sensitivity <span aria-hidden="true">↗</span></button>
+  </section>
+
+  <section class="panel network-panel" id="network-panel" aria-labelledby="network-title">
+    <div class="panel-heading"><h2 id="network-title"><span class="section-index">02</span> Network uplink</h2><span class="status-label" id="network-status">NOT CONNECTED</span></div>
+    <p class="hint">Choose the same shared network folder on every PC. It introduces players; combat uses a direct connection.</p>
+    <div class="network-actions">
+      <button id="choose">Choose shared folder <span aria-hidden="true">↗</span></button>
       <button id="reconnect" hidden></button>
-      <button id="local" class="ghost">This PC only (test in two tabs)</button>
+      <button id="local" class="ghost">Practice on this PC <span class="button-note">Two-tab test</span></button>
     </div>
-    <p class="hint">Folder: <b id="folder-name">none</b></p>
+    <p class="folder-readout"><span>DIRECTORY</span> <b id="folder-name">No folder selected</b></p>
   </section>
-
-  <section class="panel" id="rooms-panel" hidden>
-    <h2>3 · Rooms</h2>
+  </div>
+  <section class="panel matches-panel" id="rooms-panel" aria-labelledby="rooms-title">
+    <div class="panel-heading"><h2 id="rooms-title"><span class="section-index">03</span> Match terminal</h2><span class="status-label" id="room-count">AWAITING UPLINK</span></div>
+    <div class="room-browser">
+    <div class="subheading"><h3>Available rooms</h3><span class="micro-label">LOCAL DISCOVERY</span></div>
     <ul id="rooms"></ul>
-    <p id="no-rooms" class="hint">No rooms yet. Create one below.</p>
-    <div class="row">
-      <input id="room-name" maxlength="32" placeholder="Room name" autocomplete="off">
-      <select id="map-select" title="Choose map mode">
-        <option value="aftermath">Aftermath (Medal of Honor Ruins)</option>
-        <option value="river">River Forest (River Valley & Bridges)</option>
-        <option value="forest">Pine Forest (Classic)</option>
-        <option value="sandbox">Random Sandbox (Procedural)</option>
-        <option value="arena">Arena (Retro)</option>
-      </select>
-      <select id="mode-select" title="Choose game mode">
-        <option value="ffa">Free For All (Deathmatch)</option>
-        <option value="tdm">Team Deathmatch (TDM)</option>
-      </select>
-      <button id="create">Create room</button>
+    <div id="no-rooms" class="empty-state"><span class="empty-symbol" aria-hidden="true">⌁</span><div><b id="empty-title">Find your local squad.</b><p id="empty-description">Connect a shared folder to discover rooms, or use this PC to practice.</p></div></div>
+    </div>
+    <div class="match-config">
+      <div class="subheading"><h3>Host a new match</h3><span class="micro-label">YOU SET THE FIELD</span></div>
+      <div class="map-briefing" data-map="aftermath"><div class="map-grid" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div><div class="map-copy"><span class="micro-label" id="map-index">SECTOR 01 / 05</span><h3 id="map-title">Aftermath</h3><p id="map-description">Ruined streets. Tight corners. Urban combat.</p></div><span class="map-coordinate" aria-hidden="true">+<br>+</span></div>
+      <div class="match-fields">
+        <label class="field-label room-name-field">Room name<input id="room-name" maxlength="32" placeholder="Name your battleground" autocomplete="off"></label>
+        <label class="field-label">Battlefield<select id="map-select" title="Choose map mode"><option value="aftermath">Aftermath · Urban ruins</option><option value="river">River Forest · Valley & bridges</option><option value="forest">Pine Forest · Classic</option><option value="sandbox">Random Sandbox · Procedural</option><option value="arena">Arena · Retro classic</option></select></label>
+        <label class="field-label">Rules of engagement<select id="mode-select" title="Choose game mode"><option value="ffa">Free For All</option><option value="tdm">Team Deathmatch</option></select></label>
+      </div>
+      <div class="create-row"><p class="hint" id="match-rules"><b>10</b> kills to win <span> / </span> 2–6 players</p><button id="create" disabled>Create room <span aria-hidden="true">→</span></button></div>
+      <p class="hint" id="create-hint">Connect a shared folder or select practice to unlock hosting.</p>
     </div>
   </section>
-
-  <p id="message" hidden></p>
-  <footer>WASD move · C / Ctrl crouch · Space jump · Mouse aim · Click shoot · Right-click aim · V / F melee attack · G grenade · 1–6 / Scroll switch weapons · Q quick switch · R reload · Tab scores · Esc settings / release mouse</footer>
+  </div>
+  <p id="message" role="status" aria-live="polite" hidden></p>
+  <footer class="lobby-footer"><span>FIELD MANUAL /</span><span><kbd>W A S D</kbd> Move</span><span><kbd>R</kbd> Reload</span><span><kbd>G</kbd> Grenade</span><span><kbd>1–6</kbd> Weapons</span><span><kbd>Tab</kbd> Scores</span><span><kbd>Esc</kbd> Release mouse</span><span class="footer-note">BUILT FOR YOUR LOCAL NETWORK.</span></footer>
 </main>
 
-<div id="select" hidden>
+<div id="select" role="dialog" aria-modal="true" aria-labelledby="select-title" hidden>
   <div class="select-card">
-    <h2>Choose your character</h2>
+    <p class="eyebrow">DEPLOYMENT / PERSONNEL CHECK</p>
+    <h2 id="select-title">Choose your operative.</h2>
     <p id="select-sub" class="hint"></p>
     <div class="stage">
       <button id="char-prev" class="ghost arrow" aria-label="Previous character">‹</button>
-      <canvas id="preview"></canvas>
+      <canvas id="preview" aria-label="Selected operative 3D preview"></canvas>
       <button id="char-next" class="ghost arrow" aria-label="Next character">›</button>
     </div>
     <div id="char-name"></div>
     <div id="char-list"></div>
     <div class="row actions">
       <button id="select-back" class="ghost">Back</button>
-      <button id="select-go">Play</button>
+      <button id="select-open-roster" class="ghost" type="button">Open dossier ↗</button>
+      <button id="select-go">Deploy →</button>
     </div>
     <p class="hint">← → to browse · Enter to play · Esc to go back</p>
   </div>
 </div>
 
-<div id="settings-modal" hidden>
+<div id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
   <div class="settings-card">
     <div class="settings-header">
-      <h2>⚙ Settings & Controls</h2>
+      <div><p class="eyebrow">OPERATOR CONFIGURATION</p><h2 id="settings-title">Tune your equipment.</h2></div>
       <button id="settings-close" class="ghost icon-btn" aria-label="Close settings">✕</button>
     </div>
 
@@ -110,7 +141,7 @@
     <div id="tab-mouse" class="tab-content">
       <div class="setting-item">
         <div class="setting-label">
-          <span>Look Sensitivity</span>
+          <label for="opt-sens">Look sensitivity</label>
           <span id="opt-sens-num" class="badge">22</span>
         </div>
         <input id="opt-sens" type="range" min="5" max="100" value="22">
@@ -118,14 +149,14 @@
 
       <div class="setting-item">
         <div class="setting-label">
-          <span>ADS Zoom Sensitivity</span>
+          <label for="opt-ads-sens">ADS zoom sensitivity</label>
           <span id="opt-ads-sens-num" class="badge">0.80x</span>
         </div>
         <input id="opt-ads-sens" type="range" min="10" max="200" step="5" value="80">
       </div>
 
       <div class="setting-item row-setting">
-        <label for="opt-invert-y">Invert Y-Axis (Pitch)</label>
+        <label for="opt-invert-y">Invert Y-axis</label>
         <input id="opt-invert-y" type="checkbox">
       </div>
 
@@ -135,6 +166,10 @@
           <button id="opt-crouch-hold" class="btn-choice on" type="button">Hold</button>
           <button id="opt-crouch-toggle" class="btn-choice" type="button">Toggle</button>
         </div>
+      </div>
+      <div class="setting-item row-setting">
+        <label for="opt-reduced-motion">Reduce interface motion <span class="hint">Still previews and instant transitions</span></label>
+        <input id="opt-reduced-motion" type="checkbox">
       </div>
     </div>
 
@@ -149,6 +184,134 @@
 
     <div class="settings-footer">
       <button id="settings-done" type="button">Apply & Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="hero-roster-modal" role="dialog" aria-modal="true" aria-labelledby="roster-title" hidden>
+  <div class="roster-card">
+    <div class="roster-header">
+      <div class="roster-title-block">
+        <p class="eyebrow">PERSONNEL ARCHIVE / 3D INSPECTION</p>
+        <h2 id="roster-title">The operative roster.</h2>
+        <p class="hint">Inspect your crew. Choose your identity. Enter the field.</p>
+      </div>
+      <button id="roster-close" class="ghost icon-btn" aria-label="Close roster" type="button">✕</button>
+    </div>
+
+    <div class="roster-content">
+      <!-- Left: Operative List -->
+      <div class="roster-sidebar">
+        <div class="roster-sidebar-title">
+          <span>OPERATIVES</span>
+          <span id="roster-count" class="counter">4 / 4</span>
+        </div>
+        <div id="roster-cards" class="roster-cards"></div>
+      </div>
+
+      <!-- Center: 3D Stage & Interactive Viewport -->
+      <div class="roster-stage-area">
+        <div class="roster-viewport">
+          <canvas id="roster-canvas" tabindex="0" role="img" aria-label="3D operative. Arrow keys orbit and tilt; plus and minus zoom."></canvas>
+          <div class="roster-overlay">
+            <div class="roster-badge-group">
+              <span id="roster-hero-badge-icon" class="badge-icon">⚡</span>
+              <span id="roster-hero-class" class="badge">ASSAULT</span>
+            </div>
+            <div class="roster-viewport-tools">
+              <button id="roster-btn-spin" class="ghost small-btn" type="button" title="Toggle Turntable Spin">↻ Spin: OFF</button>
+              <button id="roster-btn-reset" class="ghost small-btn" type="button" title="Reset View">⟲ Reset View</button>
+            </div>
+            <div class="roster-drag-tip">Drag / arrows to orbit · Scroll / + − to zoom</div>
+          </div>
+        </div>
+
+        <!-- Animation & Shader Toolbar -->
+        <div class="roster-toolbar">
+          <div class="toolbar-section">
+            <span class="toolbar-label">ANIMATION:</span>
+            <div id="roster-anim-group" class="btn-group">
+              <button class="anim-btn on" data-anim="idle" type="button">Idle</button>
+              <button class="anim-btn" data-anim="walk" type="button">Walk</button>
+              <button class="anim-btn" data-anim="run" type="button">Run</button>
+              <button class="anim-btn" data-anim="crouch" type="button">Crouch</button>
+              <button class="anim-btn" data-anim="die" type="button">Defeat</button>
+            </div>
+          </div>
+
+          <div class="toolbar-section">
+            <span class="toolbar-label">TEAM SHADER:</span>
+            <div id="roster-swatches" class="swatch-group"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Dossier & Tactical Stats -->
+      <div class="roster-dossier">
+        <div class="dossier-heading">
+          <div class="dossier-title-row">
+            <h1 id="dossier-name">KIMO</h1>
+            <span id="dossier-status-pill" class="pill-equipped">EQUIPPED</span>
+          </div>
+          <p id="dossier-subtitle" class="dossier-subtitle">Assault Specialist</p>
+        </div>
+
+        <div class="dossier-block">
+          <div class="dossier-block-title">OPERATIVE PROFILE</div>
+          <p class="hint">Dossier ratings are character lore. All operatives share the same combat rules.</p>
+          <div class="dossier-stats">
+            <div class="stat-line">
+              <span class="stat-label">Mobility</span>
+              <div class="stat-track"><div id="stat-mobility" class="stat-bar" style="width: 85%;"></div></div>
+              <span id="stat-mobility-val" class="stat-val">85</span>
+            </div>
+            <div class="stat-line">
+              <span class="stat-label">Durability</span>
+              <div class="stat-track"><div id="stat-durability" class="stat-bar" style="width: 75%;"></div></div>
+              <span id="stat-durability-val" class="stat-val">75</span>
+            </div>
+            <div class="stat-line">
+              <span class="stat-label">Precision</span>
+              <div class="stat-track"><div id="stat-precision" class="stat-bar" style="width: 75%;"></div></div>
+              <span id="stat-precision-val" class="stat-val">75</span>
+            </div>
+            <div class="stat-line">
+              <span class="stat-label">Firepower</span>
+              <div class="stat-track"><div id="stat-firepower" class="stat-bar" style="width: 85%;"></div></div>
+              <span id="stat-firepower-val" class="stat-val">85</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="dossier-block">
+          <div class="dossier-block-title">SPECIALTY & LOADOUT</div>
+          <div class="dossier-perks">
+            <div class="perk-card">
+              <span class="perk-icon" id="dossier-weapon-icon">🔫</span>
+              <div class="perk-info">
+                <b id="dossier-weapon">AK-47 Assault Rifle</b>
+                <span class="hint">Signature Weapon</span>
+              </div>
+            </div>
+            <div class="perk-card">
+              <span class="perk-icon">+</span>
+              <div class="perk-info">
+                <b id="dossier-trait">Balanced Operator</b>
+                <span id="dossier-trait-desc" class="hint">Optimal recoil stabilization and rapid combat recovery</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dossier-block dossier-bio-block">
+          <div class="dossier-block-title">FIELD DOSSIER</div>
+          <p id="dossier-bio" class="dossier-bio-text"></p>
+        </div>
+
+        <div class="dossier-action-area">
+          <button id="btn-roster-equip" class="btn-equip-hero" type="button">✓ EQUIPPED ACTIVE HERO</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -184,28 +347,31 @@
       <button id="btn-add-bot" class="ghost" type="button" title="Add Practice AI Bot">+ Bot</button>
       <button id="btn-remove-bot" class="ghost" type="button" title="Remove AI Bot">- Bot</button>
     </div>
-    <button id="btn-settings-game" class="ghost" type="button">⚙ Settings</button>
+    <button id="btn-scores-game" class="ghost" type="button" aria-controls="scoreboard" aria-pressed="false">Scores</button>
+    <button id="btn-settings-game" class="ghost" type="button">Settings</button>
     <button id="leave">Leave</button>
   </div>
   <div id="vitals">
+    <span class="hud-label">VITAL SIGNS</span>
     <div class="bar"><div id="hpbar"></div></div>
     <b id="hp">100</b><span>HP</span>
     <span id="stance" class="stance-pill">STAND</span>
   </div>
   <div id="weapons">
-    <div class="wep on" data-w="0"><span class="key">1</span><span class="wname">AK-47</span><span class="ammo-count">30</span></div>
-    <div class="wep" data-w="1"><span class="key">2</span><span class="wname">Shotgun</span><span class="ammo-count">8</span></div>
-    <div class="wep" data-w="2"><span class="key">3</span><span class="wname">Sniper</span><span class="ammo-count">5</span></div>
-    <div class="wep" data-w="3"><span class="key">4</span><span class="wname">SMG</span><span class="ammo-count">40</span></div>
-    <div class="wep" data-w="4"><span class="key">5</span><span class="wname">LMG</span><span class="ammo-count">75</span></div>
-    <div class="wep" data-w="5"><span class="key">6</span><span class="wname">Knife</span><span class="ammo-count">∞</span></div>
+    <button type="button" class="wep on" data-w="0"><span class="key">1</span><span class="wname">AK-47</span><span class="ammo-count">30</span></button>
+    <button type="button" class="wep" data-w="1"><span class="key">2</span><span class="wname">Shotgun</span><span class="ammo-count">8</span></button>
+    <button type="button" class="wep" data-w="2"><span class="key">3</span><span class="wname">Sniper</span><span class="ammo-count">5</span></button>
+    <button type="button" class="wep" data-w="3"><span class="key">4</span><span class="wname">SMG</span><span class="ammo-count">40</span></button>
+    <button type="button" class="wep" data-w="4"><span class="key">5</span><span class="wname">LMG</span><span class="ammo-count">75</span></button>
+    <button type="button" class="wep" data-w="5"><span class="key">6</span><span class="wname">Knife</span><span class="ammo-count">∞</span></button>
   </div>
   <div id="ammo-row">
+    <span class="hud-label">WEAPON SYSTEM</span>
     <div id="grenades" title="Grenades (G)">💣 2</div>
     <div id="ammo">30 / 30</div>
   </div>
-  <div id="center" hidden></div>
-  <div id="scoreboard" hidden><table></table></div>
+  <button id="center" type="button" hidden></button>
+  <div id="scoreboard" hidden><div class="board-heading"><span class="eyebrow">MATCH TELEMETRY</span><h2>Field standings.</h2></div><table aria-label="Match scores"></table><p class="hint">Hold Tab to inspect · Eliminate to advance</p></div>
 </div>
 <!--SCRIPT-->
 </body>

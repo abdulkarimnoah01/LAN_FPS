@@ -1,9 +1,11 @@
 /* Page wiring: shared-folder lobby, then the match. */
 import { Lobby, LinkError, randomHex, cleanName, StorageDirectory } from './net.js';
 import { HostSession, GuestSession } from './game.js';
-import { View, CharacterPreview, loadAssets, buildWorld } from './render.js';
+import { View, CharacterPreview, HeroViewer, loadAssets, buildWorld } from './render.js';
 import { Hud, Sound } from './hud.js';
 import { B } from './sim.js';
+import { HERO_ROSTER, getHeroData } from './heroes.js';
+import { initInterface, connectedUI, roomCountUI, updateBriefing } from './ui.js';
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -76,6 +78,7 @@ async function useFolder(handle, label) {
     lobby = await new Lobby(handle).open();
     $('folder-name').textContent = label;
     $('rooms-panel').hidden = false;
+    connectedUI(label);
     message('');
     refreshRooms();
   } catch (e) { message('Cannot use that folder: ' + e.message, 'error'); }
@@ -134,6 +137,7 @@ async function refreshRooms() {
       }));
     }
     $('no-rooms').hidden = rooms.length > 0;
+    roomCountUI(rooms.length);
   } catch (e) { message('Cannot read the shared folder: ' + e.message, 'error'); }
   refreshTimer = setTimeout(refreshRooms, 1000);
 }
@@ -144,8 +148,250 @@ function playerName() {
   return n;
 }
 
+/* ---- hero roster & character viewer (standalone showcase) ---- */
+let heroViewer = null;
+let currentRosterHeroId = null;
+let currentRosterColor = '#f0a640';
+let currentRosterAnim = 'idle';
+
+function updateLobbyHeroCard() {
+  if (!assets || !assets.characters || assets.characters.length === 0) return;
+  const activeId = store.get('char', assets.characters[0]?.id || 'kimo');
+  const heroChar = assets.characters.find(c => c.id === activeId) || assets.characters[0];
+  const hero = getHeroData(activeId, heroChar?.name);
+  if ($('hero-equipped-avatar')) $('hero-equipped-avatar').textContent = String(assets.characters.indexOf(heroChar) + 1).padStart(2, '0');
+  if ($('hero-equipped-name')) $('hero-equipped-name').textContent = hero.name;
+  if ($('hero-equipped-badge')) $('hero-equipped-badge').textContent = hero.classType || 'ASSAULT';
+  if ($('hero-equipped-role')) $('hero-equipped-role').textContent = `${hero.title} · Signature: ${hero.signatureWeapon}`;
+}
+
+function openHeroRoster(selectedHeroId = null) {
+  if (!assets) return;
+  if (document.pointerLockElement) document.exitPointerLock();
+  const modal = $('hero-roster-modal');
+  if (!modal) return;
+
+  const chars = assets.characters;
+  if (!chars || chars.length === 0) return;
+
+  const activeId = store.get('char', chars[0].id);
+  currentRosterHeroId = selectedHeroId || activeId || chars[0].id;
+
+  if (!heroViewer) {
+    heroViewer = new HeroViewer($('roster-canvas'), assets);
+  }
+
+  // Populate hero cards
+  const cardsContainer = $('roster-cards');
+  if (cardsContainer) {
+    cardsContainer.replaceChildren(...chars.map(c => {
+      const data = getHeroData(c.id, c.name);
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'roster-hero-item' + (c.id === currentRosterHeroId ? ' on' : '');
+      item.dataset.id = c.id;
+
+      const isEquipped = c.id === activeId;
+      item.innerHTML = `
+        <div class="roster-item-icon" aria-hidden="true">${String(chars.indexOf(c) + 1).padStart(2, '0')}</div>
+        <div class="roster-item-info">
+          <span class="roster-item-name">${data.name}</span>
+          <span class="roster-item-role">${data.title}</span>
+        </div>
+        ${isEquipped ? '<span class="pill-active-mini">ACTIVE</span>' : ''}
+      `;
+      item.onclick = () => selectRosterHero(c.id);
+      return item;
+    }));
+  }
+
+  if ($('roster-count')) {
+    $('roster-count').textContent = `${chars.length} / ${chars.length}`;
+  }
+
+  // Set up animation buttons
+  document.querySelectorAll('#roster-anim-group .anim-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('#roster-anim-group .anim-btn').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      currentRosterAnim = btn.dataset.anim;
+      heroViewer.playAnimation(currentRosterAnim);
+    };
+  });
+
+  // Set up spin button
+  if ($('roster-btn-spin')) {
+    $('roster-btn-spin').onclick = () => {
+      const spinning = heroViewer.toggleSpin();
+      $('roster-btn-spin').textContent = spinning ? '↻ Spin: ON' : '↻ Spin: OFF';
+    };
+  }
+
+  // Set up reset view button
+  if ($('roster-btn-reset')) {
+    $('roster-btn-reset').onclick = () => {
+      heroViewer.resetView();
+    };
+  }
+
+  // Set up equip button
+  if ($('btn-roster-equip')) {
+    $('btn-roster-equip').onclick = () => {
+      equipRosterHero(currentRosterHeroId);
+    };
+  }
+
+  selectRosterHero(currentRosterHeroId);
+
+  modal.hidden = false;
+  heroViewer.start();
+
+  const handleRosterKey = e => {
+    if (e.target === $('roster-canvas') && e.key !== 'Escape') return;
+    if (e.key === 'Escape') {
+      closeHeroRoster();
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const idx = chars.findIndex(c => c.id === currentRosterHeroId);
+      const prevIdx = (idx - 1 + chars.length) % chars.length;
+      selectRosterHero(chars[prevIdx].id);
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const idx = chars.findIndex(c => c.id === currentRosterHeroId);
+      const nextIdx = (idx + 1) % chars.length;
+      selectRosterHero(chars[nextIdx].id);
+    }
+  };
+  window._rosterKeyHandler = handleRosterKey;
+  window.addEventListener('keydown', handleRosterKey);
+}
+
+function selectRosterHero(id) {
+  currentRosterHeroId = id;
+  const chars = assets.characters;
+  const hero = chars.find(c => c.id === id) || chars[0];
+  const data = getHeroData(hero.id, hero.name);
+  const activeId = store.get('char', chars[0].id);
+  const isEquipped = id === activeId;
+
+  // Highlight card in sidebar
+  document.querySelectorAll('#roster-cards .roster-hero-item').forEach(el => {
+    el.classList.toggle('on', el.dataset.id === id);
+  });
+
+  // Update overlay badges
+  if ($('roster-hero-badge-icon')) $('roster-hero-badge-icon').textContent = String(chars.indexOf(hero) + 1).padStart(2, '0');
+  if ($('roster-hero-class')) $('roster-hero-class').textContent = data.classType || 'ASSAULT';
+
+  // Update dossier details
+  if ($('dossier-name')) $('dossier-name').textContent = data.name.toUpperCase();
+  if ($('dossier-subtitle')) $('dossier-subtitle').textContent = data.title;
+  if ($('dossier-status-pill')) {
+    $('dossier-status-pill').textContent = isEquipped ? 'EQUIPPED' : 'READY';
+    $('dossier-status-pill').className = isEquipped ? 'pill-equipped' : 'pill-equipped off';
+  }
+
+  // Update stats
+  const stats = data.stats || { mobility: 75, durability: 75, precision: 75, firepower: 75 };
+  if ($('stat-mobility')) $('stat-mobility').style.width = stats.mobility + '%';
+  if ($('stat-mobility-val')) $('stat-mobility-val').textContent = stats.mobility;
+  if ($('stat-durability')) $('stat-durability').style.width = stats.durability + '%';
+  if ($('stat-durability-val')) $('stat-durability-val').textContent = stats.durability;
+  if ($('stat-precision')) $('stat-precision').style.width = stats.precision + '%';
+  if ($('stat-precision-val')) $('stat-precision-val').textContent = stats.precision;
+  if ($('stat-firepower')) $('stat-firepower').style.width = stats.firepower + '%';
+  if ($('stat-firepower-val')) $('stat-firepower-val').textContent = stats.firepower;
+
+  // Update weapon & perks
+  if ($('dossier-weapon')) $('dossier-weapon').textContent = data.signatureWeapon;
+  if ($('dossier-weapon-icon')) $('dossier-weapon-icon').textContent = data.signatureIcon || '🔫';
+  if ($('dossier-trait')) $('dossier-trait').textContent = data.trait;
+  if ($('dossier-trait-desc')) $('dossier-trait-desc').textContent = data.traitDesc;
+  if ($('dossier-bio')) $('dossier-bio').textContent = data.bio;
+
+  // Update equip button
+  updateRosterEquipButton(isEquipped);
+
+  // Generate color swatches
+  currentRosterColor = data.defaultColor || '#f0a640';
+  const swatchesEl = $('roster-swatches');
+  if (swatchesEl) {
+    swatchesEl.replaceChildren(...(data.swatches || [
+      { name: 'Default', color: currentRosterColor },
+      { name: 'Red', color: '#ef4444' },
+      { name: 'Blue', color: '#3b82f6' }
+    ]).map((s, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'swatch' + (idx === 0 ? ' on' : '');
+      btn.style.setProperty('--c', s.color);
+      btn.title = s.name;
+      btn.setAttribute('aria-label', s.name + ' team shader');
+      btn.onclick = () => {
+        swatchesEl.querySelectorAll('.swatch').forEach(b => b.classList.remove('on'));
+        btn.classList.add('on');
+        currentRosterColor = s.color;
+        heroViewer.setColor(s.color);
+      };
+      return btn;
+    }));
+  }
+
+  // Update 3D viewport
+  heroViewer.show(hero.id, currentRosterColor, currentRosterAnim);
+}
+
+function updateRosterEquipButton(isEquipped) {
+  const btn = $('btn-roster-equip');
+  if (!btn) return;
+  if (isEquipped) {
+    const hadFocus = document.activeElement === btn;
+    btn.textContent = '✓ CURRENTLY EQUIPPED';
+    btn.className = 'btn-equip-hero equipped';
+    btn.disabled = true;
+    if (hadFocus) document.querySelector('#roster-cards .roster-hero-item.on')?.focus();
+  } else {
+    btn.textContent = 'EQUIP AS ACTIVE HERO';
+    btn.className = 'btn-equip-hero';
+    btn.disabled = false;
+  }
+}
+
+function equipRosterHero(id) {
+  store.set('char', id);
+  updateLobbyHeroCard();
+  selectRosterHero(id);
+  selectEquippedCharacter?.(id);
+
+  // Update sidebar active badge
+  document.querySelectorAll('#roster-cards .roster-hero-item').forEach(el => {
+    const isNowActive = el.dataset.id === id;
+    let badge = el.querySelector('.pill-active-mini');
+    if (isNowActive && !badge) {
+      badge = document.createElement('span');
+      badge.className = 'pill-active-mini';
+      badge.textContent = 'ACTIVE';
+      el.appendChild(badge);
+    } else if (!isNowActive && badge) {
+      badge.remove();
+    }
+  });
+
+  if (sound) sound.click?.();
+}
+
+function closeHeroRoster() {
+  const modal = $('hero-roster-modal');
+  if (modal) modal.hidden = true;
+  if (heroViewer) heroViewer.stop();
+  if (window._rosterKeyHandler) {
+    window.removeEventListener('keydown', window._rosterKeyHandler);
+    window._rosterKeyHandler = null;
+  }
+}
+
 /* ---- character select (shown before entering the map) ---- */
-let preview = null, picking = null;
+let preview = null, picking = null, selectEquippedCharacter = null;
 
 function chooseCharacter(subtitle) {
   if (picking) return Promise.resolve(null);
@@ -165,15 +411,21 @@ function chooseCharacter(subtitle) {
     [...$('char-list').children].forEach((b, k) => b.classList.toggle('on', k === i));
   };
   show(i);
+  selectEquippedCharacter = id => { const index = chars.findIndex(c => c.id === id); if (index >= 0) show(index); };
   $('select').hidden = false; preview.start();
   return new Promise(resolve => {
     const done = id => {
-      picking = null; $('select').hidden = true; preview.stop();
+      picking = null; selectEquippedCharacter = null; $('select').hidden = true; preview.stop();
       removeEventListener('keydown', keys, true);
-      if (id) store.set('char', id);
+      if (id) {
+        store.set('char', id);
+        updateLobbyHeroCard();
+      }
       resolve(id);
     };
     const keys = e => {
+      if (!$('hero-roster-modal').hidden) return;
+      if (e.target.closest('button') && (e.key === 'Enter' || e.key === ' ')) return;
       if (e.key === 'ArrowLeft') show(i - 1); else if (e.key === 'ArrowRight') show(i + 1);
       else if (e.key === 'Enter') done(chars[i].id); else if (e.key === 'Escape') done(null);
       else return;
@@ -184,6 +436,11 @@ function chooseCharacter(subtitle) {
     $('char-next').onclick = () => show(i + 1);
     $('select-go').onclick = () => done(chars[i].id);
     $('select-back').onclick = () => done(null);
+    if ($('select-open-roster')) {
+      $('select-open-roster').onclick = () => {
+        openHeroRoster(chars[i].id);
+      };
+    }
     picking = done;
   });
 }
@@ -379,6 +636,7 @@ function syncSettingsUI() {
     $('opt-sens-num').textContent = sens;
   }
   if ($('sens')) $('sens').value = sens;
+  $('sens-value').textContent = sens;
 
   if ($('opt-ads-sens')) {
     $('opt-ads-sens').value = adsSens;
@@ -452,7 +710,7 @@ addEventListener('keydown', e => {
     return;
   }
 
-  if (e.target.tagName === 'INPUT' || !$('settings-modal').hidden) return;
+  if ((e.target.matches('input,select,button,a') && !session?.client.active) || !$('settings-modal').hidden || !$('hero-roster-modal').hidden) return;
 
   if (!session) return;
   const c = session.client;
@@ -594,6 +852,7 @@ async function boot() {
       settings.sens = v;
       $('opt-sens-num').textContent = v;
       if ($('sens')) $('sens').value = v;
+      $('sens-value').textContent = v;
       store.set('sens', v);
     };
   }
@@ -647,11 +906,16 @@ async function boot() {
   });
   if ($('btn-settings-lobby')) $('btn-settings-lobby').onclick = openSettings;
   if ($('btn-settings-game')) $('btn-settings-game').onclick = openSettings;
+  $('btn-scores-game').onclick = () => { hud.showBoard = !hud.showBoard; };
   if ($('settings-close')) $('settings-close').onclick = closeSettings;
   if ($('settings-done')) $('settings-done').onclick = closeSettings;
+  if ($('btn-lobby-roster')) $('btn-lobby-roster').onclick = () => openHeroRoster();
+  if ($('btn-header-roster')) $('btn-header-roster').onclick = () => openHeroRoster();
+  if ($('roster-close')) $('roster-close').onclick = closeHeroRoster;
   $('volume').value = store.get('volume', '50');
   sound.volume = $('volume').value / 100;
   $('volume').oninput = () => { sound.volume = $('volume').value / 100; store.set('volume', $('volume').value); };
+  initInterface();
   $('choose').onclick = chooseFolder;
   $('local').onclick = useThisPC;
   $('create').onclick = host;
@@ -700,7 +964,9 @@ async function boot() {
     $('mode-select').value = savedMode;
     $('mode-select').onchange = () => store.set('mode', $('mode-select').value);
   }
+  updateBriefing();
   world = buildWorld(assets, savedMap);
+  updateLobbyHeroCard();
 
   const saved = await savedFolder();
   if (saved) {

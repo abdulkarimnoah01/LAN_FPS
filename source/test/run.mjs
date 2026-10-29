@@ -10,6 +10,7 @@ import { Lobby, NetHost, NetGuest, LinkError, DATA } from '../src/net.js';
 import { HostGame } from '../src/hostgame.js';
 import { defaultArena, forestMap, sandboxMap, aftermathMap, riverForestMap, getMap } from '../src/arena.js';
 import { newPlayer, stepPlayer, castShot, B, DT, RULES, WEAPONS, PREDICTED } from '../src/sim.js';
+import { HERO_ROSTER, getHeroData } from '../src/heroes.js';
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
@@ -30,7 +31,7 @@ test('room appears in other lobbies, guest links up, messages flow both ways', a
   const peers = [], hostGot = [], left = [];
   let players = 1;
   const host = new NetHost({ lobby: hostLobby, RTC, id: 'a'.repeat(16), name: 'Mona', roomName: 'Lunch / Deathmatch',
-    info: () => ({ players, max: 6, phase: 'play' }), onPeer: p => { peers.push(p); players++; }, onMessage: (p, m) => hostGot.push([p.id, m]), onLeave: p => { left.push(p.id); players--; } });
+    info: () => ({ players, max: 6, phase: 'play', mode: 'tdm' }), onPeer: p => { peers.push(p); players++; }, onMessage: (p, m) => hostGot.push([p.id, m]), onLeave: p => { left.push(p.id); players--; } });
   const code = await host.start();
   assert.match(code, /^[A-HJ-NP-Z2-9]{5}$/);
 
@@ -38,6 +39,7 @@ test('room appears in other lobbies, guest links up, messages flow both ways', a
   assert.equal(rooms[0].code, code);
   assert.equal(rooms[0].name, 'Lunch / Deathmatch');
   assert.equal(rooms[0].host, 'Mona');
+  assert.equal(rooms[0].mode, 'tdm', 'room browser must preserve the host’s team rules');
 
   const guestGot = [];
   const guest = new NetGuest({ lobby: guestLobby, RTC, id: 'b'.repeat(16), name: 'Omar', char: 'kimo', onMessage: m => guestGot.push(m) });
@@ -661,6 +663,35 @@ test('maps implement getSurface(x, y, z) distinguishing water, wood, rubble and 
   const arena = defaultArena();
   assert.equal(arena.getSurface(0, 0, 0), 'concrete', 'classic arena floor is concrete');
   assert.equal(arena.getSurface(0, 1.6, 0), 'wood', 'classic arena high deck is wood');
+});
+
+test('hero roster defines all tactical operatives and provides dynamic fallback profiles', async () => {
+  const expectedHeroes = ['kimo', 'kimo-black', 'mina', 'robot'];
+  for (const id of expectedHeroes) {
+    const hero = HERO_ROSTER[id];
+    assert.ok(hero, `hero ${id} exists in HERO_ROSTER`);
+    assert.ok(hero.name && hero.name.length > 0, `hero ${id} has a name`);
+    assert.ok(hero.title && hero.title.length > 0, `hero ${id} has a title`);
+    assert.ok(hero.classType && hero.classType.length > 0, `hero ${id} has a classType`);
+    assert.ok(hero.signatureWeapon && hero.signatureWeapon.length > 0, `hero ${id} has a signature weapon`);
+    assert.ok(hero.trait && hero.trait.length > 0, `hero ${id} has a trait`);
+    assert.ok(hero.swatches && hero.swatches.length >= 3, `hero ${id} has team swatches`);
+    assert.ok(hero.stats.mobility >= 50 && hero.stats.mobility <= 100, 'mobility in bounds');
+    assert.ok(hero.stats.durability >= 50 && hero.stats.durability <= 100, 'durability in bounds');
+    assert.ok(hero.stats.precision >= 50 && hero.stats.precision <= 100, 'precision in bounds');
+    assert.ok(hero.stats.firepower >= 50 && hero.stats.firepower <= 100, 'firepower in bounds');
+  }
+
+  // Known hero retrieval
+  const kimo = getHeroData('kimo');
+  assert.equal(kimo.name, 'Kimo');
+  assert.equal(kimo.classType, 'ASSAULT');
+
+  // Custom fallback model
+  const custom = getHeroData('shadow_sniper_99', 'Shadow Sniper');
+  assert.equal(custom.name, 'Shadow Sniper');
+  assert.equal(custom.classType, 'OPERATIVE');
+  assert.ok(custom.stats.mobility > 0, 'fallback has stats');
 });
 
 let failed = 0;

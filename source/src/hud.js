@@ -27,13 +27,15 @@ export class Hud {
     set(this.hp, 'textContent', String(Math.max(0, me.hp)));
     this.hpBar.style.width = Math.max(0, me.hp) + '%';
     this.hpBar.classList.toggle('low', me.hp <= 25);
+    $('vitals')?.classList.toggle('low', me.hp <= 25);
+    $('ammo-row')?.classList.toggle('reloading', !!me.rl);
     if (this.stance) {
       set(this.stance, 'textContent', me.cr ? 'CROUCH' : 'STAND');
       this.stance.classList.toggle('crouched', !!me.cr);
     }
     const ammoStr = wep.melee ? `${wep.name} · ∞` : (me.rl ? `Reloading ${wep.name}…` : `${wep.name} · ${me.ammo} / ${wep.mag}`);
     set(this.ammo, 'textContent', ammoStr);
-    if (this.grenades) set(this.grenades, 'textContent', '💣 ' + (me.grenades ?? 0));
+    if (this.grenades) set(this.grenades, 'textContent', 'FRAG / ' + (me.grenades ?? 0));
     if (this.session) set(this.link, 'textContent', this.session.link().text);
 
     if (s?.mode === 'tdm' && s.teams) {
@@ -57,6 +59,7 @@ export class Hud {
     if (this.wepCards) {
       this.wepCards.forEach((c, idx) => {
         c.classList.toggle('on', idx === curW);
+        c.setAttribute('aria-pressed', String(idx === curW));
         const countSpan = c.querySelector('.ammo-count');
         if (countSpan) {
           const wItem = WEAPONS[idx];
@@ -83,6 +86,7 @@ export class Hud {
 
     const board = this.showBoard || s?.phase === 'ended';
     this.board.hidden = !board;
+    $('btn-scores-game')?.setAttribute('aria-pressed', String(board));
     if (board && s) {
       const isTDM = s.mode === 'tdm';
       const rows = [...s.players].sort((a, b) => {

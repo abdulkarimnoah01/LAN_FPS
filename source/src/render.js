@@ -56,7 +56,10 @@ export function makeCharacter(assets, id, color) {
     const mixer = new THREE.AnimationMixer(model);
     const actions = {};
     for (const clip of c.animations) {
-      actions[clip.name] = mixer.clipAction(clip);
+      const act = mixer.clipAction(clip);
+      actions[clip.name] = act;
+      const clean = clip.name.toLowerCase().replace(/_armature.*$/i, '').trim();
+      actions[clean] = act;
     }
     wrap.userData.mixer = mixer;
     wrap.userData.actions = actions;
@@ -84,6 +87,8 @@ export class CharacterPreview {
   show(id, color = '#f0a640') {
     this.turn.clear();
     const model = makeCharacter(this.assets, id, color);
+    // Game models face -Z; inspection cameras look from +Z.
+    model.rotation.y += Math.PI;
     this.previewModel = model;
     if (model.userData.actions?.idle) {
       model.userData.actions.idle.play();
@@ -97,8 +102,10 @@ export class CharacterPreview {
     const loop = t => {
       if (!this.running) return;
       const dt = Math.min(0.1, (t - last) / 1000);
-      this.turn.rotation.y += dt * 0.6; last = t;
-      if (this.previewModel?.userData?.mixer) {
+      const still = document.documentElement.classList.contains('reduce-motion');
+      if (!still) this.turn.rotation.y += dt * 0.6;
+      last = t;
+      if (!still && this.previewModel?.userData?.mixer) {
         this.previewModel.userData.mixer.update(dt);
       }
       const c = this.renderer.domElement, w = c.clientWidth, h = c.clientHeight;
@@ -111,6 +118,249 @@ export class CharacterPreview {
     requestAnimationFrame(loop);
   }
   stop() { this.running = false; }
+}
+
+/* Interactive 3D Character Showcase & Hero Roster Viewer */
+export class HeroViewer {
+  constructor(canvas, assets) {
+    this.assets = assets;
+    this.canvas = canvas;
+    const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    r.setPixelRatio(Math.min(devicePixelRatio, 2));
+    r.shadowMap.enabled = true;
+    r.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const scene = this.scene = new THREE.Scene();
+
+    // Cinematic 3-point Hero lighting
+    const hemi = new THREE.HemisphereLight('#f8fafc', '#334155', 1.8);
+    scene.add(hemi);
+
+    const sun = new THREE.DirectionalLight('#fffaf0', 2.6);
+    sun.position.set(3, 5, 4);
+    sun.castShadow = true;
+    sun.shadow.mapSize.width = 1024;
+    sun.shadow.mapSize.height = 1024;
+    scene.add(sun);
+
+    // Rim/Back Light for crisp hero outline
+    const rim = new THREE.DirectionalLight('#38bdf8', 2.2);
+    rim.position.set(-3, 3, -4);
+    scene.add(rim);
+
+    // Fill Light
+    const fill = new THREE.DirectionalLight('#f59e0b', 0.9);
+    fill.position.set(2, 1.5, -2.5);
+    scene.add(fill);
+
+    // Tactical Cyber-Metallic Podium Platform
+    const podium = new THREE.Group();
+    const baseGeo = new THREE.CylinderGeometry(1.2, 1.35, 0.12, 32);
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.35, metalness: 0.65 });
+    const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+    baseMesh.position.y = -0.06;
+    baseMesh.receiveShadow = true;
+    podium.add(baseMesh);
+
+    // Accent Glowing Team Ring on Podium
+    const ringGeo = new THREE.RingGeometry(0.95, 1.15, 32);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.rotation.x = -Math.PI / 2;
+    ringMesh.position.y = 0.005;
+    this.ringMesh = ringMesh;
+    podium.add(ringMesh);
+
+    scene.add(podium);
+
+    // Turntable Pivot
+    this.turn = new THREE.Group();
+    scene.add(this.turn);
+
+    // Camera
+    this.camera = new THREE.PerspectiveCamera(28, 1, 0.1, 50);
+    this.camDistance = 5;
+    this.camHeight = 1.15;
+    this.camTargetY = 0.95;
+    this.updateCamera();
+
+    this.previewModel = null;
+    this.currentCharId = null;
+    this.currentColor = '#f0a640';
+    this.currentAnimName = 'idle';
+    this.autoSpin = false;
+    this.running = false;
+
+    // Interaction state
+    this.isDragging = false;
+    this.pointerStartX = 0;
+    this.pointerStartY = 0;
+    this.startTurnRotY = 0;
+    this.startCamHeight = 0;
+
+    this.bindEvents();
+  }
+
+  updateCamera() {
+    this.camera.position.set(0, this.camHeight, this.camDistance);
+    this.camera.lookAt(0, this.camTargetY, 0);
+  }
+
+  bindEvents() {
+    const el = this.canvas;
+    el.style.touchAction = 'none';
+    el.addEventListener('keydown', e => {
+      if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-'].includes(e.key)) return;
+      e.preventDefault(); e.stopPropagation();
+      if (e.key === 'ArrowLeft') this.turn.rotation.y -= 0.2;
+      if (e.key === 'ArrowRight') this.turn.rotation.y += 0.2;
+      if (e.key === 'ArrowUp') this.camHeight = Math.min(2.1, this.camHeight + 0.1);
+      if (e.key === 'ArrowDown') this.camHeight = Math.max(0.4, this.camHeight - 0.1);
+      if (e.key === '+' || e.key === '=') this.camDistance = Math.max(1.8, this.camDistance - 0.2);
+      if (e.key === '-') this.camDistance = Math.min(5.5, this.camDistance + 0.2);
+      this.updateCamera();
+    });
+
+    el.addEventListener('pointerdown', e => {
+      this.isDragging = true;
+      this.pointerStartX = e.clientX;
+      this.pointerStartY = e.clientY;
+      this.startTurnRotY = this.turn.rotation.y;
+      this.startCamHeight = this.camHeight;
+      try { el.setPointerCapture?.(e.pointerId); } catch {}
+    });
+
+    el.addEventListener('pointermove', e => {
+      if (!this.isDragging) return;
+      const dx = e.clientX - this.pointerStartX;
+      const dy = e.clientY - this.pointerStartY;
+      this.turn.rotation.y = this.startTurnRotY + dx * 0.012;
+      this.camHeight = Math.max(0.4, Math.min(2.1, this.startCamHeight + dy * 0.005));
+      this.updateCamera();
+    });
+
+    const endDrag = e => {
+      if (!this.isDragging) return;
+      this.isDragging = false;
+      try { el.releasePointerCapture?.(e.pointerId); } catch {}
+    };
+    el.addEventListener('pointerup', endDrag);
+    el.addEventListener('pointercancel', endDrag);
+
+    el.addEventListener('wheel', e => {
+      e.preventDefault();
+      this.camDistance = Math.max(1.8, Math.min(5.5, this.camDistance + e.deltaY * 0.003));
+      this.updateCamera();
+    }, { passive: false });
+  }
+
+  show(id, color = '#f0a640', animName = 'idle') {
+    this.currentCharId = id;
+    this.currentColor = color;
+    this.turn.clear();
+
+    const model = makeCharacter(this.assets, id, color);
+    model.rotation.y += Math.PI;
+    model.traverse(o => {
+      if (o.isMesh) {
+        o.castShadow = true;
+        o.receiveShadow = true;
+      }
+    });
+
+    this.previewModel = model;
+    this.setColor(color);
+    this.playAnimation(animName);
+    this.turn.add(model);
+  }
+
+  playAnimation(name) {
+    this.currentAnimName = name;
+    const actions = this.previewModel?.userData?.actions;
+    if (!actions) return;
+
+    const targetAction = actions[name] || actions.idle;
+    if (!targetAction) return;
+
+    for (const [key, act] of Object.entries(actions)) {
+      if (key !== name && act.isRunning()) {
+        act.crossFadeTo(targetAction, 0.25, true);
+      }
+    }
+
+    if (name === 'die') {
+      targetAction.setLoop(THREE.LoopOnce, 1);
+      targetAction.clampWhenFinished = true;
+    } else {
+      targetAction.setLoop(THREE.LoopRepeat, Infinity);
+      targetAction.clampWhenFinished = false;
+    }
+
+    targetAction.reset().play();
+  }
+
+  setColor(colorHex) {
+    this.currentColor = colorHex;
+    if (this.ringMesh) {
+      this.ringMesh.material.color.set(colorHex);
+    }
+    if (this.previewModel) {
+      this.previewModel.traverse(o => {
+        if (o.isMesh && /TEAM/i.test(o.material?.name || '')) {
+          o.material.color.set(colorHex);
+        }
+      });
+    }
+  }
+
+  toggleSpin() {
+    this.autoSpin = !this.autoSpin;
+    return this.autoSpin;
+  }
+
+  resetView() {
+    this.turn.rotation.y = 0;
+    this.camDistance = 5;
+    this.camHeight = 1.15;
+    this.updateCamera();
+  }
+
+  start() {
+    if (this.running) return;
+    this.running = true;
+    let last = performance.now();
+
+    const loop = t => {
+      if (!this.running) return;
+      const dt = Math.min(0.1, (t - last) / 1000);
+      last = t;
+
+      const still = document.documentElement.classList.contains('reduce-motion');
+      if (!still && this.autoSpin && !this.isDragging) {
+        this.turn.rotation.y += dt * 0.5;
+      }
+
+      if (!still && this.previewModel?.userData?.mixer) {
+        this.previewModel.userData.mixer.update(dt);
+      }
+
+      const c = this.renderer.domElement, w = c.clientWidth, h = c.clientHeight;
+      if (w && h && (c.width !== Math.round(w * this.renderer.getPixelRatio()) || c.height !== Math.round(h * this.renderer.getPixelRatio()))) {
+        this.renderer.setSize(w, h, false);
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+      }
+
+      this.renderer.render(this.scene, this.camera);
+      requestAnimationFrame(loop);
+    };
+
+    requestAnimationFrame(loop);
+  }
+
+  stop() {
+    this.running = false;
+  }
 }
 
 /* Collision boxes and spawns for the match. From arena.glb when present:

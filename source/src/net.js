@@ -180,7 +180,7 @@ export class Lobby {
       let s = this.seen.get(code);
       if (!s || s.beat !== r.beat) { s = { beat: r.beat, at: t, changed: !!s }; this.seen.set(code, s); }
       const live = t - s.at < ROOM_DEAD_MS && (s.changed || Math.abs(this.wallNow() - r.at) < ROOM_DEAD_MS) && !r.closed;
-      if (live) out.push({ code, name: cleanName(r.name, 32, code), host: cleanName(r.host), players: r.players | 0, max: r.max | 0, phase: r.phase, map: r.map || 'forest', seed: r.seed || 0 });
+      if (live) out.push({ code, name: cleanName(r.name, 32, code), host: cleanName(r.host), players: r.players | 0, max: r.max | 0, phase: r.phase, map: r.map || 'forest', seed: r.seed || 0, mode: r.mode === 'tdm' ? 'tdm' : 'ffa' });
       // Housekeeping: rooms abandoned long ago (crashed hosts) are removed.
       else if (rec.mtime && this.wallNow() - rec.mtime > ROOM_PURGE_MS) remove(this.data, name, true);
     }
