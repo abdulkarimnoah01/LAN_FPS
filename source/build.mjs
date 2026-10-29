@@ -33,7 +33,7 @@ const cfg = path.join(root, 'assets', 'assets.json');
 if (fs.existsSync(cfg)) assets.config = JSON.parse(fs.readFileSync(cfg, 'utf8'));
 
 const verFile = path.join(root, '..', 'version.json');
-let version = '1.2.2';
+let version = '1.3.1';
 if (fs.existsSync(verFile)) {
   try { version = JSON.parse(fs.readFileSync(verFile, 'utf8')).version || version; } catch {}
 }

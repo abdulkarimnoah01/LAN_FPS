@@ -1,24 +1,24 @@
 :root {
   color-scheme: dark;
-  --bg:#080e0b;
-  --panel:#0e1711;
-  --panel-hi:#1b2a1b;
-  --well:#090f0c;
-  --wine:#142416;
-  --line:#63755b;
-  --line-soft:#30402f;
-  --text:#dbedcf;
-  --dim:#a9b8a0;
-  --accent:#e4d79c;
-  --data:#b7f1b0;
-  --bad:#ffab90;
-  --success:#b7f1b0;
-  --focus:#f4edbc;
-  --ink:#111810;
-  --alert-bg:#36221f;
-  --action-bg:#292b18;
-  --data-bg:#14271b;
-  --hud:rgba(8,16,11,.96);
+  --bg:#090b10;
+  --panel:#17151c;
+  --panel-hi:#2b1c27;
+  --well:#0b0e14;
+  --wine:#2a1824;
+  --line:#866875;
+  --line-soft:#473340;
+  --text:#e5f0f2;
+  --dim:#b0bdc5;
+  --accent:#fcee0a;
+  --data:#6ce9f3;
+  --bad:#ff7188;
+  --success:#84e2bc;
+  --focus:#fff68e;
+  --ink:#0e1014;
+  --alert-bg:#381a28;
+  --action-bg:#2b2913;
+  --data-bg:#112a31;
+  --hud:rgba(11,12,18,.96);
   --team-blue:#9bcaff;
   --ui:var(--mono);
   --display:var(--mono);
@@ -2365,4 +2365,766 @@ html.reduce-motion .elim-skull.show {
 }
 html.reduce-motion #damage.show {
   box-shadow: none;
+}
+:root {
+  --surface-scan: none;
+  --phosphor-glow: none;
+  --screen-inset: none;
+  --crt-line: rgba(108, 233, 243, .045);
+  --crt-halo: rgba(108, 233, 243, .22);
+  --crt-edge: rgba(0, 0, 0, .22);
+}
+:root.crt-enabled {
+  --surface-scan:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 2px,
+      var(--crt-line) 2px 3px);
+  --phosphor-glow: 0 0 6px var(--crt-halo);
+  --screen-inset: inset 0 0 80px var(--crt-edge);
+}
+.terminal-ui {
+  font-size: 14px;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+.terminal-ui #lobby {
+  max-width: 1360px;
+  margin: 20px auto;
+  padding: 0 28px 20px;
+  border: 1px solid var(--line);
+  background-color: var(--well);
+  background-image: var(--surface-scan);
+  box-shadow: var(--screen-inset);
+}
+.terminal-ui .header-row {
+  min-height: 64px;
+  gap: 16px;
+}
+.terminal-ui .wordmark {
+  font-size: 14px;
+  gap: 12px;
+}
+.terminal-ui .brand-mark {
+  width: auto;
+  height: auto;
+  color: var(--data);
+  background: none;
+  font: bold 20px var(--mono);
+}
+.terminal-ui .wordmark-sub {
+  font-size: 12px;
+  letter-spacing: 0;
+  padding-left: 16px;
+  margin-left: 4px;
+}
+.terminal-ui .version-row {
+  gap: 8px;
+}
+.terminal-ui .version-row button {
+  font-size: 12px;
+  white-space: nowrap;
+}
+#btn-crt-toggle[aria-pressed=true] {
+  color: var(--ink);
+  background: var(--data);
+  border-color: var(--data);
+}
+.terminal-ui .hero-banner {
+  grid-template-columns: minmax(0, 1fr) 360px;
+  padding: 20px 0;
+  gap: 32px;
+}
+.terminal-ui .eyebrow {
+  color: var(--dim);
+  letter-spacing: .06em;
+  font-size: 12px;
+}
+.terminal-ui #game-title {
+  font-size: clamp(44px, 5vw, 68px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.04em;
+  margin: 8px 0 16px;
+  color: var(--accent);
+  text-shadow: var(--phosphor-glow);
+}
+.terminal-ui #game-title > span:first-child {
+  color: var(--data);
+}
+.terminal-ui #game-title .title-period {
+  font-size: 12px;
+  color: var(--accent);
+  letter-spacing: 0;
+  margin: 14px 0 0 16px;
+}
+.terminal-ui .hero-baseline {
+  gap: 24px;
+}
+.terminal-ui .hero-baseline h2 {
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+.terminal-ui .hero-baseline p {
+  font-size: 13px;
+  padding-left: 24px;
+}
+.session-readout {
+  padding-left: 28px;
+  border-left: 1px dashed var(--line);
+  min-width: 0;
+}
+.readout-heading {
+  display: flex;
+  justify-content: space-between;
+  color: var(--data);
+  font: 12px var(--mono);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.session-readout dl {
+  margin: 12px 0 0;
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+.session-readout dl > div {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 12px;
+}
+.session-readout dt {
+  color: var(--dim);
+}
+.session-readout dt::before {
+  content: ":";
+  color: var(--line);
+  margin-right: 8px;
+}
+.session-readout dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--data);
+  text-shadow: var(--phosphor-glow);
+}
+.terminal-statusline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  background: var(--panel-hi);
+  font-size: 13px;
+}
+.terminal-statusline > span:first-child {
+  white-space: nowrap;
+  color: var(--data);
+}
+.terminal-statusline > span:last-child {
+  color: var(--dim);
+  text-align: right;
+}
+.terminal-statusline.terminal-error {
+  border-color: var(--bad);
+  background: var(--alert-bg);
+}
+.terminal-statusline.terminal-error > span:last-child {
+  color: var(--bad);
+}
+.terminal-statusline.terminal-error > span:last-child::before {
+  content: "! ";
+}
+.terminal-ui .deployment-rail {
+  margin: 0 0 24px;
+  border-top: 0;
+  background: transparent;
+}
+.terminal-ui .rail-step {
+  padding: 12px 16px;
+  font-size: 12px;
+  gap: 12px;
+}
+.terminal-ui .step-number {
+  font-size: 14px;
+}
+.terminal-ui .step-number::before {
+  content: "[";
+}
+.terminal-ui .step-number::after {
+  content: "]";
+}
+.terminal-ui .rail-step.current {
+  background: var(--action-bg);
+}
+.terminal-ui .rail-step.complete .step-number {
+  color: var(--data);
+}
+.terminal-ui .rail-step small {
+  font: 12px/1.5 var(--mono);
+  overflow-wrap: anywhere;
+}
+.terminal-ui .console-grid {
+  grid-template-columns: minmax(320px, .85fr) minmax(0, 1.4fr);
+  gap: 20px;
+}
+.terminal-ui .setup-column {
+  gap: 24px;
+}
+.terminal-ui .panel {
+  background-color: var(--panel);
+  background-image: var(--surface-scan);
+}
+.terminal-ui .panel-heading {
+  background: var(--panel);
+  padding: 0 0 12px;
+  margin-bottom: 16px;
+  border-bottom-style: dashed;
+  gap: 8px;
+}
+.terminal-ui .panel-heading h2 {
+  font-size: 15px;
+  font-weight: 400;
+  gap: 8px;
+  letter-spacing: 0;
+  color: var(--text);
+  text-shadow: var(--phosphor-glow);
+}
+.terminal-ui .section-index {
+  font-size: 12px;
+  color: var(--dim);
+}
+.terminal-ui .section-index::before {
+  content: "[";
+}
+.terminal-ui .section-index::after {
+  content: "]";
+}
+.terminal-ui .panel-heading .micro-label {
+  font-size: 12px;
+}
+.terminal-ui .panel-heading .status-label {
+  font-size: 11px;
+  letter-spacing: 0;
+}
+.terminal-ui .status-label::before {
+  width: 5px;
+  height: 9px;
+}
+.terminal-ui .matches-panel > .panel-heading {
+  padding: 20px;
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+}
+.terminal-ui .hero-equipped-card {
+  border: 1px solid var(--line-soft);
+  border-left: 2px solid var(--data);
+  background: var(--well);
+  gap: 12px;
+}
+.terminal-ui .hero-equipped-avatar {
+  background: none;
+  border: 1px dashed var(--line);
+  color: var(--data);
+  width: 40px;
+  height: 52px;
+  font: 18px var(--mono);
+}
+.terminal-ui .hero-equipped-name-row b {
+  font: 600 18px var(--mono);
+}
+.terminal-ui .hero-equipped-label {
+  font-size: 12px;
+}
+.terminal-ui .hero-equipped-name-row .badge {
+  font-size: 11px;
+}
+.terminal-ui .field-label {
+  font-size: 13px;
+}
+.terminal-ui input:not([type=range]):not([type=checkbox]),
+.terminal-ui select {
+  border-radius: 0;
+  font-size: 14px;
+}
+.terminal-ui input::placeholder {
+  opacity: 1;
+}
+.terminal-ui input:focus,
+.terminal-ui select:focus {
+  border-color: var(--focus);
+}
+.terminal-ui button {
+  border-radius: 0;
+  font-weight: 400;
+}
+.terminal-ui button:not(.ghost):not(.wep):not(.swatch):not(.roster-hero-item):not(.bind-btn):not(.anim-btn):not(.btn-choice):not(.tab-btn) {
+  font-weight: 600;
+}
+.terminal-ui .btn-roster-launch {
+  color: var(--data);
+  border-color: var(--line);
+}
+.terminal-ui .empty-state {
+  border-style: dashed;
+  min-height: 100px;
+  background: var(--well);
+  gap: 16px;
+  padding: 16px;
+}
+.terminal-ui .empty-symbol {
+  font-size: 20px;
+}
+.terminal-ui .empty-state b {
+  font-size: 14px;
+  color: var(--data);
+}
+.terminal-ui .room-browser,
+.terminal-ui .match-config {
+  padding: 20px;
+}
+.terminal-ui .subheading h3 {
+  font: 14px var(--mono);
+}
+.terminal-ui .subheading .micro-label {
+  font-size: 12px;
+  letter-spacing: 0;
+}
+.terminal-ui #rooms li {
+  border: 0;
+  border-bottom: 1px dashed var(--line);
+  padding: 12px 0;
+  background: transparent;
+}
+.terminal-ui #rooms li b {
+  color: var(--data);
+  font-weight: 400;
+}
+.terminal-ui #rooms li span {
+  line-height: 1.7;
+}
+.terminal-ui .map-briefing {
+  min-height: 118px;
+  padding: 16px 20px;
+  background: var(--well);
+  border: 1px dashed var(--line);
+}
+.terminal-ui .map-grid {
+  display: none;
+}
+.terminal-ui .map-copy h3 {
+  font: 600 28px/1.5 var(--mono);
+  letter-spacing: -.03em;
+}
+.terminal-ui .map-copy p {
+  font-size: 12px;
+  max-width: 95%;
+}
+.terminal-ui .map-coordinate {
+  display: none;
+}
+.terminal-ui .map-copy .micro-label {
+  color: var(--dim);
+  font-size: 12px;
+}
+.terminal-ui .create-row {
+  margin-top: 20px;
+}
+.terminal-ui .create-row .hint b {
+  font: 20px var(--mono);
+  color: var(--data);
+}
+.terminal-ui .create-row button {
+  min-width: 180px;
+}
+.terminal-ui .folder-readout,
+.terminal-ui .button-note,
+.terminal-ui #create-hint {
+  font-size: 12px;
+}
+.terminal-ui .lobby-footer {
+  padding-top: 16px;
+  margin-top: 24px;
+  gap: 16px;
+  font: 12px/1.8 var(--mono);
+}
+.terminal-ui .footer-note {
+  font-size: 12px;
+}
+.terminal-ui kbd {
+  border: 0;
+  color: var(--data);
+  padding: 0;
+}
+.terminal-ui kbd::before {
+  content: "[";
+}
+.terminal-ui kbd::after {
+  content: "]";
+}
+.terminal-ui .select-card,
+.terminal-ui .settings-card,
+.terminal-ui .roster-card {
+  border-top-width: 1px;
+  background-color: var(--panel);
+  background-image: var(--surface-scan);
+  box-shadow: var(--screen-inset);
+}
+.terminal-ui .settings-header h2,
+.terminal-ui .roster-header h2,
+.terminal-ui .select-card h2 {
+  font: 600 24px/1.4 var(--mono);
+  color: var(--data);
+  text-shadow: var(--phosphor-glow);
+}
+.terminal-ui .settings-header,
+.terminal-ui .roster-header {
+  border-bottom-style: dashed;
+}
+.terminal-ui .settings-tabs {
+  padding-top: 12px;
+}
+.terminal-ui .tab-btn {
+  font-size: 13px;
+}
+.terminal-ui .setting-item {
+  border-bottom-style: dashed;
+}
+.terminal-ui .btn-choice,
+.terminal-ui .bind-btn {
+  font-size: 13px;
+}
+.terminal-ui .bind-row {
+  font-size: 13px;
+}
+.terminal-ui #char-name {
+  font: 24px var(--mono);
+}
+.terminal-ui #char-list button.on {
+  color: var(--data);
+  border-color: var(--data);
+  box-shadow: inset 0 -2px var(--data);
+}
+.terminal-ui .roster-sidebar,
+.terminal-ui .roster-dossier,
+.terminal-ui .roster-toolbar {
+  background: var(--panel);
+}
+.terminal-ui .roster-hero-item.on {
+  background: var(--action-bg);
+}
+.terminal-ui .roster-item-name {
+  font-size: 14px;
+}
+.terminal-ui .roster-item-icon {
+  font-size: 16px;
+  background: var(--well);
+}
+.terminal-ui .roster-item-role {
+  font-size: 12px;
+}
+.terminal-ui .dossier-title-row h1 {
+  font: 600 26px var(--mono);
+  color: var(--data);
+}
+.terminal-ui .dossier-heading {
+  border-bottom-style: dashed;
+}
+.terminal-ui .perk-info b {
+  font-size: 13px;
+}
+.terminal-ui .roster-drag-tip {
+  font-size: 12px;
+}
+.terminal-ui .roster-stage-area,
+.terminal-ui #preview {
+  background: var(--well);
+}
+.terminal-ui .roster-viewport::after {
+  content: "INSPECTION / 3D";
+  font-size: 12px;
+}
+.terminal-ui #topbar {
+  border-top-width: 1px;
+  background-color: var(--hud);
+  background-image: var(--surface-scan);
+}
+.terminal-ui .team-blue,
+.terminal-ui .badge-blue {
+  color: var(--team-blue);
+}
+.terminal-ui #vitals,
+.terminal-ui #ammo-row,
+.terminal-ui #scoreboard {
+  background-color: var(--hud);
+  background-image: var(--surface-scan);
+  border-top-width: 1px;
+}
+.terminal-ui .board-heading h2 {
+  font-size: 24px;
+}
+.terminal-ui #hp {
+  font-size: 36px;
+}
+.terminal-ui #ammo {
+  font-size: 16px;
+}
+.terminal-ui .hud-label {
+  color: var(--data);
+}
+.terminal-ui .wep.on {
+  box-shadow: inset 0 2px var(--accent);
+}
+.terminal-ui #center {
+  font-size: 16px;
+}
+.crt-enabled .terminal-ui :is(h2, h3, .readout-heading, .hud-label, #hp, #ammo, .badge, #link) {
+  text-shadow: var(--phosphor-glow);
+}
+.terminal-ui :is(input, select, textarea) {
+  text-shadow: none;
+}
+@media (max-width:1190px) {
+  .terminal-ui #lobby {
+    margin: 16px;
+    padding: 0 24px 20px;
+  }
+  .terminal-ui .wordmark-sub {
+    display: none;
+  }
+  .terminal-ui .console-grid {
+    grid-template-columns: minmax(310px, .9fr) minmax(0, 1.2fr);
+    gap: 20px;
+  }
+  .terminal-ui .hero-banner {
+    grid-template-columns: 1fr 320px;
+  }
+  .terminal-ui .hero-baseline {
+    display: block;
+  }
+  .terminal-ui .hero-baseline h2 br {
+    display: none;
+  }
+  .terminal-ui .hero-baseline p {
+    padding: 0;
+    border: 0;
+    margin-top: 8px;
+  }
+  .terminal-ui .panel-heading {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width:900px) {
+  .terminal-ui .console-grid {
+    grid-template-columns: 1fr;
+  }
+  .terminal-ui .setup-column {
+    gap: 16px;
+  }
+  .terminal-ui .hero-banner {
+    grid-template-columns: 1fr 280px;
+    gap: 20px;
+  }
+  .session-readout {
+    padding-left: 20px;
+  }
+  .session-readout dl > div {
+    grid-template-columns: 80px 1fr;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .terminal-ui #game-title {
+    font-size: 48px;
+  }
+  .terminal-ui #game-title .title-period {
+    display: block;
+    margin: 8px 0 0;
+  }
+  .terminal-ui .header-row {
+    flex-wrap: wrap;
+    padding: 12px 0;
+    gap: 12px;
+  }
+  .terminal-ui .version-row {
+    margin-left: auto;
+  }
+  .terminal-ui .panel-heading .micro-label {
+    display: none;
+  }
+  .terminal-ui .hero-equipped-card {
+    flex-wrap: wrap;
+  }
+  .terminal-ui .hero-equipped-info {
+    flex-basis: 120px;
+  }
+}
+@media (max-width:600px) {
+  .terminal-ui #lobby {
+    margin: 8px;
+    padding: 0 12px 16px;
+  }
+  .terminal-ui .version-row {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: 8px;
+    width: 100%;
+    margin: 0;
+  }
+  .terminal-ui #btn-check-update {
+    grid-column: 1/-1;
+    padding: 4px;
+    min-height: 32px;
+    text-align: left;
+  }
+  .terminal-ui .version-row button {
+    min-height: 36px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  .terminal-ui .hero-banner {
+    grid-template-columns: 1fr;
+    padding: 20px 0;
+    gap: 20px;
+  }
+  .terminal-ui #game-title {
+    font-size: 44px;
+    margin: 8px 0 12px;
+  }
+  .terminal-ui #game-title .title-period {
+    display: inline;
+    font-size: 11px;
+    margin-left: 12px;
+    vertical-align: middle;
+  }
+  .terminal-ui .hero-copy > .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+  .terminal-ui .hero-baseline {
+    display: block;
+  }
+  .terminal-ui .hero-baseline h2 {
+    font-size: 14px;
+  }
+  .terminal-ui .hero-baseline p {
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .session-readout {
+    padding: 16px 0 0;
+    border-left: 0;
+    border-top: 1px dashed var(--line);
+  }
+  .session-readout dl {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .session-readout dl > div {
+    grid-template-columns: 90px 1fr;
+  }
+  .readout-heading {
+    display: none;
+  }
+  .terminal-statusline {
+    display: block;
+    padding: 12px;
+    font-size: 12px;
+  }
+  .terminal-statusline > span:last-child {
+    display: block;
+    text-align: left;
+    margin-top: 4px;
+  }
+  .terminal-ui .rail-step {
+    align-items: flex-start;
+    padding: 12px 8px;
+    gap: 8px;
+    font-size: 11px;
+  }
+  .terminal-ui .step-number {
+    font-size: 12px;
+  }
+  .terminal-ui .rail-step small {
+    font-size: 12px;
+  }
+  .terminal-ui .panel-heading h2 {
+    font-size: 14px;
+  }
+  .terminal-ui .panel-heading .status-label {
+    font-size: 11px;
+  }
+  .terminal-ui .panel,
+  .terminal-ui #identity-panel,
+  .terminal-ui .network-panel {
+    padding: 16px;
+  }
+  .terminal-ui .matches-panel {
+    padding: 0;
+  }
+  .terminal-ui .matches-panel > .panel-heading,
+  .terminal-ui .room-browser,
+  .terminal-ui .match-config {
+    padding: 16px;
+  }
+  .terminal-ui .subheading .micro-label {
+    font-size: 11px;
+  }
+  .terminal-ui .empty-state {
+    padding: 12px;
+    gap: 12px;
+  }
+  .terminal-ui .empty-state b {
+    font-size: 13px;
+  }
+  .terminal-ui .empty-symbol {
+    font-size: 16px;
+  }
+  .terminal-ui .map-briefing {
+    padding: 12px;
+  }
+  .terminal-ui .map-copy h3 {
+    font-size: 24px;
+  }
+  .terminal-ui .create-row button {
+    width: 100%;
+  }
+  .terminal-ui .select-card h2,
+  .terminal-ui .settings-header h2,
+  .terminal-ui .roster-header h2 {
+    font-size: 20px;
+  }
+  .terminal-ui .settings-header .eyebrow,
+  .terminal-ui .roster-header .eyebrow {
+    font-size: 12px;
+  }
+  .terminal-ui .settings-card {
+    font-size: 13px;
+  }
+  .terminal-ui .row-setting {
+    gap: 12px;
+  }
+  .terminal-ui .btn-choice {
+    min-width: 64px;
+    padding: 8px;
+  }
+  .terminal-ui .roster-item-name {
+    font-size: 12px;
+  }
+  .terminal-ui .roster-item-role {
+    font-size: 12px;
+  }
+  .terminal-ui .roster-drag-tip {
+    font-size: 11px;
+  }
+  .terminal-ui #hp {
+    font-size: 30px;
+  }
+  .terminal-ui #ammo {
+    font-size: 14px;
+  }
+  .terminal-ui .board-heading h2 {
+    font-size: 20px;
+  }
 }

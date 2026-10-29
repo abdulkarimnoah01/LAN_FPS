@@ -1,6 +1,6 @@
 {
-  "version": "1.3.0",
+  "version": "1.3.1",
   "name": "LAN_FPS",
   "date": "2026-10-29",
-  "notes": "Added 5 new rigged humanoid operatives (Romero, ElDeep, Gemy, Hamdy, Hooda) with procedural combat animation suites, merged Abdulkarim with alternate blue-shirt skin, and expanded the roster to 9 playable heroes"
+  "notes": "Neon terminal UI with electric yellow, cyan and red; optional saved CRT screen effect; live connection and recovery status. Includes the latest roster and character rig fixes."
 }

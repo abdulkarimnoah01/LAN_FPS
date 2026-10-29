@@ -72,6 +72,16 @@ export function initInterface() {
   };
   $('name').addEventListener('input', identity);
   identity();
+  // Mirror real connection/recovery messages at the top of the terminal.
+  // This status region is the single live announcer; the detailed message remains below.
+  const message = $('message');
+  const sessionStatus = $('terminal-session-status');
+  const reflectStatus = () => {
+    const hasMessage = !message.hidden && !!message.textContent;
+    sessionStatus.textContent = hasMessage ? message.textContent : ($('create').disabled ? 'Select an uplink to begin.' : 'Uplink ready. Join a room or create a match.');
+    sessionStatus.parentElement.classList.toggle('terminal-error', hasMessage && message.classList.contains('error'));
+  };
+  new MutationObserver(reflectStatus).observe(message, { childList:true, characterData:true, subtree:true, attributes:true, attributeFilter:['hidden','class'] });
   updateBriefing();
   $('map-select').addEventListener('change', updateBriefing);
   $('mode-select').addEventListener('change', updateBriefing);
