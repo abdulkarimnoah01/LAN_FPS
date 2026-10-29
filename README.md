@@ -39,14 +39,30 @@ The host's game keeps running while its tab is in the background, but closing th
 
 ### Testing on one PC
 
-**This PC only (test in two tabs)** uses the browser's private storage instead of a network folder. Open the file in two tabs, host in one and join from the other.
-Browser storage needs a normal web origin, so for this mode serve the folder locally instead of double-clicking the file:
+**This PC only (test in two tabs)** uses the browser's storage fallback or private directory instead of a network folder. Open the file in two tabs, host in one and join from the other.
 
-```bash
-python -m http.server 8765 --directory L:\3D\Refs\LAN_FPS
-```
+## Updating LAN_FPS on Any PC
 
-Then open `http://localhost:8765/LAN_FPS.html` in two tabs.
+You can update `LAN_FPS` on any computer in three ways:
+
+### 1. One-Click Windows Updater (Recommended)
+Double-click **`Update_LAN_FPS.bat`** (or run `powershell -ExecutionPolicy Bypass -File Update_LAN_FPS.ps1`):
+- **If Git is installed & cloned**: Automatically pulls the latest changes via `git pull`.
+- **If Git is NOT installed**: Uses built-in Windows tools (`curl` / PowerShell) to fetch the latest `LAN_FPS.html` directly from GitHub—no Git, Python, or Node.js required!
+- Safely creates a `.bak` backup before replacing the file and prompts to launch the game when finished.
+
+### 2. In-Game Lobby Updater
+In the lobby header next to the version badge (`v1.1.0`):
+- Click **"Check for updates"**.
+- If a newer release is published online, a notification banner appears with the changelog notes and a direct **"Download Update"** button.
+
+### 3. Publishing Updates (From Primary / Dev PC)
+When you make changes, balance weapons, or add characters on your primary PC:
+1. Double-click **`Publish_Update.bat`** (or run `powershell -ExecutionPolicy Bypass -File publish_update.ps1`).
+2. It automatically compiles `LAN_FPS.html`, runs verification tests, updates `version.json`, commits, and pushes to Git.
+3. Every other PC can then immediately run `Update_LAN_FPS.bat` to receive the update!
+
+To customize your GitHub repository link, edit **`updater_config.json`**.
 
 ## Building from source
 
