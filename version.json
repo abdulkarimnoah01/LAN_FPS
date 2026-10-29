@@ -1,6 +1,6 @@
 {
-  "version": "1.3.1",
+  "version": "1.3.2",
   "name": "LAN_FPS",
   "date": "2026-10-29",
-  "notes": "Neon terminal UI with electric yellow, cyan and red; optional saved CRT screen effect; live connection and recovery status. Includes the latest roster and character rig fixes."
+  "notes": "Re-rigged all new characters (crouch, knees, shoulders), Hamdy shirt now beneath the jacket, Abdulkarim with blue shirt outfit"
 }
