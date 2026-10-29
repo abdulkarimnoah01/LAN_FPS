@@ -67,6 +67,111 @@ export const HERO_ROSTER = {
       { name: 'Cyber Amber', color: '#eab308' },
       { name: 'Dark Alloy', color: '#1e293b' }
     ]
+  },
+  romero: {
+    id: 'romero',
+    name: 'Romero',
+    title: 'Breacher Specialist',
+    classType: 'BREACHER',
+    badge: '💥',
+    bio: 'Close-quarters shock trooper specializing in explosive room-clearing, point-blank shotgun sweeps, and barricade penetration.',
+    stats: { mobility: 80, durability: 88, precision: 70, firepower: 92 },
+    signatureWeapon: 'Shotgun & Frag Grenades',
+    signatureIcon: '💣',
+    trait: 'Blast Shielding',
+    traitDesc: 'Reduced damage taken from grenade and barrel explosions',
+    defaultColor: '#ea580c',
+    swatches: [
+      { name: 'Hazard Orange', color: '#ea580c' },
+      { name: 'Firestorm Red', color: '#ef4444' },
+      { name: 'Desert Khaki', color: '#d97706' },
+      { name: 'Urban Ash', color: '#4b5563' },
+      { name: 'Heavy Cobalt', color: '#2563eb' }
+    ]
+  },
+  eldeep: {
+    id: 'eldeep',
+    name: 'ElDeep',
+    title: 'Flanker & Pointman',
+    classType: 'SKIRMISHER',
+    badge: '⚡',
+    bio: 'Hyper-agile skirmisher excelling at rapid combat maneuvering, unexpected angle rotations, and high-tempo SMG run-and-gun combat.',
+    stats: { mobility: 98, durability: 68, precision: 78, firepower: 82 },
+    signatureWeapon: 'SMG & Combat Knife',
+    signatureIcon: '🗡',
+    trait: 'Fleet-Footed',
+    traitDesc: 'Accelerated sprint burst and rapid strafe transitions',
+    defaultColor: '#0284c7',
+    swatches: [
+      { name: 'Sky Diver', color: '#0284c7' },
+      { name: 'Electric Cyan', color: '#06b6d4' },
+      { name: 'Midnight Navy', color: '#1e3a8a' },
+      { name: 'Stealth Black', color: '#18181b' },
+      { name: 'Flash Gold', color: '#eab308' }
+    ]
+  },
+  gemy: {
+    id: 'gemy',
+    name: 'Gemy',
+    title: 'Combat Sharpshooter',
+    classType: 'MARKSMAN',
+    badge: '🎯',
+    bio: 'Tactical marksman adept at medium-to-long range interdiction, picking off key targets across ruins, bridges, and open lanes.',
+    stats: { mobility: 78, durability: 72, precision: 95, firepower: 90 },
+    signatureWeapon: 'Sniper Rifle & AK-47',
+    signatureIcon: '🔭',
+    trait: 'Deadshot',
+    traitDesc: 'Pinpoint first-shot accuracy and extended ADS stability',
+    defaultColor: '#16a34a',
+    swatches: [
+      { name: 'Sniper Olive', color: '#16a34a' },
+      { name: 'Ghillie Forest', color: '#15803d' },
+      { name: 'Camo Tan', color: '#ca8a04' },
+      { name: 'Night Ops', color: '#334155' },
+      { name: 'Bloodline', color: '#b91c1c' }
+    ]
+  },
+  hamdy: {
+    id: 'hamdy',
+    name: 'Hamdy',
+    title: 'Heavy Enforcer',
+    classType: 'ENFORCER',
+    badge: '🛡',
+    bio: 'Frontline juggernaut who lays down continuous suppressive fire with high-capacity machine guns to pin down enemy squads.',
+    stats: { mobility: 68, durability: 92, precision: 72, firepower: 96 },
+    signatureWeapon: 'LMG (Drum Mag)',
+    signatureIcon: '⚙',
+    trait: 'Suppressor',
+    traitDesc: 'Deep ammunition reserves and relentless automatic fire',
+    defaultColor: '#dc2626',
+    swatches: [
+      { name: 'Enforcer Crimson', color: '#dc2626' },
+      { name: 'Rust Iron', color: '#991b1b' },
+      { name: 'Molten Amber', color: '#d97706' },
+      { name: 'Charcoal', color: '#27272a' },
+      { name: 'Titanium Blue', color: '#1d4ed8' }
+    ]
+  },
+  hooda: {
+    id: 'hooda',
+    name: 'Hooda',
+    title: 'Tactical Commando',
+    classType: 'COMMANDO',
+    badge: '⚔',
+    bio: 'All-terrain combat operative combining aggressive frontline assault tactics with disciplined weapons handling and tactical grenade throws.',
+    stats: { mobility: 86, durability: 80, precision: 84, firepower: 86 },
+    signatureWeapon: 'AK-47 & Shotgun',
+    signatureIcon: '🔫',
+    trait: 'War-Hardened',
+    traitDesc: 'Balanced combat versatility across all ranges and maps',
+    defaultColor: '#7c3aed',
+    swatches: [
+      { name: 'Commando Violet', color: '#7c3aed' },
+      { name: 'Royal Purple', color: '#6d28d9' },
+      { name: 'Shadow Carbon', color: '#1e1b4b' },
+      { name: 'Crimson Strike', color: '#ef4444' },
+      { name: 'Vanguard Gold', color: '#f59e0b' }
+    ]
   }
 };
 

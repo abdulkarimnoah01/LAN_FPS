@@ -1,6 +1,6 @@
 {
-  "version": "1.2.2",
+  "version": "1.3.0",
   "name": "LAN_FPS",
   "date": "2026-10-29",
-  "notes": "Kimo Black is now Abdulkarim with a blue palm shirt outfit; fixed shoulder and neck deformation on character rigs"
+  "notes": "Added 5 new rigged humanoid operatives (Romero, ElDeep, Gemy, Hamdy, Hooda) with procedural combat animation suites, merged Abdulkarim with alternate blue-shirt skin, and expanded the roster to 9 playable heroes"
 }

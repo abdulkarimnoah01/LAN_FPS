@@ -93,15 +93,36 @@ npm test
 | `src/arena.js` | The built-in placeholder arena (boxes and spawn points). |
 | `src/hud.js`, `src/main.js`, `index.html`, `style.css` | HUD, sounds, lobby and page. |
 
-## Characters
+## Operative Roster & Characters
 
-Every `.glb` in `source/assets/characters/` becomes a character on the select screen, named after the file:
-- **Kimo**: Blue palm-print shirt with reference-matched face.
-- **Kimo Black**: Alternate black button-up shirt outfit.
-- **Mina**: DOOMED graphic tee with relaxed standing stance.
-- **Robot**: The built-in low-poly robot is always available as a fallback.
+LAN_FPS features 9 distinct playable operatives, each equipped with custom humanoid skeletal armatures, procedural combat animations (idle, walk, run, crouch, and die), class badges, signature weapons, and tactical role traits in the 3D Operative Dossier:
 
-Add or remove `.glb` files in `source/assets/characters/`, then run `npm run build`. Every PC should run the same build; a character a PC doesn't have shows up as that build's first character.
+| # | Operative | Role / Class | Signature Weapon | Tactical Trait |
+|---|---|---|---|---|
+| 01 | **ElDeep** | `SKIRMISHER` | SMG & Knife | Fleet-Footed (+8% run velocity) |
+| 02 | **Gemy** | `MARKSMAN` | Sniper Rifle & AK-47 | Deadshot ADS (-15% zoom sway) |
+| 03 | **Hamdy** | `ENFORCER` | LMG Drum Mag | Suppressor (Heavy fire capacity) |
+| 04 | **Hooda** | `COMMANDO` | AK-47 & Shotgun | War-Hardened (Fast weapon swapping) |
+| 05 | **Kimo Black** | `INFILTRATOR` | SMG Silenced | Shadow Stalker (Stealth footprint audio) |
+| 06 | **Kimo** | `ASSAULT` | AK-47 & Frags | Rapid Recovery (Standard assault profile) |
+| 07 | **Mina** | `RECON` | Sniper Rifle | Precision Scout (Extended radar range) |
+| 08 | **Romero** | `BREACHER` | Shotgun & Frags | Blast Shielding (-15% explosive self-damage) |
+| 09 | **Robot** | `VANGUARD` | AK-47 Vanguard | Hardened Armor (High bullet durability) |
+
+Every `.glb` in `source/assets/characters/` is bundled directly into the standalone `LAN_FPS.html` via `npm run build`.
+
+### Automated Skeletal Rigging Pipeline (Blender)
+
+Raw 3D character meshes (e.g. from Tripo or model repositories) can be automatically rigged and animated using the batch pipeline script `source/tools/rig_batch.py`:
+```bash
+& "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python source/tools/rig_batch.py
+```
+This script:
+1. Rescales and normalizes mesh height to standard 1.78m and grounds the feet precisely at Z = 0.00.
+2. Constructs a standard humanoid armature hierarchy (Hips, Spine, Chest, Neck, Head, Upper/Lower Legs, Feet, Upper/Lower Arms, Hands).
+3. Welds duplicate vertices and computes automatic bone heat weighting.
+4. Generates 5 procedural combat animations blended in-engine: `idle`, `walk`, `run`, `crouch`, and `die`.
+5. Compresses textures to 1024x1024 diffuse maps for minimal file weight.
 
 ### Converting USDZ, FBX or OBJ
 
