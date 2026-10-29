@@ -1,26 +1,27 @@
 :root {
   color-scheme: dark;
-  --bg:#121315;
-  --panel:#1c1c1f;
-  --panel-hi:#292629;
-  --well:#141518;
-  --wine:#39292f;
-  --line:#7a6b70;
-  --line-soft:#403a3e;
-  --text:#f2eadc;
-  --dim:#b9afb0;
-  --accent:#ffcd75;
-  --data:#83d8d2;
-  --bad:#ff8583;
-  --success:#a6d4ac;
-  --focus:#ffe3a6;
-  --ink:#211b17;
-  --alert-bg:#3d2429;
-  --action-bg:#322a21;
-  --data-bg:#1e3031;
-  --hud:rgba(18,19,22,.94);
-  --ui:"Segoe UI",Arial,sans-serif;
-  --display:"Bahnschrift","Arial Narrow","Segoe UI",sans-serif;
+  --bg:#080e0b;
+  --panel:#0e1711;
+  --panel-hi:#1b2a1b;
+  --well:#090f0c;
+  --wine:#142416;
+  --line:#63755b;
+  --line-soft:#30402f;
+  --text:#dbedcf;
+  --dim:#a9b8a0;
+  --accent:#e4d79c;
+  --data:#b7f1b0;
+  --bad:#ffab90;
+  --success:#b7f1b0;
+  --focus:#f4edbc;
+  --ink:#111810;
+  --alert-bg:#36221f;
+  --action-bg:#292b18;
+  --data-bg:#14271b;
+  --hud:rgba(8,16,11,.96);
+  --team-blue:#9bcaff;
+  --ui:var(--mono);
+  --display:var(--mono);
   --mono:Consolas,"Courier New",monospace;
 }
 * {
@@ -37,12 +38,7 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--text);
-  background:
-    radial-gradient(
-      ellipse at 5% 0%,
-      #49303933,
-      transparent 60%),
-    var(--bg);
+  background: var(--bg);
   font: 14px/1.5 var(--ui);
 }
 button,

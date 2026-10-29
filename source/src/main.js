@@ -19,7 +19,7 @@ let lobby = null, session = null, view = null, world = null, assets = null, refr
 const hud = new Hud(), sound = new Sound();
 
 /* ---- online updater & version check ---- */
-const CURRENT_VERSION = window.LANFPS_VERSION || '1.2.1';
+const CURRENT_VERSION = window.LANFPS_VERSION || '1.2.2';
 const UPDATE_CONFIG = {
   versionUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/version.json',
   bundleUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/LAN_FPS.html',

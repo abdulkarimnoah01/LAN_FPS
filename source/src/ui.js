@@ -31,11 +31,24 @@ export function connectedUI(label) {
   $('empty-description').textContent = 'No rooms found. Host a match below and let your crew join.';
   $('create').disabled = false;
   $('create-hint').textContent = local ? 'Practice mode uses this browser’s storage. Open a second tab to join.' : 'Your room stays available while the host’s game is open.';
+  $('term-uplink').textContent = local ? 'local / practice' : 'shared / mounted';
+  $('terminal-session-status').textContent = 'Uplink ready. Join a room or create a match.';
 }
 
 export function roomCountUI(count) {
   $('room-count').textContent = `${String(count).padStart(2, '0')} ${count === 1 ? 'ROOM' : 'ROOMS'} FOUND`;
   $('room-count').classList.add('connected');
+  $('term-roomboard').textContent = `${count} ${count === 1 ? 'room' : 'rooms'} available`;
+}
+
+// Cosmetic display preference only. No timers, post-processing, or gameplay filters.
+export function setCrtEnabled(enabled) {
+  const on = !!enabled;
+  document.documentElement.classList.toggle('crt-enabled', on);
+  $('btn-crt-toggle').textContent = on ? 'CRT: ON' : 'CRT: OFF';
+  $('btn-crt-toggle').setAttribute('aria-pressed', String(on));
+  $('opt-crt').checked = on;
+  try { localStorage.setItem('lanfps.crt', String(on)); } catch {}
 }
 
 function syncPressed(root) {
@@ -45,6 +58,20 @@ function syncPressed(root) {
 }
 
 export function initInterface() {
+  let crt = false;
+  try { crt = localStorage.getItem('lanfps.crt') === 'true'; } catch {}
+  setCrtEnabled(crt);
+  $('btn-crt-toggle').addEventListener('click', () => setCrtEnabled(!document.documentElement.classList.contains('crt-enabled')));
+  $('opt-crt').addEventListener('change', e => setCrtEnabled(e.target.checked));
+  const identity = () => {
+    const name = $('name').value.trim();
+    $('term-operator').textContent = name || 'not assigned';
+    $('identity-step').classList.toggle('complete', !!name);
+    $('identity-step').querySelector('.step-state').textContent = name ? '✓' : '—';
+    $('rail-identity-label').textContent = name || 'Set your callsign';
+  };
+  $('name').addEventListener('input', identity);
+  identity();
   updateBriefing();
   $('map-select').addEventListener('change', updateBriefing);
   $('mode-select').addEventListener('change', updateBriefing);

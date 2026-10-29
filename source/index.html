@@ -6,13 +6,14 @@
 <title>LAN_FPS · Fieldlink</title>
 <!--STYLE-->
 </head>
-<body>
+<body class="terminal-ui">
 <main id="lobby">
   <header class="masthead">
     <div class="header-row">
-      <a class="wordmark" href="#lobby" aria-label="LAN FPS home"><span class="brand-mark" aria-hidden="true">╬</span> LAN_FPS <span class="wordmark-sub">FIELDLINK / LOCAL COMBAT SYSTEM</span></a>
+      <a class="wordmark" href="#lobby" aria-label="LAN FPS home"><span class="brand-mark" aria-hidden="true">[F]</span> FIELDLINK <span class="wordmark-sub">LOCAL COMBAT TERMINAL</span></a>
       <div class="version-row">
-        <span id="game-version" class="badge-none">v1.2.1</span>
+        <span id="game-version" class="badge-none">v1.2.2</span>
+        <button id="btn-crt-toggle" class="ghost" type="button" aria-pressed="false" aria-label="CRT screen effect">CRT: OFF</button>
         <button id="btn-header-roster" class="ghost" type="button">Operative roster ↗</button>
         <button id="btn-check-update" class="ghost" type="button">Check for updates</button>
       </div>
@@ -30,25 +31,25 @@
   </header>
   <section class="hero-banner" aria-labelledby="game-title">
     <div class="hero-copy">
-      <p class="eyebrow"><span class="tiny-cross" aria-hidden="true">+</span> STUDIO DEATHMATCH / 2–6 PLAYERS</p>
-      <h1 id="game-title">LAN<span>_</span>FPS<span class="title-period">/01</span></h1>
-      <div class="hero-baseline"><h2>Close network.<br>Close quarters.</h2><p>Your people. Your battleground.<br>Direct peer-to-peer combat on your local network.</p></div>
+      <p class="eyebrow">FIELDLINK OS / SESSION MANAGER</p>
+      <h1 id="game-title">LAN<span>_</span>FPS<span class="title-period">[ LOCAL ]</span></h1>
+      <div class="hero-baseline"><h2>Local network.<br>Direct engagement.</h2><p>2–6 players. No central server.<br>Configure your station and enter the field.</p></div>
     </div>
-    <div class="network-schematic" aria-label="Connection architecture: shared folder for discovery, direct PC-to-PC link for gameplay">
-      <div class="schematic-heading"><span>LINK ARCHITECTURE</span><span>01 / P2P</span></div>
-      <svg viewBox="0 0 360 146" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1"><path class="discovery-path" d="M66 90V34H294V90M180 34V17" stroke-dasharray="4 5"/><rect x="146" y="5" width="68" height="24" rx="1"/><path d="M134 108H226" stroke-width="2"/><path d="m142 103-8 5 8 5m76-10 8 5-8 5"/><rect x="20" y="74" width="112" height="64"/><rect x="228" y="74" width="112" height="64"/><path d="M30 126h92m116 0h92M40 84h12m196 0h12"/></g><g fill="currentColor" font-family="Consolas,monospace" font-size="12" text-anchor="middle"><text x="180" y="22">FOLDER</text><text x="76" y="112">HOST PC</text><text x="284" y="112">YOUR PC</text><text x="180" y="93">DIRECT</text></g></svg>
-      <div class="schematic-footer"><span>NO CENTRAL SERVER</span><span>100% LOCAL</span></div>
+    <div class="session-readout" aria-label="Station configuration">
+      <div class="readout-heading"><span>STATION / CONFIG</span><span aria-hidden="true">┤</span></div>
+      <dl><div><dt>operator</dt><dd id="term-operator">not assigned</dd></div><div><dt>uplink</dt><dd id="term-uplink">not configured</dd></div><div><dt>roomboard</dt><dd id="term-roomboard">awaiting directory</dd></div><div><dt>transport</dt><dd>direct / WebRTC</dd></div></dl>
     </div>
   </section>
+  <div class="terminal-statusline"><span><span aria-hidden="true">&gt;</span> session.setup</span><span id="terminal-session-status" role="status">Select an uplink to begin.</span></div>
   <nav class="deployment-rail" aria-label="Deployment setup">
-    <a href="#identity-panel" class="rail-step complete"><span class="step-number">01</span><span>IDENTIFY <small>Set your callsign</small></span><span class="step-state" aria-hidden="true">✓</span></a>
+    <a href="#identity-panel" class="rail-step" id="identity-step"><span class="step-number">01</span><span>IDENTIFY <small id="rail-identity-label">Set your callsign</small></span><span class="step-state" aria-hidden="true">—</span></a>
     <a href="#network-panel" class="rail-step current" id="network-step" aria-current="step"><span class="step-number">02</span><span>CONNECT <small id="rail-network-label">Choose a shared folder</small></span><span class="step-state" aria-hidden="true">↗</span></a>
     <a href="#rooms-panel" class="rail-step" id="match-step"><span class="step-number">03</span><span>DEPLOY <small>Join or create a match</small></span><span class="step-state" aria-hidden="true">→</span></a>
   </nav>
   <div class="console-grid">
   <div class="setup-column">
   <section class="panel" id="identity-panel" aria-labelledby="identity-title">
-    <div class="panel-heading"><h2 id="identity-title"><span class="section-index">01</span> Operator profile</h2><span class="micro-label">PERSONNEL</span></div>
+    <div class="panel-heading"><h2 id="identity-title"><span class="section-index">01</span> operator.profile</h2><span class="micro-label">PERSONNEL</span></div>
     <label class="field-label" for="name">Callsign</label><input id="name" maxlength="20" placeholder="Enter your name" autocomplete="off">
     <div class="hero-equipped-card" id="hero-equipped-card">
       <div class="hero-equipped-avatar" id="hero-equipped-avatar" aria-hidden="true">01</div>
@@ -70,7 +71,7 @@
   </section>
 
   <section class="panel network-panel" id="network-panel" aria-labelledby="network-title">
-    <div class="panel-heading"><h2 id="network-title"><span class="section-index">02</span> Network uplink</h2><span class="status-label" id="network-status">NOT CONNECTED</span></div>
+    <div class="panel-heading"><h2 id="network-title"><span class="section-index">02</span> network.uplink</h2><span class="status-label" id="network-status">NOT CONNECTED</span></div>
     <p class="hint">Choose the same shared network folder on every PC. It introduces players; combat uses a direct connection.</p>
     <div class="network-actions">
       <button id="choose">Choose shared folder <span aria-hidden="true">↗</span></button>
@@ -81,14 +82,14 @@
   </section>
   </div>
   <section class="panel matches-panel" id="rooms-panel" aria-labelledby="rooms-title">
-    <div class="panel-heading"><h2 id="rooms-title"><span class="section-index">03</span> Match terminal</h2><span class="status-label" id="room-count">AWAITING UPLINK</span></div>
+    <div class="panel-heading"><h2 id="rooms-title"><span class="section-index">03</span> match.terminal</h2><span class="status-label" id="room-count">AWAITING UPLINK</span></div>
     <div class="room-browser">
-    <div class="subheading"><h3>Available rooms</h3><span class="micro-label">LOCAL DISCOVERY</span></div>
+    <div class="subheading"><h3>Available rooms</h3><span class="micro-label">/roomboard</span></div>
     <ul id="rooms"></ul>
-    <div id="no-rooms" class="empty-state"><span class="empty-symbol" aria-hidden="true">⌁</span><div><b id="empty-title">Find your local squad.</b><p id="empty-description">Connect a shared folder to discover rooms, or use this PC to practice.</p></div></div>
+    <div id="no-rooms" class="empty-state"><span class="empty-symbol" aria-hidden="true">[ ]</span><div><b id="empty-title">Roomboard not connected.</b><p id="empty-description">Connect a shared folder to discover rooms, or use this PC to practice.</p></div></div>
     </div>
     <div class="match-config">
-      <div class="subheading"><h3>Host a new match</h3><span class="micro-label">YOU SET THE FIELD</span></div>
+      <div class="subheading"><h3>Host a new match</h3><span class="micro-label">/match/new</span></div>
       <div class="map-briefing" data-map="aftermath"><div class="map-grid" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div><div class="map-copy"><span class="micro-label" id="map-index">SECTOR 01 / 05</span><h3 id="map-title">Aftermath</h3><p id="map-description">Ruined streets. Tight corners. Urban combat.</p></div><span class="map-coordinate" aria-hidden="true">+<br>+</span></div>
       <div class="match-fields">
         <label class="field-label room-name-field">Room name<input id="room-name" maxlength="32" placeholder="Name your battleground" autocomplete="off"></label>
@@ -107,7 +108,7 @@
 <div id="select" role="dialog" aria-modal="true" aria-labelledby="select-title" hidden>
   <div class="select-card">
     <p class="eyebrow">DEPLOYMENT / PERSONNEL CHECK</p>
-    <h2 id="select-title">Choose your operative.</h2>
+    <h2 id="select-title">Select operative.</h2>
     <p id="select-sub" class="hint"></p>
     <div class="stage">
       <button id="char-prev" class="ghost arrow" aria-label="Previous character">‹</button>
@@ -128,7 +129,7 @@
 <div id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
   <div class="settings-card">
     <div class="settings-header">
-      <div><p class="eyebrow">OPERATOR CONFIGURATION</p><h2 id="settings-title">Tune your equipment.</h2></div>
+      <div><p class="eyebrow">/SYSTEM/CONFIG</p><h2 id="settings-title">Station settings.</h2></div>
       <button id="settings-close" class="ghost icon-btn" aria-label="Close settings">✕</button>
     </div>
 
@@ -171,6 +172,10 @@
         <label for="opt-reduced-motion">Reduce interface motion <span class="hint">Still previews and instant transitions</span></label>
         <input id="opt-reduced-motion" type="checkbox">
       </div>
+      <div class="setting-item row-setting">
+        <label for="opt-crt">CRT screen effect <span id="crt-description" class="hint">Static scanlines and soft text glow. Menus and HUD only; gameplay stays clear.</span></label>
+        <input id="opt-crt" type="checkbox" aria-describedby="crt-description">
+      </div>
     </div>
 
     <!-- Keybindings Tab -->
@@ -192,8 +197,8 @@
   <div class="roster-card">
     <div class="roster-header">
       <div class="roster-title-block">
-        <p class="eyebrow">PERSONNEL ARCHIVE / 3D INSPECTION</p>
-        <h2 id="roster-title">The operative roster.</h2>
+        <p class="eyebrow">/PERSONNEL/ARCHIVE</p>
+        <h2 id="roster-title">Operative registry.</h2>
         <p class="hint">Inspect your crew. Choose your identity. Enter the field.</p>
       </div>
       <button id="roster-close" class="ghost icon-btn" aria-label="Close roster" type="button">✕</button>

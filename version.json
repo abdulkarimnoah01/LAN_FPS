@@ -1,6 +1,6 @@
 {
-  "version": "1.2.1",
+  "version": "1.2.2",
   "name": "LAN_FPS",
   "date": "2026-10-29",
-  "notes": "Fixed crouch, walk and run animations: legs, knees and hips on all rigged characters"
+  "notes": "Kimo Black is now Abdulkarim with a blue palm shirt outfit; fixed shoulder and neck deformation on character rigs"
 }
