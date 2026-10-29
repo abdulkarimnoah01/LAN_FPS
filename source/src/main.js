@@ -4,7 +4,7 @@ import { HostSession, GuestSession } from './game.js';
 import { View, CharacterPreview, HeroViewer, loadAssets, buildWorld } from './render.js';
 import { Hud, Sound } from './hud.js';
 import { B } from './sim.js';
-import { HERO_ROSTER, getHeroData } from './heroes.js';
+import { HERO_ROSTER, getHeroData, SKIN_OF, baseHeroId } from './heroes.js';
 import { initInterface, connectedUI, roomCountUI, updateBriefing } from './ui.js';
 
 const $ = id => document.getElementById(id);
@@ -186,15 +186,20 @@ function playerName() {
 /* ---- hero roster & character viewer (standalone showcase) ---- */
 let heroViewer = null;
 let currentRosterHeroId = null;
+let currentRosterSkinId = null;
+// Roster cards list heroes only; extra skin models are chosen with the Outfit buttons.
+const rosterChars = () => assets.characters.filter(c => !SKIN_OF[c.id]);
 let currentRosterColor = '#f0a640';
 let currentRosterAnim = 'idle';
 
 function updateLobbyHeroCard() {
   if (!assets || !assets.characters || assets.characters.length === 0) return;
-  const activeId = store.get('char', assets.characters[0]?.id || 'kimo');
+  const activeId = store.get('char', assets.characters[0]?.id || 'abdulkarim');
   const heroChar = assets.characters.find(c => c.id === activeId) || assets.characters[0];
   const hero = getHeroData(activeId, heroChar?.name);
-  if ($('hero-equipped-avatar')) $('hero-equipped-avatar').textContent = String(assets.characters.indexOf(heroChar) + 1).padStart(2, '0');
+  const shown = rosterChars();
+  const heroIdx = shown.findIndex(c => c.id === baseHeroId(heroChar?.id));
+  if ($('hero-equipped-avatar')) $('hero-equipped-avatar').textContent = String(Math.max(0, heroIdx) + 1).padStart(2, '0');
   if ($('hero-equipped-name')) $('hero-equipped-name').textContent = hero.name;
   if ($('hero-equipped-badge')) $('hero-equipped-badge').textContent = hero.classType || 'ASSAULT';
   if ($('hero-equipped-role')) $('hero-equipped-role').textContent = `${hero.title} · Signature: ${hero.signatureWeapon}`;
@@ -206,11 +211,11 @@ function openHeroRoster(selectedHeroId = null) {
   const modal = $('hero-roster-modal');
   if (!modal) return;
 
-  const chars = assets.characters;
+  const chars = rosterChars();
   if (!chars || chars.length === 0) return;
 
-  const activeId = store.get('char', chars[0].id);
-  currentRosterHeroId = selectedHeroId || activeId || chars[0].id;
+  const activeId = baseHeroId(store.get('char', chars[0].id));
+  currentRosterHeroId = baseHeroId(selectedHeroId || activeId || chars[0].id);
 
   if (!heroViewer) {
     heroViewer = new HeroViewer($('roster-canvas'), assets);
@@ -272,7 +277,7 @@ function openHeroRoster(selectedHeroId = null) {
   // Set up equip button
   if ($('btn-roster-equip')) {
     $('btn-roster-equip').onclick = () => {
-      equipRosterHero(currentRosterHeroId);
+      equipRosterHero(currentRosterSkinId || currentRosterHeroId);
     };
   }
 
@@ -302,17 +307,42 @@ function openHeroRoster(selectedHeroId = null) {
 }
 
 function selectRosterHero(id) {
-  currentRosterHeroId = id;
-  const chars = assets.characters;
-  const hero = chars.find(c => c.id === id) || chars[0];
+  const chars = rosterChars();
+  const hero = chars.find(c => c.id === baseHeroId(id)) || chars[0];
+  id = currentRosterHeroId = hero.id;
   const data = getHeroData(hero.id, hero.name);
-  const activeId = store.get('char', chars[0].id);
-  const isEquipped = id === activeId;
+  const storedId = store.get('char', chars[0].id);
+  // Show the equipped outfit when this hero is the equipped one, otherwise the default model.
+  const skins = (data.skins || []).filter(k => assets.characters.some(c => c.id === k.id));
+  if (!skins.some(k => k.id === currentRosterSkinId) || baseHeroId(currentRosterSkinId) !== id) {
+    currentRosterSkinId = baseHeroId(storedId) === id && assets.characters.some(c => c.id === storedId) ? storedId : id;
+  }
+  const isEquipped = currentRosterSkinId === storedId;
 
   // Highlight card in sidebar
   document.querySelectorAll('#roster-cards .roster-hero-item').forEach(el => {
     el.classList.toggle('on', el.dataset.id === id);
   });
+
+  // Outfit (skin) buttons, only for heroes that ship more than one model
+  const skinSection = $('roster-skin-section'), skinsEl = $('roster-skins');
+  if (skinSection && skinsEl) {
+    skinSection.hidden = skins.length < 2;
+    skinsEl.replaceChildren(...skins.map(k => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'anim-btn' + (k.id === currentRosterSkinId ? ' on' : '');
+      btn.textContent = k.name;
+      btn.onclick = () => {
+        currentRosterSkinId = k.id;
+        skinsEl.querySelectorAll('.anim-btn').forEach(b => b.classList.toggle('on', b === btn));
+        updateRosterEquipButton(k.id === store.get('char', ''));
+        $('dossier-status-pill').textContent = k.id === store.get('char', '') ? 'EQUIPPED' : 'READY';
+        heroViewer.show(k.id, currentRosterColor, currentRosterAnim);
+      };
+      return btn;
+    }));
+  }
 
   // Update overlay badges
   if ($('roster-hero-badge-icon')) $('roster-hero-badge-icon').textContent = String(chars.indexOf(hero) + 1).padStart(2, '0');
@@ -373,7 +403,7 @@ function selectRosterHero(id) {
   }
 
   // Update 3D viewport
-  heroViewer.show(hero.id, currentRosterColor, currentRosterAnim);
+  heroViewer.show(currentRosterSkinId, currentRosterColor, currentRosterAnim);
 }
 
 function updateRosterEquipButton(isEquipped) {
@@ -394,13 +424,14 @@ function updateRosterEquipButton(isEquipped) {
 
 function equipRosterHero(id) {
   store.set('char', id);
+  currentRosterSkinId = id;
   updateLobbyHeroCard();
-  selectRosterHero(id);
+  selectRosterHero(baseHeroId(id));
   selectEquippedCharacter?.(id);
 
   // Update sidebar active badge
   document.querySelectorAll('#roster-cards .roster-hero-item').forEach(el => {
-    const isNowActive = el.dataset.id === id;
+    const isNowActive = el.dataset.id === baseHeroId(id);
     let badge = el.querySelector('.pill-active-mini');
     if (isNowActive && !badge) {
       badge = document.createElement('span');

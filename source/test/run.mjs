@@ -10,7 +10,7 @@ import { Lobby, NetHost, NetGuest, LinkError, DATA } from '../src/net.js';
 import { HostGame } from '../src/hostgame.js';
 import { defaultArena, forestMap, sandboxMap, aftermathMap, riverForestMap, getMap } from '../src/arena.js';
 import { newPlayer, stepPlayer, castShot, B, DT, RULES, WEAPONS, PREDICTED } from '../src/sim.js';
-import { HERO_ROSTER, getHeroData } from '../src/heroes.js';
+import { HERO_ROSTER, getHeroData, SKIN_OF, baseHeroId } from '../src/heroes.js';
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
@@ -666,7 +666,7 @@ test('maps implement getSurface(x, y, z) distinguishing water, wood, rubble and 
 });
 
 test('hero roster defines all tactical operatives and provides dynamic fallback profiles', async () => {
-  const expectedHeroes = ['kimo', 'kimo-black', 'mina', 'robot'];
+  const expectedHeroes = ['abdulkarim', 'mina', 'robot'];
   for (const id of expectedHeroes) {
     const hero = HERO_ROSTER[id];
     assert.ok(hero, `hero ${id} exists in HERO_ROSTER`);
@@ -683,9 +683,14 @@ test('hero roster defines all tactical operatives and provides dynamic fallback 
   }
 
   // Known hero retrieval
-  const kimo = getHeroData('kimo');
-  assert.equal(kimo.name, 'Kimo');
-  assert.equal(kimo.classType, 'ASSAULT');
+  const abdul = getHeroData('abdulkarim');
+  assert.equal(abdul.name, 'Abdulkarim');
+  assert.equal(abdul.classType, 'INFILTRATOR');
+  // The blue-shirt model is a skin of the same hero, not a separate operative
+  assert.equal(getHeroData('abdulkarim-blue').name, 'Abdulkarim');
+  assert.equal(SKIN_OF['abdulkarim-blue'], 'abdulkarim');
+  assert.equal(baseHeroId('abdulkarim-blue'), 'abdulkarim');
+  assert.equal(baseHeroId('mina'), 'mina');
 
   // Custom fallback model
   const custom = getHeroData('shadow_sniper_99', 'Shadow Sniper');

@@ -6,7 +6,7 @@ const MAX_CREDIT = 10;   // inputs a player may bank (absorbs network bursts, st
 const MAX_QUEUE = 120;
 
 const BOT_NAMES = ['Rex', 'Viper', 'Ghost', 'Shadow', 'Hawk', 'Titan', 'Wolf', 'Blaze', 'Frost', 'Echo'];
-const CHAR_ROSTER = ['kimo', 'mina', 'kimo-black'];
+const CHAR_ROSTER = ['abdulkarim', 'mina', 'abdulkarim-blue'];
 
 function round(v) { return Math.round(v * 1000) / 1000; }
 

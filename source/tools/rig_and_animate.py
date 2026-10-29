@@ -129,6 +129,39 @@ bpy.context.view_layer.objects.active = arm_obj
 bpy.ops.object.parent_set(type='ARMATURE_AUTO')
 print('Armature auto-weighted successfully!')
 
+# Heat weighting lets the arm bones drag the collar and the base of the neck, so the
+# shoulders bunch up around the head when the arms move. Fade the arm influence out
+# toward the centre line and hand that weight to the spine/neck bones instead.
+def smooth(lo, hi, x):
+    k = max(0.0, min(1.0, (x - lo) / (hi - lo)))
+    return k * k * (3 - 2 * k)
+
+vg = char_mesh.vertex_groups
+arm_groups = {g.index for g in vg if g.name.startswith(('UpperArm', 'Forearm', 'Hand'))}
+chest_g, neck_g, head_g = vg['Chest'], vg['Neck'], vg['Head']
+for v in char_mesh.data.vertices:
+    z, ax = v.co.z, abs(v.co.x)
+    if z < 1.30:
+        continue
+    keep = smooth(0.08, 0.30, ax)
+    arm_w = sum(g.weight for g in v.groups if g.group in arm_groups)
+    if arm_w <= 0 or keep >= 1.0:
+        continue
+    moved = arm_w * (1.0 - keep)
+    for g in v.groups:
+        if g.group in arm_groups:
+            vg[g.group].add([v.index], g.weight * keep, 'REPLACE')
+    dest = chest_g if z < 1.48 else neck_g
+    cur = next((g.weight for g in v.groups if g.group == dest.index), 0.0)
+    dest.add([v.index], cur + moved, 'REPLACE')
+# Everything above the chin line follows the head only.
+for v in char_mesh.data.vertices:
+    if v.co.z > 1.66:
+        for g in list(v.groups):
+            if g.group != head_g.index:
+                vg[g.group].remove([v.index])
+        head_g.add([v.index], 1.0, 'REPLACE')
+
 # Setup Pose Mode
 bpy.ops.object.mode_set(mode='POSE')
 for pb in arm_obj.pose.bones:
@@ -212,6 +245,12 @@ def build_run(total):
         pb_chest.rotation_euler.x = math.radians(14)
         pb_chest.rotation_euler.z = -math.sin(t) * 0.06
         pb_chest.keyframe_insert(data_path='rotation_euler', frame=f)
+
+        # Counter-lean so the face looks ahead instead of at the floor
+        for bn, deg in (('Neck', -5), ('Head', -9)):
+            pb = arm_obj.pose.bones[bn]
+            pb.rotation_euler.x = math.radians(deg)
+            pb.keyframe_insert(data_path='rotation_euler', index=0, frame=f)
 
         # Legs stride. The character faces -Y, so bone-local +X swings a leg backward:
         # thighs swing +/-, knees only flex positive (shin folds behind the thigh)
@@ -350,6 +389,12 @@ def build_crouch(total):
         pb_chest = arm_obj.pose.bones['Chest']
         pb_chest.rotation_euler.x = math.radians(16)
         pb_chest.keyframe_insert(data_path='rotation_euler', frame=f)
+
+        # Counter-lean so the face looks ahead instead of at the floor
+        for bn, deg in (('Neck', -7), ('Head', -11)):
+            pb = arm_obj.pose.bones[bn]
+            pb.rotation_euler.x = math.radians(deg)
+            pb.keyframe_insert(data_path='rotation_euler', index=0, frame=f)
 
         pb_uarm_l = arm_obj.pose.bones['UpperArm.L']
         pb_farm_l = arm_obj.pose.bones['Forearm.L']

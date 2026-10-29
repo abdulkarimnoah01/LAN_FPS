@@ -1,35 +1,18 @@
 /* Hero roster definitions, lore dossiers, and tactical attributes for LAN_FPS operatives. */
 
 export const HERO_ROSTER = {
-  kimo: {
-    id: 'kimo',
-    name: 'Kimo',
-    title: 'Assault Specialist',
-    classType: 'ASSAULT',
-    badge: '⚡',
-    bio: 'Battlefield veteran hardened in close-quarters urban skirmishes. Combines swift repositioning with disciplined trigger discipline and rapid target acquisition.',
-    stats: { mobility: 85, durability: 75, precision: 75, firepower: 85 },
-    signatureWeapon: 'AK-47 Assault Rifle',
-    signatureIcon: '🔫',
-    trait: 'Balanced Operator',
-    traitDesc: 'Optimal recoil stabilization and rapid combat recovery',
-    defaultColor: '#f0a640',
-    swatches: [
-      { name: 'Tactical Tan', color: '#f0a640' },
-      { name: 'Red Strike', color: '#ef4444' },
-      { name: 'Blue Vanguard', color: '#3b82f6' },
-      { name: 'Jungle Camo', color: '#10b981' },
-      { name: 'Night Ops', color: '#334155' }
-    ]
-  },
-  'kimo-black': {
-    id: 'kimo-black',
-    name: 'Kimo Black',
+  abdulkarim: {
+    id: 'abdulkarim',
+    name: 'Abdulkarim',
     title: 'Shadow Infiltrator',
     classType: 'INFILTRATOR',
     badge: '🗡',
     bio: 'Covert black-ops operative specializing in stealth flanking, suppressed weapon engagements, and high-damage silent melee strikes from behind enemy lines.',
     stats: { mobility: 95, durability: 65, precision: 80, firepower: 80 },
+    skins: [
+      { id: 'abdulkarim', name: 'Black Button-up' },
+      { id: 'abdulkarim-blue', name: 'Blue Palm Shirt' }
+    ],
     signatureWeapon: 'Combat Knife & SMG',
     signatureIcon: '🗡',
     trait: 'Shadow Step',
@@ -86,6 +69,12 @@ export const HERO_ROSTER = {
     ]
   }
 };
+
+/* Skin ids (extra character models) mapped to the hero they belong to. */
+export const SKIN_OF = Object.fromEntries(
+  Object.values(HERO_ROSTER).flatMap(h => (h.skins || []).filter(k => k.id !== h.id).map(k => [k.id, h.id]))
+);
+export const baseHeroId = id => SKIN_OF[id] || id;
 
 /* Resolves hero metadata with a fallback for custom or procedural characters */
 export function getHeroData(id, nameFallback) {
