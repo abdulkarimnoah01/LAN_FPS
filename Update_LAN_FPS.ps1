@@ -98,21 +98,27 @@ $Updated = $false
 if ($IsGitInstalled -and $IsGitRepo) {
     Write-Info "Git detected in local repository. Using Git update mode..."
     try {
+        $prevEAP = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+
         # Check remote origin
-        $remotes = git remote 2>&1
+        $remotes = & git remote
         if (-not ($remotes -contains "origin")) {
             Write-Info "Configuring git remote 'origin' -> $($Config.git_url)"
-            git remote add origin $Config.git_url
+            & git remote add origin $Config.git_url
         }
 
         Write-Info "Fetching latest changes from remote..."
-        git fetch origin $Config.branch --tags 2>&1 | Out-Null
+        & git fetch origin $Config.branch --tags 2>$null
 
-        $localHash = (git rev-parse HEAD 2>&1).Trim()
-        $remoteHash = (git rev-parse "origin/$($Config.branch)" 2>&1).Trim()
+        $localHash = (& git rev-parse HEAD 2>$null).Trim()
+        $remoteHash = (& git rev-parse "origin/$($Config.branch)" 2>$null).Trim()
 
-        if ($localHash -eq $remoteHash -and -not $Force) {
+        $ErrorActionPreference = $prevEAP
+
+        if ($localHash -and $remoteHash -and $localHash -eq $remoteHash -and -not $Force) {
             Write-Success "LAN_FPS is already up to date! (Commit: $($localHash.Substring(0,7)))"
+            $Updated = $true
         } else {
             if ($CheckOnly) {
                 Write-Warn "Update available on origin/$($Config.branch) ($($remoteHash.Substring(0,7)))"
@@ -120,7 +126,7 @@ if ($IsGitInstalled -and $IsGitRepo) {
             }
 
             Write-Info "Pulling updates from origin/$($Config.branch)..."
-            $pullOut = git pull --rebase origin $Config.branch 2>&1
+            $pullOut = & git pull --rebase origin $Config.branch 2>&1
             Write-Host $pullOut -ForegroundColor DarkGray
 
             $Updated = $true
@@ -136,7 +142,7 @@ if ($IsGitInstalled -and $IsGitRepo) {
             }
         }
     } catch {
-        Write-Warn "Git pull encountered an issue: $_. Falling back to direct Web download..."
+        Write-Warn "Git update encountered an issue: $_. Falling back to direct Web download..."
     }
 }
 
