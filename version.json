@@ -1,6 +1,6 @@
 {
-  "version": "1.4.2",
+  "version": "1.4.3",
   "name": "LAN_FPS",
   "date": "2026-10-29",
-  "notes": "Rebuilt Foundry Core, Reactor Complex and Zenith Atrium: correct scale and collision, grounded team spawns, working jump pads and hazards, procedural textures with baked lighting."
+  "notes": "Updater now installs new builds on launch with no click once you have allowed it once."
 }

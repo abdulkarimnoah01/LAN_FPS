@@ -19,7 +19,7 @@ let lobby = null, session = null, view = null, world = null, assets = null, refr
 const hud = new Hud(), sound = new Sound();
 
 /* ---- online updater & version check ---- */
-const CURRENT_VERSION = window.LANFPS_VERSION || '1.4.2';
+const CURRENT_VERSION = window.LANFPS_VERSION || '1.4.3';
 const UPDATE_CONFIG = {
   versionUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/version.json',
   bundleUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/LAN_FPS.html',
@@ -45,6 +45,11 @@ async function getUpdateTarget() {
   });
   idb('readwrite', s => s.put(handle, 'updateTarget')).catch(() => {});  // remembered for next time; never blocks the update
   return handle;
+}
+
+async function hasGrantedTarget() {
+  const saved = await idb('readonly', s => s.get('updateTarget')).catch(() => null);
+  return !!saved && (await saved.queryPermission({ mode: 'readwrite' }).catch(() => '')) === 'granted';
 }
 
 async function applyUpdate(info, setStatus) {
@@ -117,6 +122,8 @@ async function checkUpdate(manual = false) {
       if (btn) btn.textContent = `Update available (v${data.version})`;
       // Pressing the button means "update me": do it right away, while the click still counts as a gesture.
       if (manual) await applyUpdate(data, setStatus);
+      // On launch, update with no click when the remembered file already has write permission.
+      else if (await hasGrantedTarget()) await applyUpdate(data, setStatus);
     } else {
       if (btn) {
         btn.textContent = `Up to date (v${CURRENT_VERSION})`;
