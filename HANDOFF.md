@@ -2,7 +2,7 @@
 
 > **Project**: Spectre Orbit (repo and file names remain LAN_FPS)  
 > **Repository**: [https://github.com/abdulkarimnoah01/LAN_FPS](https://github.com/abdulkarimnoah01/LAN_FPS)  
-> **Current Version**: `v1.4.5` (Branch: `main`)  
+> **Current Version**: `v1.4.7` (Branch: `main`)  
 > **Architecture**: Zero-dependency standalone HTML5 bundle (`LAN_FPS.html`), P2P WebRTC DataChannel, shared-folder signaling, client prediction + authoritative host.
 
 ---
@@ -20,7 +20,10 @@
 ---
 
 ## 2. Recent Upgrades
-### Hadota Rail Yard (`railyard`, theme `railyard`)
+### Schoolyard (`schoolyard` — v1.4.7)
+- An authentic Egyptian school courtyard arena featuring pointed arcades, a continuous second-floor gallery ring, classrooms, and a vintage locomotive halfway emerging from a brick tunnel.
+
+### Hadota Rail Yard (`railyard`, theme `railyard` — v1.4.5)
 - A fifth imported-style arena built around the production train from the HADOTA shot `sc034sh0200` (USD, frame 1001, engine + 5 carts, ~149 m). Hand-authored layout, lit at runtime (not baked): warm low sun with a 4096 shadow map, hemisphere sky light, ACES tone mapping, dusk sky dome and ridge silhouettes built in `render.js` (`makeSkyDome`, `makeRidge`).
 - **Train pipeline** (`source/tools/train_pipeline/convert_train.py`, Blender 5.2.3 headless, reads the USD share directly): imports the high-poly frame (7.5 M tris engine, 6 M tris cart), decimates to ~38k / ~30k tris, unwraps one atlas, bakes base colour (from the original UDIM textures), ambient occlusion and a tangent-space normal map from the high-poly originals, writes `assets/props/train/{engine,cart}.glb` + textures. `train_materials.json` maps USD mesh names to materials. Run: `blender -b --python tools/train_pipeline/convert_train.py -- engine cart` (about 40 min at TRAIN_SIZE=2048). Gotcha: the USD importer adds a `MeshSequenceCache` modifier that would re-read the high-poly at export, so `world_mesh()` strips modifiers. The cart is instanced five times by the map script.
 - **Map generator** (`source/tools/map_pipeline/railyard.py`): box layout (platforms with canopies, container yards, depot, tower, signal gantries, tunnel portals, tracks) -> textured GLB + collision JSON. The train collision is a roof height-field ray-cast from the converted train mesh, merged into boxes, so roofs can be stood on. Six jump pads put players on the train roof. Textures come from `textures.py` (palette `yard`).
