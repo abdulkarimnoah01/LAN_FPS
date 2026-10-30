@@ -2,24 +2,49 @@
 
 > **Project**: Spectre Orbit (repo and file names remain LAN_FPS)  
 > **Repository**: [https://github.com/abdulkarimnoah01/LAN_FPS](https://github.com/abdulkarimnoah01/LAN_FPS)  
-> **Current Version**: `v1.4.7` (Branch: `main`)  
-> **Architecture**: Zero-dependency standalone HTML5 bundle (`LAN_FPS.html`), P2P WebRTC DataChannel, shared-folder signaling, client prediction + authoritative host.
+> **Current Version**: `v1.5.0` (Branch: `feat/babylon-online` / Baseline `v1.4.7` on `main`)  
+> **Architecture**:
+> - **Classic Edition**: Standalone single-file HTML5 bundle (`LAN_FPS.html`), Three.js renderer, P2P WebRTC DataChannel via shared-folder signaling.
+> - **Online Edition**: Babylon.js 9 (WebGPU / WebGL 2) bundle (`LAN_FPS_online.html` / `dist/online/index.html`), dedicated Node.js LTS matchmaking & signaling server (`server/index.mjs`), WebRTC DataChannels + STUN/TURN traversal.
 
 ---
 
 ## 1. Executive Summary & Philosophy
 
-`Spectre Orbit` (file: `LAN_FPS.html`) is a serverless, zero-install, zero-dependency multiplayer first-person shooter designed for PCs on the same local studio or home network. 
+`Spectre Orbit` supports two independent, high-performance browser distributions:
+1. **Classic Edition (`LAN_FPS.html`)**: Serverless, zero-install, zero-dependency multiplayer FPS powered by Three.js for local studio or home network LAN play.
+2. **Online Edition (`LAN_FPS_online.html` & `dist/online/`)**: Internet multiplayer FPS powered by Babylon.js 9, WebGPU acceleration with WebGL 2 fallback, PBR materials, cascaded shadow maps, filmic tone mapping, and a dedicated WebSocket matchmaking server with STUN/TURN integration.
 
 ### Core Design Rules
-1. **Single File Distribution**: The entire game compiles into a single, standalone HTML file (`LAN_FPS.html`, ~12.5 MB) containing inlined scripts, Three.js, styles, procedural audio synthesizers, 8 base64-encoded rigged humanoid operatives, and 3 open-source FPS arenas.
-2. **Zero External Dependencies / CDNs**: The game must function 100% offline with no internet access. Never introduce external `<script src="...">` or remote stylesheet links.
-3. **No Central Game Server**: Signaling is coordinated via a shared network folder (SMB/LAN share or browser OPFS / localStorage fallback) using the File System Access API. Real-time gameplay runs over direct, local WebRTC `RTCDataChannel` connections with no STUN/TURN servers.
-4. **Authoritative Host + Client Prediction**: The host simulates physics, barrels, grenades, bot AI, hits, kills, jump pads, hazard floors, and scoring. Clients predict local movement and receive 20 snapshots per second with 100 ms entity interpolation.
+1. **Classic Edition Uncompromised**: Preserves 100% offline functionality, single-file distribution, zero external CDNs, and zero dependency on online services.
+2. **Online Edition Modernization**: Uses Babylon.js 9 modular imports, WebGPU pipeline, configurable graphics presets (Low, Medium, High, Ultra), and internet WebRTC transport with Trickle ICE and ephemeral Coturn TURN credentials.
+3. **Decoupled Simulation Core**: Shared physics, collision, movement, weapon ballistics, raycasting, and rules (`sim.js`, `hostgame.js`) are completely renderer-agnostic.
+4. **Authoritative Host + Client Prediction**: Authoritative 60 Hz simulation with 20 Hz network snapshots, client prediction with reconciliation, and 100 ms entity interpolation across both editions.
 
 ---
 
 ## 2. Recent Upgrades
+
+### v1.5.0: Babylon.js 9 Online Multiplayer Migration (`feat/babylon-online`)
+- **Babylon.js 9 Engine Integration**:
+  - `source/src/babylon/engine_factory.js`: Automatic WebGPU detection and initialization with seamless WebGL 2 fallback.
+  - `source/src/babylon/materials.js`: PBR metallic/roughness workflow, procedural palettes, custom atmospheric sky dome shader, and graphics presets (Low, Medium, High, Ultra).
+  - `source/src/babylon/procedural_world.js`: Procedural map generation for Pine Forest, Aftermath, River Forest, and Sandbox.
+  - `source/src/babylon/map_loader.js`: Asynchronous GLB loader for imported arenas (Foundry Core, Schoolyard, Hadota Rail Yard, Reactor Complex, Zenith Atrium).
+  - `source/src/babylon/character_loader.js`: Rigged skeletal operative loading, AnimationGroups (`idle`, `walk`, `run`, `crouch`, `death`), and remote player avatars with overhead nametags.
+  - `source/src/babylon/weapon_viewmodel.js`: Procedural viewmodels for all 6 weapons (`ak47`, `shotgun`, `sniper`, `smg`, `lmg`, `knife`), separate foreground rendering pass (`renderingGroupId = 1`), recoil kick, ADS zoom, muzzle flashes, and combat particle effects.
+  - `source/src/babylon/view.js`: Drop-in replacement `BabylonView` conforming to the simulation rendering interface.
+- **Dedicated Matchmaking & Signaling Server (`server/index.mjs`)**:
+  - Node.js LTS + WebSocket (`ws`), RFC 5766 ephemeral Coturn TURN credentials, room browsing, quick match, invite codes, rate limiting, and stale room garbage collection.
+  - Tested and verified with 5 automated unit tests (`server/test/server_test.mjs`).
+- **Internet WebRTC Client Transport (`source/src/net_online.js`)**:
+  - `OnlineNetHost` and `OnlineNetGuest` implementing the exact `NetHost` / `NetGuest` contracts for `HostSession` and `GuestSession`.
+  - Trickle ICE, candidate buffering, reliable `rel` and fast `fast` DataChannels.
+  - Tested with 3 automated transport and game session integration tests.
+- **Dual Build Pipelines**:
+  - `npm run build` -> builds Classic `LAN_FPS.html` (36.5 MB, v1.4.7)
+  - `npm run build:online` -> builds Online `LAN_FPS_online.html` (42.5 MB, Babylon 9) + `dist/online/index.html`
+  - `npm run test:all` -> runs all 56 tests across Classic, Online, Babylon renderer, and Server.
 ### Schoolyard (`schoolyard` — v1.4.7)
 - An authentic Egyptian school courtyard arena featuring pointed arcades, a continuous second-floor gallery ring, classrooms, and a vintage locomotive halfway emerging from a brick tunnel.
 
