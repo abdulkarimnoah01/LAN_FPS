@@ -721,8 +721,9 @@ export class View {
     // (texture x baked light) and the live sun and shadows are not needed on them.
     const baked = !!world.gltf && ['foundry', 'reactor', 'zenith'].includes(world.theme);
     const yard = !!world.gltf && world.theme === 'railyard';
+    const school = !!world.gltf && world.theme === 'school';
     this.sun.castShadow = !baked;
-    this.sun.intensity = baked ? 0.45 : yard ? 3.8 : 2.2;
+    this.sun.intensity = baked ? 0.45 : yard ? 3.8 : school ? 3.0 : 2.2;
     this.sun.color.set(yard ? '#ffb675' : '#fff3df');
     this.hemi.intensity = baked ? 1.25 : yard ? 1.9 : 1.6;
     this.hemi.color.set(yard ? '#8ea4d4' : '#eaf4ff');
@@ -733,12 +734,16 @@ export class View {
     this.renderer.toneMappingExposure = yard ? 1.05 : 1;
     // shadow volume: the yard is 116 x 210 m, so it gets a big, sharp, low-sun shadow map
     const sh = this.sun.shadow;
-    const wantSize = yard ? 4096 : 2048;
+    const wantSize = yard || school ? 4096 : 2048;
     if (sh.mapSize.x !== wantSize) { sh.mapSize.set(wantSize, wantSize); sh.map?.dispose(); sh.map = null; }
     if (yard) {
       this.sun.position.set(-85, 62, 48);
       Object.assign(sh.camera, { left: -118, right: 118, top: 118, bottom: -118, near: 20, far: 300 });
       sh.bias = -0.0004; sh.normalBias = 0.06;
+    } else if (school) {
+      this.sun.position.set(26, 58, -18);
+      Object.assign(sh.camera, { left: -36, right: 36, top: 36, bottom: -36, near: 10, far: 150 });
+      sh.bias = -0.0004; sh.normalBias = 0.05;
     } else {
       this.sun.position.set(14, 30, 8);
       Object.assign(sh.camera, { left: -28, right: 28, top: 28, bottom: -28, near: 1, far: 80 });

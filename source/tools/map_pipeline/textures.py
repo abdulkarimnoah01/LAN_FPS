@@ -396,3 +396,64 @@ def make(kind, palette_name, variant=None, seed=1234):
     if variant:
         arr = np.clip(arr * np.asarray(VARIANT_TINT[variant])[None, None, :], 0, 1)
     return arr
+
+
+# ---- Egyptian school courtyard (SPECTRE ORBIT: Schoolyard) ----
+def plaster(color, seed, flake=0.55, stain=0.35):
+    """Aged lime plaster: mottled tone, vertical water stains, flaking patches that show the substrate."""
+    n = N
+    x, y = grid(n)
+    v = 0.78 + 0.22 * fbm(seed, 5, 3)
+    streak = fbm(seed + 2, 3, 3)
+    drip = np.clip(fbm(seed + 6, 2, 14) - 0.45, 0, 1) * np.linspace(0.4, 1.0, n)[:, None]
+    v = v * (1 - stain * drip * 1.4) * (0.9 + 0.2 * streak)
+    out = shade(color, v)
+    patch = fbm(seed + 4, 3, 4)
+    sub = np.asarray((0.62, 0.50, 0.38))[None, None, :] * (0.8 + 0.3 * fbm(seed + 8, 3, 16))[..., None]
+    k = np.clip((patch - (1.0 - flake * 0.42)) * 7.0, 0, 1)[..., None]
+    out = out * (1 - k) + sub * k
+    crack = np.abs(fbm(seed + 11, 3, 6) - 0.5) < 0.008
+    return np.where(crack[..., None], out * 0.55, out)
+
+
+def paving(color, seed):
+    """Interlocking concrete pavers: 8 x 8 blocks, per-block tone, dirt in the joints."""
+    n = N
+    x, y = grid(n)
+    cell = n // 8
+    cx, cy = (x // cell).astype(int), (y // cell).astype(int)
+    rng = _rng(seed)
+    tone = rng.uniform(0.82, 1.12, (9, 9))[cy % 8, cx % 8]
+    off = ((x % cell) < 2) | ((y % cell) < 2)
+    v = tone * (0.85 + 0.2 * fbm(seed + 1, 4, 5))
+    v = np.where(off, v * 0.55, v)
+    return shade(color, v)
+
+
+def leaf(color, seed):
+    n = N
+    v = 0.5 + 0.5 * fbm(seed, 5, 8)
+    blob = fbm(seed + 3, 2, 20) > 0.6
+    return shade(color, np.where(blob, v * 1.25, v * 0.85))
+
+
+KINDS.update({
+    'plaster': lambda c, s: plaster(c['plaster'], s + 30),
+    'plaster_pink': lambda c, s: plaster(c['plaster_pink'], s + 31, flake=0.9, stain=0.5),
+    'whitewash': lambda c, s: plaster(c['whitewash'], s + 32, flake=0.2, stain=0.2),
+    'redpaint': lambda c, s: plaster(c['redpaint'], s + 33, flake=0.3, stain=0.3),
+    'stone': lambda c, s: concrete(c['stone'], s + 34),
+    'paving': lambda c, s: paving(c['paving'], s + 35),
+    'leaf': lambda c, s: leaf(c['leaf'], s + 36),
+    'tunnel': lambda c, s: concrete(c['tunnel'], s + 37),
+    'dark': lambda c, s: shade(c['dark'], 0.8 + 0.2 * fbm(s + 38, 3, 6)),
+})
+
+PALETTES['school'] = dict(
+    plaster=(0.82, 0.70, 0.46), plaster_pink=(0.76, 0.50, 0.46), whitewash=(0.86, 0.84, 0.78), redpaint=(0.62, 0.14, 0.12),
+    stone=(0.72, 0.64, 0.50), paving=(0.64, 0.54, 0.48), leaf=(0.30, 0.52, 0.17), tunnel=(0.20, 0.19, 0.18),
+    dark=(0.05, 0.05, 0.05), wood=(0.27, 0.17, 0.10), metal_dark=(0.12, 0.12, 0.13), steel=(0.50, 0.50, 0.52),
+    gravel=(0.46, 0.43, 0.40), sleeper=(0.30, 0.22, 0.15), concrete=(0.62, 0.60, 0.56), asphalt=(0.34, 0.33, 0.32),
+    glass=(0.10, 0.12, 0.14))
+PALETTES['school'] = {k: (v if k in ('dark', 'glass') else tuple(min(0.92, c * 1.25) for c in v))
+                      for k, v in PALETTES['school'].items()}

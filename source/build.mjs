@@ -34,7 +34,7 @@ if (fs.existsSync(charDir)) {
 const mapsDir = path.join(root, 'assets', 'maps', 'processed');
 if (fs.existsSync(mapsDir)) {
   assets.maps = {};
-  for (const id of ['foundry', 'glowplant', 'zenith', 'railyard']) {
+  for (const id of ['foundry', 'glowplant', 'zenith', 'railyard', 'school']) {
     const glbFile = path.join(mapsDir, id + '.glb');
     const imgFile = path.join(mapsDir, id + '.jpg');
     assets.maps[id] = {};

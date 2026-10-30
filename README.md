@@ -6,7 +6,7 @@ It is one HTML file (`LAN_FPS.html`) with everything built in: no install, no se
 - 2–6 players, first to 10 kills (FFA) or 25 kills (TDM) wins the round, then a new round starts after 8 seconds.
 - Game Modes: **Free For All (Deathmatch)** and **Team Deathmatch (TDM)** with auto-balancing, friendly-fire immunity, and team score banners.
 - AI Bots / Practice Dummies: Host can spawn and dismiss tactical practice bots with target acquisition, line-of-sight checks, strafing, and grenade usage.
-- 5 map modes: **Aftermath (Medal of Honor Ruins)**, **River Forest (River Valley & Bridges)**, **Pine Forest (Low-Poly)**, **Random Sandbox (Procedurally Generated)**, and **Arena (Retro Classic)**.
+- Maps: **Schoolyard (Egyptian courtyard with a tunnel locomotive, see docs/SCHOOLYARD.md)** plus the original modes: **Aftermath (Medal of Honor Ruins)**, **River Forest (River Valley & Bridges)**, **Pine Forest (Low-Poly)**, **Random Sandbox (Procedurally Generated)**, and **Arena (Retro Classic)**.
 - Interactive Elements: Explodable fuel barrels with hit damage, chain reactions, and radial blast impulses.
 - Grenades & Throwables: Press `G` to lob frag grenades with bounce physics, fuse timers, and AOE explosion shockwaves.
 - Surface Footstep Audio: Procedural audio synthesis reacting to ground surfaces (`water` fluid splash, `wood` hollow knock, `metal` ping, `rubble` gravel crunch, and `concrete`).

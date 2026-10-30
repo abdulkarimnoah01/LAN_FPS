@@ -706,7 +706,7 @@ test('MAPS_REGISTRY defines foundry, glowplant, and zenith with complete schemas
   assert.ok(MAPS_REGISTRY.zenith, 'zenith registered');
   assert.ok(MAPS_REGISTRY.railyard, 'railyard registered');
 
-  for (const id of ['foundry', 'glowplant', 'zenith', 'railyard']) {
+  for (const id of ['foundry', 'glowplant', 'zenith', 'railyard', 'school']) {
     const m = getRegisteredMap(id);
     assert.ok(m, `${id} found via getRegisteredMap`);
     assert.ok(m.title, `${id} has title`);
@@ -729,7 +729,7 @@ test('imported maps have collision boxes, valid spawns, and jump pads', async ()
     z + R > b[2] && z - R < b[5]
   );
 
-  for (const id of ['foundry', 'glowplant', 'zenith', 'railyard']) {
+  for (const id of ['foundry', 'glowplant', 'zenith', 'railyard', 'school']) {
     const world = getMap(id);
     assert.ok(world.boxes.length > 0, `${id} world has boxes`);
     assert.ok(world.spawns.length >= 4, `${id} world has spawns`);
@@ -772,7 +772,7 @@ test('jump pads launch players upward and hazard kill floors eliminate players',
 test('imported map spawns are standing on solid floor and stay put', async () => {
   const { getMap } = await import('../src/arena.js');
   const { newPlayer, stepPlayer } = await import('../src/sim.js');
-  for (const id of ['foundry', 'glowplant', 'zenith', 'railyard']) {
+  for (const id of ['foundry', 'glowplant', 'zenith', 'railyard', 'school']) {
     const world = getMap(id);
     world.spawns.forEach((s, i) => {
       const p = newPlayer('t', 't', 0);
@@ -821,6 +821,24 @@ test('rayBox stops weapon fire on imported map collision boxes', async () => {
 
   const hitDist = rayBox(origin, dir, b0, 100);
   assert.ok(hitDist >= 4.9 && hitDist <= 5.1, `rayBox intersected map box at dist ${hitDist}`);
+});
+
+test('schoolyard: the south stair reaches the gallery and the locomotive blocks the tunnel', async () => {
+  const { getMap } = await import('../src/arena.js');
+  const { newPlayer, stepPlayer, B } = await import('../src/sim.js');
+  const world = getMap('school');
+  const walk = (x, y, z, tx, tz, frames) => {
+    const p = newPlayer('t', 't', 0);
+    Object.assign(p, { x, y, z, alive: true });
+    for (let k = 0; k < frames; k++) stepPlayer(p, { b: B.FWD, yaw: Math.atan2(-(tx - x), -(tz - z)), pitch: 0, w: 0 }, world);
+    return p;
+  };
+  const up = walk(14.8, -0.3, 16.3, 4, 16.3, 100);
+  assert.ok(up.g && Math.abs(up.y - 5.8) < 0.05, `stair top is the gallery floor (y=${up.y.toFixed(2)})`);
+  const train = walk(-6, -0.3, 0.3, 30, 0.3, 360);
+  assert.ok(train.x < 5.2, `locomotive nose stops the player (x=${train.x.toFixed(2)})`);
+  const gap = walk(4, -0.3, -2.0, 30, -2.0, 360);
+  assert.ok(gap.x < 16, `tunnel side gap is closed (x=${gap.x.toFixed(2)})`);
 });
 
 let failed = 0;

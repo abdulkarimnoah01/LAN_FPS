@@ -5,6 +5,7 @@ const MAPS = {
   glowplant: ['Reactor Complex', 'Sub-orbital nuclear facility with pulsating blue plasma cores and dual jump pads.'],
   zenith: ['Zenith Atrium', 'High-altitude vertical multi-tier sky arena with velocity jump pads and vertigo sightlines.'],
   railyard: ['Hadota Rail Yard', 'A rail yard at dusk. A 150 m freight train down the middle, roof lanes, container canyons and signal gantries.'],
+  school: ['Schoolyard', 'An Egyptian school courtyard in full sun. Two storeys of pointed arcades, a gallery ring and a diesel locomotive halfway out of a tunnel.'],
   aftermath: ['Aftermath', 'Ruined streets. Tight corners. Urban combat.'],
   river: ['River Forest', 'A river valley divided by bridges and sightlines.'],
   forest: ['Pine Forest', 'Pine cover and open ground. Watch your flanks.'],
@@ -20,7 +21,7 @@ export function updateBriefing() {
   $('map-index').textContent = `SECTOR ${String(Object.keys(MAPS).indexOf(map) + 1).padStart(2, '0')} / ${String(Object.keys(MAPS).length).padStart(2, '0')}`;
   document.querySelector('.map-briefing').dataset.map = map;
   const sourcePreview = window.LANFPS_ASSETS?.maps?.[map]?.preview;
-  const ownCapture = map === 'railyard';   // preview is a capture of this game's own render, not a source-map image
+  const ownCapture = map === 'railyard' || map === 'school';   // preview is a capture of this game's own render, not a source-map image
   $('map-thumbnail').style.backgroundImage = sourcePreview ? `url("${sourcePreview}")` : '';
   $('map-thumbnail').setAttribute('aria-label', sourcePreview && !ownCapture ? `${data[0]}: original source map preview` : `${data[0]}: actual in-game ${map === 'sandbox' ? 'sample; each room generates different terrain' : 'capture'}`);
   $('map-capture-label').textContent = sourcePreview && !ownCapture ? 'SOURCE MAP PREVIEW' : map === 'sandbox' ? 'IN-GAME SAMPLE' : 'IN-GAME CAPTURE';

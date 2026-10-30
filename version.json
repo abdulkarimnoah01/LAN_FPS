@@ -1,6 +1,6 @@
 {
-  "version": "1.4.6",
+  "version": "1.4.7",
   "name": "LAN_FPS",
   "date": "2026-10-30",
-  "notes": "Fixed the updater looping when the saved update file is not the copy being run."
+  "notes": "New map: Schoolyard, an Egyptian school courtyard with pointed arcades, a gallery ring and a locomotive halfway out of a tunnel."
 }

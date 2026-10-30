@@ -6,7 +6,7 @@ const processedDir = path.join(root, 'assets/maps/processed');
 const outFile = path.join(root, 'src/maps_registry.js');
 
 const maps = {};
-for (const id of ['foundry', 'glowplant', 'zenith', 'railyard']) {
+for (const id of ['foundry', 'glowplant', 'zenith', 'railyard', 'school']) {
   const jsonPath = path.join(processedDir, `${id}.json`);
   if (fs.existsSync(jsonPath)) {
     maps[id] = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));

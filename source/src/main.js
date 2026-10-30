@@ -19,7 +19,7 @@ let lobby = null, session = null, view = null, world = null, assets = null, refr
 const hud = new Hud(), sound = new Sound();
 
 /* ---- online updater & version check ---- */
-const CURRENT_VERSION = window.LANFPS_VERSION || '1.4.6';
+const CURRENT_VERSION = window.LANFPS_VERSION || '1.4.7';
 const UPDATE_CONFIG = {
   versionUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/version.json',
   bundleUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/LAN_FPS.html',
@@ -613,6 +613,7 @@ async function host(char) {
     glowplant: 'Reactor Complex',
     zenith: 'Zenith Atrium',
     railyard: 'Hadota Rail Yard',
+    school: 'Schoolyard',
     aftermath: 'Aftermath (MoH Ruins)',
     river: 'River Forest',
     forest: 'Pine Forest',
@@ -648,6 +649,7 @@ async function join(room, char) {
     glowplant: 'Reactor Complex',
     zenith: 'Zenith Atrium',
     railyard: 'Hadota Rail Yard',
+    school: 'Schoolyard',
     aftermath: 'Aftermath (MoH Ruins)',
     river: 'River Forest',
     forest: 'Pine Forest',
