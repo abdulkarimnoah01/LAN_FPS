@@ -2,7 +2,7 @@
 
 > **Project**: Spectre Orbit (repo and file names remain LAN_FPS)  
 > **Repository**: [https://github.com/abdulkarimnoah01/LAN_FPS](https://github.com/abdulkarimnoah01/LAN_FPS)  
-> **Current Version**: `v1.4.2` (Branch: `main`)  
+> **Current Version**: `v1.4.5` (Branch: `main`)  
 > **Architecture**: Zero-dependency standalone HTML5 bundle (`LAN_FPS.html`), P2P WebRTC DataChannel, shared-folder signaling, client prediction + authoritative host.
 
 ---
