@@ -22,3 +22,7 @@ desktop.ini
 
 __pycache__/
 *.pyc
+
+# Pipeline scratch output
+source/tools/**/_tmp*/
+__pycache__/

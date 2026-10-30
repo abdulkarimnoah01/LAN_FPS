@@ -590,7 +590,7 @@ export class View {
 
     this.buildVisuals(world);
 
-    const cam = this.camera = new THREE.PerspectiveCamera(75, 1, 0.05, 200);
+    const cam = this.camera = new THREE.PerspectiveCamera(75, 1, 0.05, this.farPlane || 200);
     cam.rotation.order = 'YXZ';
     scene.add(cam);
     // First-person weapon.
@@ -664,6 +664,44 @@ export class View {
     return pts;
   }
 
+  makeSkyDome(top, mid, bottom, sunDir) {
+    const mat = new THREE.ShaderMaterial({
+      side: THREE.BackSide, depthWrite: false, fog: false,
+      uniforms: { top: { value: new THREE.Color(top) }, mid: { value: new THREE.Color(mid) }, bot: { value: new THREE.Color(bottom) }, sun: { value: sunDir.clone().normalize() } },
+      vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `uniform vec3 top; uniform vec3 mid; uniform vec3 bot; uniform vec3 sun; varying vec3 vP;
+        void main(){
+          vec3 d = normalize(vP); float h = d.y;
+          vec3 c = h > 0.0 ? mix(mid, top, pow(clamp(h, 0.0, 1.0), 0.5)) : mix(mid, bot, clamp(-h * 5.0, 0.0, 1.0));
+          float s = max(dot(d, sun), 0.0);
+          c += vec3(1.0, 0.55, 0.22) * pow(s, 10.0) * 0.5 + vec3(1.0, 0.78, 0.45) * pow(s, 60.0) * 0.6 + vec3(1.0, 0.95, 0.8) * pow(s, 900.0) * 3.0;
+          gl_FragColor = vec4(c, 1.0);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }`,
+    });
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(520, 32, 20), mat);
+    dome.renderOrder = -10; dome.frustumCulled = false;
+    return dome;
+  }
+
+  makeRidge(radius, base, amp, color, seed) {
+    const seg = 128, pos = [], idx = [];
+    for (let i = 0; i <= seg; i++) {
+      const a = (i / seg) * Math.PI * 2;
+      const h = base + amp * (0.55 * Math.sin(a * 3 + seed) + 0.3 * Math.sin(a * 7 + seed * 2.1) + 0.15 * Math.sin(a * 17 + seed * 0.7)) ;
+      const x = Math.cos(a) * radius, z = Math.sin(a) * radius;
+      pos.push(x, -6, z, x, Math.max(4, h), z);
+      if (i < seg) { const k = i * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setIndex(idx);
+    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }));
+    mesh.frustumCulled = false;
+    return mesh;
+  }
+
   buildVisuals(world) {
     const g = this.worldGroup;
     this.barrelMeshes.clear();
@@ -682,11 +720,45 @@ export class View {
     // Imported arenas carry baked lighting in their vertex colours, so they are drawn unlit
     // (texture x baked light) and the live sun and shadows are not needed on them.
     const baked = !!world.gltf && ['foundry', 'reactor', 'zenith'].includes(world.theme);
+    const yard = !!world.gltf && world.theme === 'railyard';
     this.sun.castShadow = !baked;
-    this.sun.intensity = baked ? 0.45 : 2.2;
-    this.hemi.intensity = baked ? 1.25 : 1.6;
-    this.scene.fog.near = baked ? 40 : 30;
-    this.scene.fog.far = baked ? 170 : 95;
+    this.sun.intensity = baked ? 0.45 : yard ? 3.8 : 2.2;
+    this.sun.color.set(yard ? '#ffb675' : '#fff3df');
+    this.hemi.intensity = baked ? 1.25 : yard ? 1.9 : 1.6;
+    this.hemi.color.set(yard ? '#8ea4d4' : '#eaf4ff');
+    this.hemi.groundColor.set(yard ? '#4d3b30' : '#5b5246');
+    this.scene.fog.near = baked ? 40 : yard ? 70 : 30;
+    this.scene.fog.far = baked ? 170 : yard ? 430 : 95;
+    this.renderer.toneMapping = yard ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+    this.renderer.toneMappingExposure = yard ? 1.05 : 1;
+    // shadow volume: the yard is 116 x 210 m, so it gets a big, sharp, low-sun shadow map
+    const sh = this.sun.shadow;
+    const wantSize = yard ? 4096 : 2048;
+    if (sh.mapSize.x !== wantSize) { sh.mapSize.set(wantSize, wantSize); sh.map?.dispose(); sh.map = null; }
+    if (yard) {
+      this.sun.position.set(-85, 62, 48);
+      Object.assign(sh.camera, { left: -118, right: 118, top: 118, bottom: -118, near: 20, far: 300 });
+      sh.bias = -0.0004; sh.normalBias = 0.06;
+    } else {
+      this.sun.position.set(14, 30, 8);
+      Object.assign(sh.camera, { left: -28, right: 28, top: 28, bottom: -28, near: 1, far: 80 });
+      sh.bias = -0.0005; sh.normalBias = 0;
+    }
+    sh.camera.updateProjectionMatrix();
+    if (this.skyGroup) {
+      this.scene.remove(this.skyGroup);
+      this.skyGroup.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+      this.skyGroup = null;
+    }
+    this.farPlane = yard ? 700 : 200;
+    if (this.camera) { this.camera.far = this.farPlane; this.camera.updateProjectionMatrix(); }
+    if (yard) {
+      const sky = this.skyGroup = new THREE.Group();
+      sky.add(this.makeSkyDome('#35527f', '#f0a56c', '#9a6a55', this.sun.position));
+      sky.add(this.makeRidge(300, 26, 22, '#6f5a66', 1.3));
+      sky.add(this.makeRidge(240, 30, 18, '#3b3550', 4.1));
+      this.scene.add(sky);
+    }
     if (this.stars) { this.scene.remove(this.stars); this.stars.geometry.dispose(); this.stars = null; }
     if (baked && world.theme === 'zenith') this.stars = this.makeStars();
     if (world.gltf) {
@@ -705,6 +777,9 @@ export class View {
           o.castShadow = o.receiveShadow = false;
         } else {
           o.castShadow = o.receiveShadow = true;
+          for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+            for (const t of [m.map, m.normalMap, m.emissiveMap]) if (t) t.anisotropy = 8;
+          }
         }
       });
       g.add(world.gltf);

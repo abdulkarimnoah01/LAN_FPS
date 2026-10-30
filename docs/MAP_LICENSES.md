@@ -11,6 +11,7 @@ This document records the licensing audit, provenance, original authors, source 
 | `foundry` | **Foundry Core** | Compact Industrial Arena (FFA 2–6) | Xonotic (`maps/boil.map`) | kuniu the frogg, Mirio | GPL-2.0-or-later | Cleared (Full source geometry and tools included) |
 | `glowplant` | **Reactor Complex** | Medium Sci-Fi Facility (TDM 4–10) | Xonotic (`maps/glowplant.map`) | tZork, Cuinnton, Debugger, Mirio | GPL-2.0-or-later | Cleared (Full source geometry and tools included) |
 | `zenith` | **Zenith Atrium** | Vertical Futuristic Complex (4–12) | Xonotic (`maps/dance.map`) | FruitieX, dublpaws, Debugger, packer | GPL-2.0-or-later | Cleared (Full source geometry and tools included) |
+| `railyard` | **Hadota Rail Yard** | Large rail yard (2–6) | Original layout (`tools/map_pipeline/railyard.py`) | LAN_FPS contributors | Project licence for the layout; the train model and textures are HADOTA production assets and are **not** covered by it | Train used with the production team's consent (confirm before any public release) |
 
 ---
 

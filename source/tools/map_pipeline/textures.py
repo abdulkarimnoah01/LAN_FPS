@@ -208,6 +208,58 @@ def wood(color, seed):
     return shade(color, v * (1 - 0.5 * groove))
 
 
+def gravel(color, seed):
+    n = N
+    coarse = fbm(seed, 3, 3)
+    mid = fbm(seed + 3, 3, 9)
+    fine = fbm(seed + 1, 2, 48)
+    stones = fbm(seed + 2, 1, 22)
+    v = 0.45 + 0.24 * coarse + 0.2 * mid + 0.14 * fine
+    v = np.where(stones > 0.62, v * 1.12, v)
+    v = np.where(stones < 0.32, v * 0.84, v)
+    return shade(color, v)
+
+
+def asphalt(color, seed):
+    n = N
+    v = 0.55 + 0.25 * fbm(seed, 4, 6) + 0.25 * fbm(seed + 1, 2, 60)
+    crack = np.abs(fbm(seed + 4, 3, 5) - 0.5) < 0.012
+    v = np.where(crack, v * 0.4, v)
+    return shade(color, v)
+
+
+def corrugated(color, seed):
+    """Shipping-container wall: vertical ribs, rusty streaks, scuffed edges."""
+    n = N
+    x, y = grid(n)
+    rib = np.sin(x * 2 * np.pi / 16)
+    v = 0.74 + 0.2 * rib + 0.12 * (fbm(seed, 4, 3) - 0.5)
+    rust = fbm(seed + 3, 3, 2) * np.linspace(0.3, 1.0, n)[:, None]
+    tone = np.asarray(color)[None, None, :] * v[..., None]
+    rusty = np.asarray((0.42, 0.2, 0.1))[None, None, :] * (0.7 + 0.3 * v[..., None])
+    k = np.clip((rust - 0.55) * 3.0, 0, 0.65)[..., None]
+    tone = tone * (1 - k) + rusty * k
+    d = np.minimum(y, n - 1 - y)
+    tone = np.where((d < 6)[..., None], tone * 0.6, tone)
+    return np.clip(tone, 0, 1)
+
+
+def sleeper(color, seed):
+    n = N
+    x, y = grid(n)
+    grain = np.sin(y * 0.35 + 9 * fbm(seed, 3, 3)) * 0.5 + 0.5
+    v = 0.42 + 0.3 * grain + 0.18 * fbm(seed + 1, 3, 8)
+    return shade(color, v)
+
+
+def steel(color, seed):
+    n = N
+    v = 0.55 + 0.25 * fbm(seed, 3, 2) + 0.15 * fbm(seed + 1, 2, 30)
+    x, y = grid(n)
+    v = v * (0.8 + 0.2 * np.sin(x * 0.05))
+    return shade(color, v)
+
+
 KINDS = {
     'metal': lambda c, s: panel(c['metal'], s, 2),
     'metal_dark': lambda c, s: panel(c['metal_dark'], s + 1, 2, grime=0.5),
@@ -229,6 +281,14 @@ KINDS = {
     'glass': lambda c, s: glass(c['glass'], s + 17),
     'wood': lambda c, s: wood(c['wood'], s + 18),
     'lava': lambda c, s: lamp(c['lava'], s + 19, frame=c['lava']),
+    'gravel': lambda c, s: gravel(c['gravel'], s + 20),
+    'asphalt': lambda c, s: asphalt(c['asphalt'], s + 21),
+    'corr_a': lambda c, s: corrugated(c['corr_a'], s + 22),
+    'corr_b': lambda c, s: corrugated(c['corr_b'], s + 23),
+    'corr_c': lambda c, s: corrugated(c['corr_c'], s + 24),
+    'corr_d': lambda c, s: corrugated(c['corr_d'], s + 25),
+    'sleeper': lambda c, s: sleeper(c['sleeper'], s + 26),
+    'steel': lambda c, s: steel(c['steel'], s + 27),
 }
 
 EMISSIVE = {'lamp', 'lamp_a', 'lamp_b', 'screen', 'lava'}
@@ -256,6 +316,19 @@ PALETTES = {
         lamp_b=(0.25, 0.55, 1.0), screen=(0.3, 0.9, 1.0), glass=(0.35, 0.62, 0.80), wood=(0.45, 0.36, 0.26),
         lava=(0.2, 0.6, 1.0)),
 }
+
+PALETTES['yard'] = dict(
+    metal=(0.46, 0.47, 0.48), metal_dark=(0.26, 0.27, 0.29), paint=(0.55, 0.17, 0.12), base=(0.40, 0.40, 0.40),
+    rust=(0.52, 0.28, 0.15), plate=(0.36, 0.37, 0.38), floor=(0.40, 0.40, 0.40), grate=(0.30, 0.31, 0.32),
+    concrete=(0.62, 0.60, 0.56), hazard_a=(0.92, 0.72, 0.10), hazard_b=(0.10, 0.10, 0.10), pipe=(0.45, 0.45, 0.45),
+    ribs=(0.40, 0.40, 0.42), trim=(0.55, 0.53, 0.48), lamp=(1.0, 0.78, 0.45), lamp_a=(1.0, 0.2, 0.1),
+    lamp_b=(0.4, 0.9, 0.5), screen=(0.4, 0.9, 1.0), glass=(0.3, 0.42, 0.5), wood=(0.38, 0.27, 0.17),
+    lava=(1.0, 0.4, 0.1), gravel=(0.50, 0.47, 0.43), asphalt=(0.26, 0.26, 0.27),
+    corr_a=(0.58, 0.18, 0.12), corr_b=(0.13, 0.27, 0.50), corr_c=(0.16, 0.38, 0.24), corr_d=(0.78, 0.50, 0.12),
+    sleeper=(0.30, 0.21, 0.14), steel=(0.50, 0.50, 0.52))
+# The yard is lit at runtime (sun + sky), so albedo is lifted compared with the baked maps.
+PALETTES['yard'] = {k: (v if k.startswith('lamp') or k in ('screen', 'lava') else tuple(min(0.92, c * 1.4) for c in v))
+                    for k, v in PALETTES['yard'].items()}
 
 # Variants that recolour a kind: texture-name hints picked per face.
 VARIANT_TINT = {

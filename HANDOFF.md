@@ -20,6 +20,12 @@
 ---
 
 ## 2. Recent Upgrades
+### Hadota Rail Yard (`railyard`, theme `railyard`)
+- A fifth imported-style arena built around the production train from the HADOTA shot `sc034sh0200` (USD, frame 1001, engine + 5 carts, ~149 m). Hand-authored layout, lit at runtime (not baked): warm low sun with a 4096 shadow map, hemisphere sky light, ACES tone mapping, dusk sky dome and ridge silhouettes built in `render.js` (`makeSkyDome`, `makeRidge`).
+- **Train pipeline** (`source/tools/train_pipeline/convert_train.py`, Blender 5.2.3 headless, reads the USD share directly): imports the high-poly frame (7.5 M tris engine, 6 M tris cart), decimates to ~38k / ~30k tris, unwraps one atlas, bakes base colour (from the original UDIM textures), ambient occlusion and a tangent-space normal map from the high-poly originals, writes `assets/props/train/{engine,cart}.glb` + textures. `train_materials.json` maps USD mesh names to materials. Run: `blender -b --python tools/train_pipeline/convert_train.py -- engine cart` (about 40 min at TRAIN_SIZE=2048). Gotcha: the USD importer adds a `MeshSequenceCache` modifier that would re-read the high-poly at export, so `world_mesh()` strips modifiers. The cart is instanced five times by the map script.
+- **Map generator** (`source/tools/map_pipeline/railyard.py`): box layout (platforms with canopies, container yards, depot, tower, signal gantries, tunnel portals, tracks) -> textured GLB + collision JSON. The train collision is a roof height-field ray-cast from the converted train mesh, merged into boxes, so roofs can be stood on. Six jump pads put players on the train roof. Textures come from `textures.py` (palette `yard`).
+- Assets are the studio's production files: the repo's licence terms do not cover them.
+
 ### v1.4.2: map rebuild
 - Map pipeline lives in `source/tools/map_pipeline/`; run with Blender 5.2.3: `blender -b --python tools/map_pipeline/convert_map.py -- foundry glowplant zenith`, then `node tools/map_pipeline/generate_registry.mjs`. Paths are relative to the script. Scale is 0.025 m/unit (Xonotic 72 u = 1.8 m).
 - `textures.py` generates procedural tileable textures; `convert_map.py` bakes entity lights into vertex colours (Cycles). Runtime draws these maps unlit (`MeshBasicMaterial`, `DoubleSide`). Map GLBs are gzip-embedded (`glbz`) and unpacked via `DecompressionStream`.

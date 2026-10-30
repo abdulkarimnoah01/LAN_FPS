@@ -704,8 +704,9 @@ test('MAPS_REGISTRY defines foundry, glowplant, and zenith with complete schemas
   assert.ok(MAPS_REGISTRY.foundry, 'foundry registered');
   assert.ok(MAPS_REGISTRY.glowplant, 'glowplant registered');
   assert.ok(MAPS_REGISTRY.zenith, 'zenith registered');
+  assert.ok(MAPS_REGISTRY.railyard, 'railyard registered');
 
-  for (const id of ['foundry', 'glowplant', 'zenith']) {
+  for (const id of ['foundry', 'glowplant', 'zenith', 'railyard']) {
     const m = getRegisteredMap(id);
     assert.ok(m, `${id} found via getRegisteredMap`);
     assert.ok(m.title, `${id} has title`);
@@ -728,7 +729,7 @@ test('imported maps have collision boxes, valid spawns, and jump pads', async ()
     z + R > b[2] && z - R < b[5]
   );
 
-  for (const id of ['foundry', 'glowplant', 'zenith']) {
+  for (const id of ['foundry', 'glowplant', 'zenith', 'railyard']) {
     const world = getMap(id);
     assert.ok(world.boxes.length > 0, `${id} world has boxes`);
     assert.ok(world.spawns.length >= 4, `${id} world has spawns`);
@@ -771,7 +772,7 @@ test('jump pads launch players upward and hazard kill floors eliminate players',
 test('imported map spawns are standing on solid floor and stay put', async () => {
   const { getMap } = await import('../src/arena.js');
   const { newPlayer, stepPlayer } = await import('../src/sim.js');
-  for (const id of ['foundry', 'glowplant', 'zenith']) {
+  for (const id of ['foundry', 'glowplant', 'zenith', 'railyard']) {
     const world = getMap(id);
     world.spawns.forEach((s, i) => {
       const p = newPlayer('t', 't', 0);
@@ -829,3 +830,19 @@ for (const t of tests) {
 }
 console.log(failed ? `\n${failed} of ${tests.length} failed` : `\nAll ${tests.length} tests passed`);
 process.exit(failed ? 1 : 0);
+
+test('railyard: jump pads put players on the train roof and the roof holds them', async () => {
+  const { getMap } = await import('../src/arena.js');
+  const { newPlayer, stepPlayer } = await import('../src/sim.js');
+  const world = getMap('railyard');
+  assert.ok(world.jumpPads.length >= 4, 'railyard has jump pads');
+  assert.ok(world.boxes.length > 300, 'train and yard collision present');
+  world.jumpPads.forEach((pad, i) => {
+    const p = newPlayer('t', 't', 0);
+    const [x0, y0, z0, x1, , z1] = pad.box;
+    Object.assign(p, { x: (x0 + x1) / 2, y: y0, z: (z0 + z1) / 2, alive: true, g: true });
+    for (let k = 0; k < 360; k++) stepPlayer(p, { b: 0, yaw: 0, pitch: 0, w: 0 }, world);
+    assert.ok(p.hp > 0, `pad ${i}: player survives the flight`);
+    assert.ok(p.g && p.y > 3.2 && Math.abs(p.x) < 1.9, `pad ${i}: lands on the train roof (y=${p.y.toFixed(2)}, x=${p.x.toFixed(2)})`);
+  });
+});
