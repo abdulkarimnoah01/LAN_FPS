@@ -19,7 +19,7 @@ let lobby = null, session = null, view = null, world = null, assets = null, refr
 const hud = new Hud(), sound = new Sound();
 
 /* ---- online updater & version check ---- */
-const CURRENT_VERSION = window.LANFPS_VERSION || '1.4.5';
+const CURRENT_VERSION = window.LANFPS_VERSION || '1.4.6';
 const UPDATE_CONFIG = {
   versionUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/version.json',
   bundleUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/LAN_FPS.html',
@@ -47,6 +47,9 @@ async function getUpdateTarget() {
   return handle;
 }
 
+// Set after a write; if the reloaded page is still old, the saved file is not the copy being run, so stop retrying.
+const lastApplied = () => { try { return localStorage.getItem('updApplied'); } catch { return null; } };
+
 async function hasGrantedTarget() {
   const saved = await idb('readonly', s => s.get('updateTarget')).catch(() => null);
   return !!saved && (await saved.queryPermission({ mode: 'readwrite' }).catch(() => '')) === 'granted';
@@ -73,7 +76,8 @@ async function applyUpdate(info, setStatus) {
       const out = await target.createWritable();
       await out.write(text);
       await out.close();
-      setStatus(`Updated to v${info.version}, restarting…`);
+      try { localStorage.setItem('updApplied', info.version); } catch {}
+      setStatus(`Updated ${target.name} to v${info.version}, restarting…`);
       setTimeout(() => location.reload(), 900);
       return;
     }
@@ -123,6 +127,7 @@ async function checkUpdate(manual = false) {
       // Pressing the button means "update me": do it right away, while the click still counts as a gesture.
       if (manual) await applyUpdate(data, setStatus);
       // On launch, update with no click when the remembered file already has write permission.
+      else if (lastApplied() === data.version) setStatus('Saved a different copy. Open the updated LAN_FPS.html');
       else if (await hasGrantedTarget()) await applyUpdate(data, setStatus);
     } else {
       if (btn) {

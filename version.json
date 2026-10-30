@@ -1,6 +1,6 @@
 {
-  "version": "1.4.5",
+  "version": "1.4.6",
   "name": "LAN_FPS",
   "date": "2026-10-30",
-  "notes": "New map: Hadota Rail Yard, a dusk freight yard built around the HADOTA train."
+  "notes": "Fixed the updater looping when the saved update file is not the copy being run."
 }
