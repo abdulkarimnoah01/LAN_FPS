@@ -220,12 +220,12 @@ export class Client {
 
 /* Host: authoritative game + local client + direct links to every guest. */
 export class HostSession {
-  constructor({ lobby, world, id, name, char, roomName, map = 'forest', seed = 0, mode = 'ffa', view, hud, audio, RTC, onExit }) {
+  constructor({ lobby, world, id, name, char, roomName, map = 'forest', seed = 0, mode = 'ffa', view, hud, audio, RTC, onExit, NetHostClass = NetHost, signaling }) {
     Object.assign(this, { lobby, world, id, name, char, roomName, map, seed, mode, onExit });
     this.game = new HostGame(world, { mode });
     this.client = new Client({ world, id, view, hud, audio, send: m => this.handle(id, m) });
-    this.net = new NetHost({
-      lobby, RTC, id, name, roomName,
+    this.net = new NetHostClass({
+      lobby, signaling, RTC, id, name, roomName, map, seed, mode,
       info: () => ({ players: this.game.players.size, max: RULES.maxPlayers, phase: this.game.phase, map: this.map, seed: this.seed, mode: this.mode }),
       canJoin: () => this.game.players.size >= RULES.maxPlayers ? 'Room is full' : '',
       onPeer: p => {
@@ -274,11 +274,11 @@ export class HostSession {
 
 /* Guest: predicted local player, everything else from the host. */
 export class GuestSession {
-  constructor({ lobby, world, id, name, char, map = 'forest', seed = 0, mode = 'ffa', view, hud, audio, RTC, onExit }) {
+  constructor({ lobby, world, id, name, char, map = 'forest', seed = 0, mode = 'ffa', view, hud, audio, RTC, onExit, NetGuestClass = NetGuest, signaling }) {
     Object.assign(this, { onExit, map, seed, mode, ping: null });
     this.client = new Client({ world, id, view, hud, audio, send: m => this.net.send(m, m.t === 'i') });
-    this.net = new NetGuest({
-      lobby, RTC, id, name, char,
+    this.net = new NetGuestClass({
+      lobby, signaling, RTC, id, name, char,
       onMessage: m => {
         if (m.t === 's') this.client.onSnapshot(m);
         else if (m.t === 'init') {

@@ -1,0 +1,13 @@
+{
+  "name": "spectre-orbit-server",
+  "version": "1.5.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.mjs",
+    "test": "node test/server_test.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

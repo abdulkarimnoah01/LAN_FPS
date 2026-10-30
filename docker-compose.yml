@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  spectre-signaling:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: spectre-signaling
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - HOST=0.0.0.0
+      - STATIC_DIR=/app/public
+      # Optional TURN server integration (Coturn):
+      # - TURN_URL=turn:turn.yourdomain.com:3478
+      # - TURN_SECRET=your_coturn_secret_key
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

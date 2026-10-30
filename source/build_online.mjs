@@ -1,0 +1,116 @@
+/* Builds the Babylon.js Online Edition of Spectre Orbit:
+   - LAN_FPS_online.html (standalone file for local browser execution)
+   - dist/online/index.html (for static hosting with reverse proxy)
+*/
+
+import { build } from 'esbuild';
+import fs from 'node:fs';
+import path from 'node:path';
+import zlib from 'node:zlib';
+import { fileURLToPath } from 'node:url';
+
+const root = path.dirname(fileURLToPath(import.meta.url));
+const outOnlineHtml = path.join(root, '..', 'LAN_FPS_online.html');
+const distOnlineDir = path.join(root, '..', 'dist', 'online');
+
+fs.mkdirSync(distOnlineDir, { recursive: true });
+
+console.log('[Build Online] Bundling Babylon 9 JavaScript with esbuild...');
+const bundle = await build({
+  entryPoints: [path.join(root, 'src', 'main_online.js')],
+  bundle: true,
+  minify: true,
+  format: 'iife',
+  target: 'es2022',
+  write: false,
+  legalComments: 'eof',
+});
+const js = bundle.outputFiles[0].text;
+console.log(`[Build Online] JS Bundle: ${(js.length / 1024 / 1024).toFixed(2)} MB`);
+
+// Gather 3D models and assets
+const assets = {};
+for (const name of ['arena', 'player', 'weapon']) {
+  const file = path.join(root, 'assets', name + '.glb');
+  if (fs.existsSync(file)) {
+    assets[name] = fs.readFileSync(file).toString('base64');
+    console.log(`  + assets/${name}.glb`);
+  }
+}
+
+// Selectable characters
+const charDir = path.join(root, 'assets', 'characters');
+if (fs.existsSync(charDir)) {
+  assets.characters = fs.readdirSync(charDir)
+    .filter(f => /\.glb$/i.test(f))
+    .sort()
+    .map(f => {
+      console.log(`  + assets/characters/${f}`);
+      return {
+        name: f.replace(/\.glb$/i, ''),
+        glb: fs.readFileSync(path.join(charDir, f)).toString('base64'),
+      };
+    });
+}
+
+// Processed maps: assets/maps/processed/<id>.glb
+const mapsDir = path.join(root, 'assets', 'maps', 'processed');
+if (fs.existsSync(mapsDir)) {
+  assets.maps = {};
+  for (const id of ['foundry', 'glowplant', 'zenith', 'railyard', 'school']) {
+    const glbFile = path.join(mapsDir, id + '.glb');
+    const imgFile = path.join(mapsDir, id + '.jpg');
+    assets.maps[id] = {};
+    if (fs.existsSync(glbFile)) {
+      const raw = fs.readFileSync(glbFile);
+      const packed = zlib.gzipSync(raw, { level: 9 });
+      assets.maps[id].glbz = packed.toString('base64');
+      console.log(`  + assets/maps/${id}.glb (${(raw.length / 1024).toFixed(0)} KB, ${(packed.length / 1024).toFixed(0)} KB packed)`);
+    }
+    if (fs.existsSync(imgFile)) {
+      assets.maps[id].preview = 'data:image/jpeg;base64,' + fs.readFileSync(imgFile).toString('base64');
+    }
+  }
+}
+
+const cfg = path.join(root, 'assets', 'assets.json');
+if (fs.existsSync(cfg)) assets.config = JSON.parse(fs.readFileSync(cfg, 'utf8'));
+
+const verFile = path.join(root, '..', 'version.json');
+let version = '1.5.0';
+if (fs.existsSync(verFile)) {
+  try { version = JSON.parse(fs.readFileSync(verFile, 'utf8')).version || version; } catch {}
+}
+
+const script = s => '<script>' + s.replace(/<\/script/gi, '<\\/script') + '</script>';
+
+// Content Security Policy permitting WebRTC, WebSockets, workers, and inline assets
+const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' blob: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws: wss: http: https: blob: data:; media-src data: blob:; base-uri 'none'; form-action 'none'">`;
+
+// Bundle CSS
+const css = ['style.css', 'reference.css']
+  .map(name => fs.existsSync(path.join(root, name)) ? fs.readFileSync(path.join(root, name), 'utf8') : '')
+  .join('\n')
+  .replace(/url\(["']?assets\/ui\/([^"')]+)["']?\)/g, (_, name) => {
+    const file = path.join(root, 'assets', 'ui', name);
+    if (!fs.existsSync(file)) return `url("")`;
+    const mime = /\.png$/i.test(name) ? 'image/png' : 'image/jpeg';
+    return `url("data:${mime};base64,${fs.readFileSync(file).toString('base64')}")`;
+  });
+
+const htmlSource = fs.readFileSync(path.join(root, 'index_online.html'), 'utf8');
+
+const html = htmlSource
+  .replace('<meta charset="utf-8">', '<meta charset="utf-8">\n' + csp)
+  .replace(/id="game-version"([^>]*)>v[^<]*</, `id="game-version"$1>v${version}<`)
+  .replace('<!--STYLE-->', () => '<style>' + css + '</style>')
+  .replace('<!--SCRIPT-->', () => script(`window.LANFPS_VERSION=${JSON.stringify(version)};window.LANFPS_ASSETS=` + JSON.stringify(assets) + ';') + '\n' + script(js));
+
+// Write standalone bundle
+fs.writeFileSync(outOnlineHtml, html);
+console.log(`[Build Online] Built ${outOnlineHtml}: ${(fs.statSync(outOnlineHtml).size / 1024 / 1024).toFixed(2)} MB (v${version})`);
+
+// Write hosted static index.html
+const distIndex = path.join(distOnlineDir, 'index.html');
+fs.writeFileSync(distIndex, html);
+console.log(`[Build Online] Built ${distIndex}: ${(fs.statSync(distIndex).size / 1024 / 1024).toFixed(2)} MB`);

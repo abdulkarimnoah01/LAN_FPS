@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Spectre Orbit // Online (Babylon Edition)</title>
+<!--STYLE-->
+</head>
+<body class="theme-neon-terminal">
+<div id="crt-overlay" class="crt-scanlines"></div>
+
+<header id="site-header">
+  <div class="header-left">
+    <div class="logo-group">
+      <span class="logo-glitch" data-text="SPECTRE ORBIT">SPECTRE ORBIT</span>
+      <span class="edition-pill">ONLINE // BABYLON 9</span>
+    </div>
+    <span id="game-version" class="version-tag">v1.5.0</span>
+  </div>
+  <div class="header-center">
+    <div class="status-indicator">
+      <span id="lamp-network" class="status-lamp lamp-warn"></span>
+      <span id="server-status-label" class="status-text">INITIALIZING...</span>
+    </div>
+    <span id="backend-badge" class="backend-pill">BABYLON 9 · DETECTING</span>
+  </div>
+  <div class="header-right">
+    <button id="btn-open-graphics" class="btn btn-ghost" type="button" title="Graphics & Visual Settings">⚙ GRAPHICS</button>
+    <button id="btn-header-roster" class="btn btn-ghost" type="button" title="View Operatives Roster">OPERATIVES</button>
+  </div>
+</header>
+
+<div id="match-status-banner" class="status-banner" hidden></div>
+
+<main id="lobby">
+  <div class="lobby-grid">
+    <!-- Left Column: Operative Identity & Turntable -->
+    <section class="panel panel-operator">
+      <div class="panel-header">
+        <span class="panel-tag">// OPERATIVE DOSSIER</span>
+        <span class="panel-dot"></span>
+      </div>
+      <div class="panel-body">
+        <div class="field-group">
+          <label for="name">CODENAME</label>
+          <input id="name" type="text" maxlength="18" placeholder="Operative" spellcheck="false" autocomplete="off" value="Ghost">
+        </div>
+
+        <div class="equipped-card">
+          <div class="canvas-wrapper">
+            <canvas id="lobby-portrait" width="280" height="280"></canvas>
+          </div>
+          <div class="equipped-meta">
+            <div id="hero-equipped-badge" class="hero-badge">RECON // 01</div>
+            <h3 id="hero-equipped-name" class="hero-name">ABDULKARIM</h3>
+            <p id="hero-equipped-role" class="hero-role">INFILTRATION & CQB SPECIALIST</p>
+          </div>
+          <button id="btn-lobby-roster" class="btn btn-secondary full-width" type="button">SELECT OPERATIVE</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Center Column: Multiplayer Room Browser -->
+    <section class="panel panel-roomboard">
+      <div class="panel-header">
+        <span class="panel-tag">// MATCHMAKING & LOBBY BROWSER</span>
+        <div class="header-actions">
+          <button id="btn-refresh-rooms" class="btn btn-ghost btn-sm" type="button">↺ REFRESH</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="quick-match-row">
+          <button id="btn-quick-match" class="btn btn-primary btn-large full-width" type="button">⚡ QUICK MATCH (AUTO-JOIN)</button>
+        </div>
+
+        <div class="section-divider"><span>OR BROWSE PUBLIC MATCHES</span></div>
+
+        <div id="room-list-container" class="room-list">
+          <div class="no-rooms-msg">Querying online matchmaking server...</div>
+        </div>
+
+        <div class="section-divider"><span>DIRECT MATCH CODE</span></div>
+
+        <div class="join-code-row">
+          <input id="input-join-code" type="text" maxlength="5" placeholder="ROOM CODE" spellcheck="false" style="text-transform:uppercase;">
+          <button id="btn-join-code" class="btn btn-secondary" type="button">CONNECT</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Host Match Configuration -->
+    <section class="panel panel-host">
+      <div class="panel-header">
+        <span class="panel-tag">// DEPLOY CUSTOM ARENA</span>
+        <span class="panel-dot"></span>
+      </div>
+      <div class="panel-body">
+        <div class="field-group">
+          <label for="room-name">ARENA DESIGNATION</label>
+          <input id="room-name" type="text" maxlength="32" placeholder="Sector Alpha Deathmatch" spellcheck="false">
+        </div>
+
+        <div class="field-group">
+          <label for="map-select">TACTICAL ENVIRONMENT</label>
+          <select id="map-select">
+            <option value="foundry" selected>Foundry Core (Smelting Facility)</option>
+            <option value="school">Schoolyard (Courtyard & Tunnel)</option>
+            <option value="railyard">Hadota Rail Yard (Freight Depot)</option>
+            <option value="glowplant">Reactor Complex (Bio-Hazard)</option>
+            <option value="zenith">Zenith Atrium (Orbital Void)</option>
+            <option value="forest">Pine Forest (Outpost Cabins)</option>
+            <option value="aftermath">Aftermath (Medal of Honor Ruins)</option>
+            <option value="river">River Forest (Timber Crossing)</option>
+            <option value="sandbox">Deterministic Sandbox</option>
+            <option value="arena">Classic Block Arena</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group flex-1">
+            <label for="mode-select">RULES OF ENGAGEMENT</label>
+            <select id="mode-select">
+              <option value="ffa" selected>Free For All (Deathmatch)</option>
+              <option value="tdm">Team Deathmatch (Red vs Blue)</option>
+            </select>
+          </div>
+          <div class="field-group" style="width: 100px;">
+            <label for="max-players-select">MAX CAP</label>
+            <select id="max-players-select">
+              <option value="2">2 Players</option>
+              <option value="4">4 Players</option>
+              <option value="6" selected>6 Players</option>
+              <option value="8">8 Players</option>
+              <option value="12">12 Players</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-group checkbox-row">
+          <label class="checkbox-label">
+            <input id="is-private-checkbox" type="checkbox">
+            <span>Private Match (Invite Code Only)</span>
+          </label>
+        </div>
+
+        <button id="btn-host-match" class="btn btn-primary full-width btn-large" type="button" style="margin-top: 1rem;">DEPLOY MATCH</button>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- In-Game HUD and Canvas -->
+<div id="game" hidden>
+  <canvas id="view"></canvas>
+  <div id="crosshair"></div>
+  <div id="damage-arc" hidden></div>
+  <div id="hitmarker"></div>
+  <div id="damage"></div>
+
+  <div id="sniper-scope" hidden>
+    <div class="scope-cross-h"></div>
+    <div class="scope-cross-v"></div>
+    <div class="scope-ring"></div>
+  </div>
+
+  <div id="elim-skull" class="elim-skull">
+    <svg viewBox="0 0 100 100" class="skull-svg">
+      <path class="skull-glint" d="M50 4 L53 47 L96 50 L53 53 L50 96 L47 53 L4 50 L47 47 Z" />
+      <path class="skull-glint diagonal" d="M18 18 L48 48 L82 18 L52 48 L82 82 L52 52 L18 82 L48 52 Z" />
+      <path class="skull-body" d="M22 40 C20 18 32 12 50 12 C68 12 80 18 78 40 C77 50 74 56 71 60 L73 70 L65 72 L63 80 L57 80 L56 72 L50 72 L44 72 L43 80 L37 80 L35 72 L27 70 L29 60 C26 56 23 50 22 40 Z" />
+      <path class="skull-eye" d="M29 39 Q38 46 44 38 Q38 31 29 39 Z" />
+      <path class="skull-eye" d="M71 39 Q62 46 56 38 Q62 31 71 39 Z" />
+      <polygon class="skull-nose" points="50,45 46,53 54,53" />
+    </svg>
+  </div>
+  <div id="elim-feed"></div>
+  <ul id="feed"></ul>
+
+  <div id="topbar">
+    <span id="link"></span>
+    <span id="tdm-score" class="tdm-score-banner" hidden></span>
+    <span id="myscore"></span>
+    <button id="leave" class="btn btn-ghost btn-sm">LEAVE MATCH</button>
+  </div>
+
+  <div id="vitals">
+    <span class="hud-label">VITAL SIGNS</span>
+    <div class="bar"><div id="hpbar"></div></div>
+    <b id="hp">100</b><span>HP</span>
+    <span id="stance" class="stance-pill">STAND</span>
+  </div>
+
+  <div id="weapons">
+    <button type="button" class="wep on" data-w="0"><span class="key">1</span><span class="wname">AK-47</span><span class="ammo-count">30</span></button>
+    <button type="button" class="wep" data-w="1"><span class="key">2</span><span class="wname">Shotgun</span><span class="ammo-count">8</span></button>
+    <button type="button" class="wep" data-w="2"><span class="key">3</span><span class="wname">Sniper</span><span class="ammo-count">5</span></button>
+    <button type="button" class="wep" data-w="3"><span class="key">4</span><span class="wname">SMG</span><span class="ammo-count">40</span></button>
+    <button type="button" class="wep" data-w="4"><span class="key">5</span><span class="wname">LMG</span><span class="ammo-count">75</span></button>
+    <button type="button" class="wep" data-w="5"><span class="key">6</span><span class="wname">Knife</span><span class="ammo-count">∞</span></button>
+  </div>
+
+  <div id="ammo-row">
+    <span class="hud-label">WEAPON SYSTEM</span>
+    <div id="grenades" title="Grenades (G)">💣 2</div>
+    <div id="ammo">30 / 30</div>
+  </div>
+
+  <button id="center" type="button" hidden></button>
+
+  <div id="scoreboard" hidden>
+    <div class="board-heading">
+      <span class="eyebrow">MATCH TELEMETRY</span>
+      <h2>Standings</h2>
+    </div>
+    <table aria-label="Match scores"></table>
+    <p class="hint">Hold Tab to inspect · Eliminate to advance</p>
+  </div>
+</div>
+
+<!-- Graphics Settings Modal -->
+<div id="graphics-modal" class="modal-backdrop" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3>GRAPHICS & DISPLAY CONFIGURATION</h3>
+      <button id="btn-close-graphics" class="btn btn-ghost btn-sm" type="button">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label for="preset-select">QUALITY PRESET</label>
+        <select id="preset-select">
+          <option value="low">LOW — Max Performance (0.8x DPR, Minimal FX)</option>
+          <option value="medium">MEDIUM — Balanced (1.0x DPR, Soft Shadows)</option>
+          <option value="high" selected>HIGH — Recommended (1.25x DPR, Full PBR, Bloom)</option>
+          <option value="ultra">ULTRA — Cinematic (1.5x DPR, 4K Shadows, Full Post-FX)</option>
+        </select>
+      </div>
+      <div class="info-callout">
+        <p>Spectre Orbit Online uses <strong>Babylon.js 9</strong> with automatic WebGPU acceleration and WebGL 2 fallback.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Operative Roster Screen -->
+<div id="roster-screen" class="modal-backdrop roster-screen" hidden>
+  <div class="modal-dialog roster-dialog">
+    <div class="modal-header">
+      <h3>OPERATIVE SELECTION MATRIX</h3>
+      <button id="btn-roster-close" class="btn btn-ghost btn-sm" type="button">✕</button>
+    </div>
+    <div class="modal-body roster-body">
+      <div class="roster-canvas-col">
+        <canvas id="roster-canvas" width="400" height="400"></canvas>
+      </div>
+      <div class="roster-info-col">
+        <h4>AVAILABLE OPERATIVES</h4>
+        <div id="roster-list" class="roster-list-grid">
+          <!-- Populated from HERO_ROSTER -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!--SCRIPT-->
+</body>
+</html>

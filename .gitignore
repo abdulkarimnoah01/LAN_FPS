@@ -5,6 +5,10 @@ _LAN_FPS_DATA/
 
 # Node.js dependencies
 source/node_modules/
+server/node_modules/
+
+# Build artifacts
+dist/
 
 # Test artifacts and temporary screenshots
 source/test/screenshot*

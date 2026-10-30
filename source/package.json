@@ -1,1 +1,20 @@
-{"name":"lan-fps","private":true,"type":"module","scripts":{"build":"node build.mjs","test":"node test/run.mjs","test:ui":"node test/ui-bundle.mjs"},"devDependencies":{"esbuild":"0.24.0","three":"0.170.0"}}
+{
+  "name": "spectre-orbit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:online": "node build_online.mjs",
+    "build:all": "node build.mjs && node build_online.mjs",
+    "test": "node test/run.mjs",
+    "test:online": "node test/net_online_test.mjs && node test/babylon_render_test.mjs && node test/online_game_session_test.mjs",
+    "test:all": "node test/run.mjs && node test/net_online_test.mjs && node test/babylon_render_test.mjs && node test/online_game_session_test.mjs",
+    "test:ui": "node test/ui-bundle.mjs"
+  },
+  "devDependencies": {
+    "@babylonjs/core": "^9.33.1",
+    "@babylonjs/loaders": "^9.33.1",
+    "esbuild": "0.24.0",
+    "three": "0.170.0"
+  }
+}
