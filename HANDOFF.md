@@ -45,6 +45,10 @@
   - `npm run build` -> builds Classic `LAN_FPS.html` (36.5 MB, v1.4.7)
   - `npm run build:online` -> builds Online `LAN_FPS_online.html` (42.5 MB, Babylon 9) + `dist/online/index.html`
   - `npm run test:all` -> runs all 56 tests across Classic, Online, Babylon renderer, and Server.
+- **In-Game Verification & Screenshot Automation (`source/test/capture_online_match.mjs`)**:
+  - Headless Chrome CDP automation running against live matchmaking server.
+  - Automatically loads operative preview turntable, configures Schoolyard arena, starts authoritative WebGPU match, deploys AI combat bots, and captures match screenshots.
+  - All 56/56 tests passing.
 ### Schoolyard (`schoolyard` — v1.4.7)
 - An authentic Egyptian school courtyard arena featuring pointed arcades, a continuous second-floor gallery ring, classrooms, and a vintage locomotive halfway emerging from a brick tunnel.
 
