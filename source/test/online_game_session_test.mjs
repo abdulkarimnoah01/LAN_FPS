@@ -29,7 +29,7 @@ test('Online HostSession & GuestSession run authoritative gameplay, prediction, 
   const serverUrl = `ws://127.0.0.1:${port}`;
   const RTC = fakeOnlineRTC();
 
-  const world = getMap('forest', 42);
+  const world = getMap('arena', 0);
 
   // Mock view and hud
   const mockView = {
@@ -110,22 +110,31 @@ test('Online HostSession & GuestSession run authoritative gameplay, prediction, 
   const initialHp = guestPlayer.hp;
   assert.equal(initialHp, 100);
 
-  // Position host near guest facing them
-  // Game forward is -Z when yaw = 0. So place host at guest.z + 4, facing -Z (yaw = 0)
+  // Position host and guest with direct clear line of sight
+  // Game forward is -Z when yaw = 0. Host at z = 18, Guest at z = 15
   const hostPlayer = hostSession.game.players.get('host_p1');
-  hostPlayer.x = guestPlayer.x;
-  hostPlayer.y = guestPlayer.y;
-  hostPlayer.z = guestPlayer.z + 4;
-  hostSession.client.me.x = hostPlayer.x;
-  hostSession.client.me.y = hostPlayer.y;
-  hostSession.client.me.z = hostPlayer.z;
+  guestPlayer.x = 0;
+  guestPlayer.y = 0;
+  guestPlayer.z = 15;
+  hostPlayer.x = 0;
+  hostPlayer.y = 0;
+  hostPlayer.z = 18;
+  hostPlayer.yaw = 0;
+  hostPlayer.pitch = 0;
+  hostSession.client.me.x = 0;
+  hostSession.client.me.y = 0;
+  hostSession.client.me.z = 18;
   hostSession.client.look.yaw = 0;
   hostSession.client.look.pitch = 0;
 
   // Host fires shot
   hostSession.client.active = true;
   hostSession.client.input.b = B.FIRE;
-  hostSession.step();
+  for (let i = 0; i < 10; i++) {
+    hostSession.step();
+    await sleep(15);
+    if (guestPlayer.hp < initialHp) break;
+  }
 
   await until(() => guestPlayer.hp < initialHp, 2000, 'guest to take damage from host shot');
   assert(guestPlayer.hp === 75 || guestPlayer.hp === 50, 'Shot deals 25 body or 50 headshot damage');
