@@ -45,6 +45,13 @@
   - `npm run build` -> builds Classic `LAN_FPS.html` (36.5 MB, v1.4.7)
   - `npm run build:online` -> builds Online `LAN_FPS_online.html` (42.5 MB, Babylon 9) + `dist/online/index.html`
   - `npm run test:all` -> runs all 56 tests across Classic, Online, Babylon renderer, and Server.
+- **UI & 3D Operative Turntable Parity (100% Three.js Match)**:
+  - `source/index_online.html`: Mirrors the complete retro-futuristic Fieldlink terminal UI from `source/index.html` (`terminal-ui reference-ui`), including masthead, brand cluster, signal lamps, CRT toggle, operative roster launcher, station config readout, deployment rail, `01 operator.profile` with `#lobby-portrait` 3D canvas, `02 network.uplink` with matchmaking server controls, `03 match.terminal` with roomboard and Foundry Core map briefing card, full 3-column `#hero-roster-modal`, and `#settings-modal`.
+  - `source/src/babylon/preview.js`: Upgraded `BabylonCharacterPreview` (for live `#lobby-portrait` rendering) and `BabylonHeroViewer` featuring cinematic 3-point Hero lighting (sun, rim, fill, hemi), cyber-metallic podium with glowing team accent ring, pointer drag-to-orbit and camera height tilt, mouse wheel & `+`/`-` zoom, keyboard arrow navigation, auto-spin (`roster-btn-spin`), reset view (`roster-btn-reset`), animation cross-fading (`idle`, `walk`, `run`, `crouch`, `die`), outfit switching, and team shader swatches (`setColor`).
+  - Verified with headless Chrome CDP automation (`source/test/capture_online_ui.mjs`):
+    - `screenshot_online_terminal_lobby.png`: Full retro terminal layout with live 3D portrait.
+    - `screenshot_online_turntable_roster.png`: 3-column Operative Registry with interactive 3D turntable, animations, outfits, swatches, and tactical stats.
+    - `screenshot_online_settings_modal.png`: Full station configuration modal with Sensitivity & Aim, Graphics & Engine, and Keybindings tabs.
 - **In-Game Verification & Screenshot Automation (`source/test/capture_online_match.mjs`)**:
   - Headless Chrome CDP automation running against live matchmaking server.
   - Automatically loads operative preview turntable, configures Schoolyard arena, starts authoritative WebGPU match, deploys AI combat bots, and captures match screenshots.
