@@ -1,7 +1,7 @@
 /* Spectre Orbit Online — Main Client Entry Point
    Powered by Babylon.js 9 (WebGPU / WebGL 2) and Internet WebRTC Matchmaking. */
 
-import { OnlineSignalingClient, OnlineNetHost, OnlineNetGuest, LinkError } from './net_online.js';
+import { OnlineSignalingClient, OnlineNetHost, LocalNetHost, OnlineNetGuest, LinkError } from './net_online.js';
 import { HostSession, GuestSession } from './game.js';
 import { View, CharacterPreview, HeroViewer, loadAssets, buildWorld } from './render_babylon.js';
 import { Hud, Sound } from './hud.js';
@@ -138,6 +138,50 @@ function showGame(on) {
 }
 
 /* ---- Match Hosting & Joining ---- */
+async function startPracticeMatch() {
+  if (session || !assets) return;
+  const roomName = cleanName($('room-name')?.value, 32, playerName() + "'s Arena");
+  const map = $('map-select')?.value || 'foundry';
+  const mode = $('mode-select')?.value || 'ffa';
+  const seed = map === 'sandbox' ? Math.floor(Math.random() * 900000 + 100000) : 0;
+  const char = store.get('equippedHero', 'abdulkarim');
+
+  showBanner('Deploying offline practice match with bots...', 'info');
+  try {
+    world = buildWorld(assets, map, seed);
+    await prepareView(world);
+
+    session = new HostSession({
+      signaling: null,
+      NetHostClass: LocalNetHost,
+      world,
+      id: myId,
+      name: playerName(),
+      char,
+      roomName,
+      map,
+      seed,
+      mode,
+      view,
+      hud,
+      audio: sound,
+      onExit: leaveMatch,
+    });
+
+    await session.start();
+    session.addBot('Recon-Alpha', 'mina', 'medium');
+    session.addBot('Heavy-Bravo', 'robot', 'medium');
+    hud.session = session;
+    showBanner('');
+    showGame(true);
+    console.log('[Spectre Orbit] Offline practice match active.');
+  } catch (e) {
+    session = null;
+    console.error('Practice match error:', e);
+    showBanner('Could not start practice match: ' + e.message, 'error');
+  }
+}
+
 async function hostOnlineMatch() {
   if (session || !assets) return;
   const roomName = cleanName($('room-name')?.value, 32, playerName() + "'s Arena");
@@ -147,6 +191,19 @@ async function hostOnlineMatch() {
   const isPrivate = $('is-private-checkbox')?.checked || false;
   const seed = map === 'sandbox' ? Math.floor(Math.random() * 900000 + 100000) : 0;
   const char = store.get('equippedHero', 'abdulkarim');
+
+  // If matchmaking server is offline, verify or seamlessly launch offline practice match
+  if (!signaling || !signaling.connected) {
+    showBanner('Connecting to matchmaking server on port 8080...', 'info');
+    try {
+      await signaling.connect(2000);
+    } catch {
+      console.warn('[Spectre Orbit] Server offline on port 8080, falling back to offline practice mode.');
+      showBanner('Matchmaking server offline. Launching practice match with bots...', 'info');
+      await new Promise(r => setTimeout(r, 600));
+      return await startPracticeMatch();
+    }
+  }
 
   showBanner('Creating match on online server...', 'info');
   try {
@@ -180,7 +237,7 @@ async function hostOnlineMatch() {
   } catch (e) {
     session = null;
     console.error('Host error:', e);
-    showBanner('Could not create room: ' + e.message, 'error');
+    showBanner('Could not create online room: ' + e.message + ' — click "PRACTICE VS BOTS" to play offline.', 'error');
   }
 }
 
@@ -438,6 +495,7 @@ async function bootstrap() {
   // Button bindings
   $('btn-quick-match')?.addEventListener('click', quickMatch);
   $('btn-host-match')?.addEventListener('click', hostOnlineMatch);
+  $('btn-practice-match')?.addEventListener('click', startPracticeMatch);
   $('btn-refresh-rooms')?.addEventListener('click', refreshRoomList);
   $('btn-join-code')?.addEventListener('click', () => {
     const code = $('input-join-code')?.value;
@@ -445,6 +503,17 @@ async function bootstrap() {
   });
   $('btn-roster-close')?.addEventListener('click', closeHeroRoster);
   $('btn-lobby-roster')?.addEventListener('click', () => openHeroRoster(store.get('equippedHero', 'abdulkarim')));
+  $('btn-add-bot')?.addEventListener('click', () => {
+    if (session instanceof HostSession) {
+      const b = session.addBot();
+      if (b) hud?.feed(`Bot ${b.name} joined`);
+    }
+  });
+  $('btn-remove-bot')?.addEventListener('click', () => {
+    if (session instanceof HostSession) {
+      session.removeBot();
+    }
+  });
 
   // Connect WebSocket to matchmaking server
   signaling = new OnlineSignalingClient(serverUrl);
@@ -460,7 +529,7 @@ async function bootstrap() {
     refreshRoomList();
     setInterval(refreshRoomList, 8000);
   } catch (err) {
-    updateServerStatus('Offline · Matchmaking server unreachable', false);
+    updateServerStatus('Offline (Port 8080) · Server unreachable (Practice Mode available)', false);
     console.warn('[Spectre Orbit] Matchmaking connect failed:', err);
   }
 
@@ -479,6 +548,7 @@ window.LANFPS_ONLINE = {
   get assets() { return assets; },
   get signaling() { return signaling; },
   hostOnlineMatch,
+  startPracticeMatch,
   joinOnlineMatch,
   quickMatch,
 };

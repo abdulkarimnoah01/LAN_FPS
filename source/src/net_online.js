@@ -97,6 +97,21 @@ export class OnlineSignalingClient {
   }
 }
 
+/* LocalNetHost: Offline / Solo / Practice Host without external signaling */
+export class LocalNetHost {
+  constructor(opts = {}) {
+    Object.assign(this, opts);
+    this.peers = new Map();
+  }
+  async start() {
+    return 'SOLO';
+  }
+  broadcast(msg, fast) {}
+  send(peer, msg, fast) {}
+  drop(peer, reason) {}
+  async stop() {}
+}
+
 /* OnlineNetHost: Implements the Host side of WebRTC multiplayer */
 export class OnlineNetHost {
   constructor({ signaling, RTC = window.RTCPeerConnection, id, name, roomName, map, seed, mode, max = 6, info, canJoin, onPeer, onMessage, onLeave }) {
