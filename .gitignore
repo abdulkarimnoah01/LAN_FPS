@@ -30,3 +30,6 @@ __pycache__/
 # Pipeline scratch output
 source/tools/**/_tmp*/
 __pycache__/
+
+# Release pack output
+release/

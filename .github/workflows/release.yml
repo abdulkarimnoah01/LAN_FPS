@@ -1,0 +1,56 @@
+name: Release
+
+# Push a tag like v1.5.0 (must match version.json) to build the bundles and publish a GitHub Release
+# with the host pack zip, LAN_FPS_online.html and LAN_FPS.html attached.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+
+      - name: Check tag matches version.json
+        run: |
+          v=$(node -p "require('./version.json').version")
+          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "Tag $GITHUB_REF_NAME does not match version.json ($v)"; exit 1; }
+
+      - name: Install and test
+        working-directory: source
+        run: |
+          npm ci
+          npm test
+          npm run test:online
+
+      - name: Build both bundles
+        working-directory: source
+        run: npm run build:all
+
+      - name: Server dependencies
+        working-directory: server
+        run: npm ci --omit=dev
+
+      - name: Assemble host pack
+        run: |
+          node host/make_pack.mjs
+          cd release && zip -rq "SpectreOrbit-Host-${GITHUB_REF_NAME}.zip" SpectreOrbit-Host
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes=$(node -p "require('./version.json').notes")
+          gh release create "$GITHUB_REF_NAME" \
+            "release/SpectreOrbit-Host-${GITHUB_REF_NAME}.zip" LAN_FPS_online.html LAN_FPS.html \
+            --title "Spectre Orbit $GITHUB_REF_NAME" --notes "$notes"

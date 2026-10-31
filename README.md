@@ -41,6 +41,33 @@ The host's game keeps running while its tab is in the background, but closing th
 
 **This PC only (test in two tabs)** uses the browser's storage fallback or private directory instead of a network folder. Open the file in two tabs, host in one and join from the other.
 
+## Online play (Babylon 9 edition)
+
+`LAN_FPS_online.html` plays over the internet through a small matchmaking server. Matches are still peer-to-peer.
+
+**Host** (the PC that runs the server): download `SpectreOrbit-Host-<version>.zip` from the [latest release](../../releases/latest), unzip it and double-click `Start_Host.bat`. It starts the server, opens a free Cloudflare tunnel (no VPN, no port forwarding) and prints a **join code**. Keep the window open while playing. The first run offers to install Node.js and `cloudflared` with winget.
+
+**Remote players**: open `LAN_FPS_online.html`, go to Settings, paste the join code under "Server join code or address" and press Save & reconnect. The code is remembered. It changes each time the host restarts the tunnel.
+
+Run `Start_Host.bat -NoTunnel` for LAN only. Strict NATs (some mobile data) may need a TURN relay; see `server/turnserver.conf`.
+
+### Repository layout
+
+| Path | What it is |
+| --- | --- |
+| `LAN_FPS.html`, `version.json` | Legacy LAN build and update manifest. Keep at the root: the in-game updater reads them from `main`. |
+| `LAN_FPS_online.html` | Online build (Babylon 9). |
+| `source/` | Game source, build scripts, tests, assets and the rigging tools. |
+| `server/` | Matchmaking and signaling server. |
+| `host/` | Host launcher and the script that builds the host pack. |
+| `deploy/` | Docker Compose for a public server. |
+| `docs/`, `design/` | Notes, map/UI documentation and design references. |
+| `.github/workflows/release.yml` | Builds and publishes a release when you push a `v*` tag. |
+
+### Cutting a release
+
+Bump `version.json`, commit, then `git tag vX.Y.Z && git push origin main --tags`. The workflow runs the tests, builds both bundles and attaches the host pack, `LAN_FPS_online.html` and `LAN_FPS.html` to the release.
+
 ## Updating LAN_FPS on Any PC
 
 You can update `LAN_FPS` on any computer in three ways:

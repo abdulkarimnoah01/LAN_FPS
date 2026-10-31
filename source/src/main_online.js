@@ -322,14 +322,23 @@ let recordingAction = null;
 let crouchToggled = false;
 
 /* ---- Server Connection URL ---- */
+/* Accepts a join code ("boutique-boxed-makes-hash"), a host[:port], or a full ws/wss/http(s) address. */
+function normalizeServer(input) {
+  const v = (input || '').trim().replace(/\/+$/, '');
+  if (!v) return '';
+  if (/^wss?:\/\//i.test(v)) return v;
+  if (/^https?:\/\//i.test(v)) return v.replace(/^http/i, 'ws');
+  if (/^[a-z0-9]+(-[a-z0-9]+)*$/i.test(v)) return `wss://${v.toLowerCase()}.trycloudflare.com`;
+  return /^(localhost|\d{1,3}(\.\d{1,3}){3})(:\d+)?$/i.test(v) ? `ws://${v}` : `wss://${v}`;
+}
+
 function determineServerUrl() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('server')) return params.get('server');
-  const saved = store.get('serverUrl', '');
-  if (saved) return saved;
-  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const fromQuery = normalizeServer(new URLSearchParams(window.location.search).get('server'));
+  if (fromQuery) { store.set('serverUrl', fromQuery); return fromQuery; }
+  // A page served by the matchmaker talks to the server it came from; a saved address only applies to a local file.
   const host = window.location.host;
-  return host ? `${proto}//${host}` : 'ws://localhost:8080';
+  if (host) return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${host}`;
+  return store.get('serverUrl', '') || 'ws://localhost:8080';
 }
 
 const serverUrl = determineServerUrl();
@@ -1192,6 +1201,15 @@ function setupInputHandlers() {
 /* ---- Client Bootstrap ---- */
 async function bootstrap() {
   initPalette();
+  const serverInput = $('opt-server');
+  if (serverInput) {
+    serverInput.value = store.get('serverUrl', '');
+    $('opt-server-current').textContent = serverUrl;
+    $('btn-server-save').addEventListener('click', () => {
+      store.set('serverUrl', normalizeServer(serverInput.value));
+      window.location.href = window.location.href.split(/[?#]/)[0];
+    });
+  }
   // Load saved preferences
   let crt = false;
   try { crt = store.get('crtfx', 'true') === 'true'; } catch {}

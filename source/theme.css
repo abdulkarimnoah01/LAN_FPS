@@ -165,3 +165,8 @@ html.crt-enabled :is(.hero h1, .terminal-ui .hero-banner h1) { animation: so-gli
 }
 html.reduced-motion.crt-enabled body::before, html.reduced-motion.crt-enabled h1, html.reduced-motion .dot { animation: none !important; }
 html.reduced-motion.crt-enabled body::after { display: none !important; }
+
+/* Server join-code row (Settings) */
+.field-row:has(#opt-server) { grid-template-columns: 1fr auto; align-items: center; }
+.settings-row:has(#opt-server-current) { flex-direction: column; align-items: flex-start; gap: 4px; }
+#opt-server-current { font: 500 11px var(--mono); color: var(--dim); overflow-wrap: anywhere; }

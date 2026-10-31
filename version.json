@@ -1,6 +1,6 @@
 {
-  "version": "1.4.8",
+  "version": "1.4.9",
   "name": "LAN_FPS",
-  "date": "2026-10-31",
-  "notes": "New Arasaka red terminal theme with animated CRT and five switchable palettes, Noura operative, and the Babylon 9 online edition."
+  "date": "2026-11-01",
+  "notes": "Rigged and animated Noura, in-app server join code for remote players, one-click host launcher with automatic Cloudflare tunnel, and GitHub release packaging."
 }
