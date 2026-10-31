@@ -3,7 +3,8 @@
 import * as BABYLON from '@babylonjs/core';
 
 export async function createBabylonEngine(canvas, options = {}) {
-  const preferWebGPU = options.preferWebGPU !== false;
+  // WebGL 2 is the proven, high-stability default. WebGPU is opt-in for experimental hardware testing
+  const preferWebGPU = options.preferWebGPU === true;
   const antialias = options.antialias !== false;
   let engine = null;
   let backend = 'WebGL 2';

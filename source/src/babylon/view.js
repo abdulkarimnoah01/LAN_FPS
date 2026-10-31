@@ -131,6 +131,11 @@ export class BabylonView {
     }
   }
 
+  async setWorld(world) {
+    this.world = world;
+    await this.buildVisuals(world);
+  }
+
   setWeaponModel(wIndex) {
     if (!this.scene) return;
     if (this.activeWeaponIndex === wIndex && this.currentWeaponModel) return;

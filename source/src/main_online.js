@@ -118,6 +118,10 @@ function showBanner(text, type = 'info') {
 
 /* ---- Game Viewport Setup ---- */
 async function prepareView(w = world) {
+  // Ensure the game viewport is visible so the canvas has real layout dimensions
+  $('lobby').hidden = true;
+  $('game').hidden = false;
+
   if (!view) {
     view = new View($('view'), w, assets, { preset: currentPreset });
     await view.initPromise;
@@ -125,6 +129,7 @@ async function prepareView(w = world) {
   } else {
     await view.setWorld(w);
   }
+  view?.resize();
   return view;
 }
 
