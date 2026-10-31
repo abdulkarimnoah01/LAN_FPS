@@ -187,3 +187,6 @@ An optional `source/assets/assets.json` adjusts the models. Characters are liste
 - **P2P DataChannels**: Low latency gameplay directly between peers with no intermediary servers.
 - **Client Prediction**: Instant input responsiveness with authoritative host reconciliation and error easing.
 - **Skeletal & Procedural Animation**: Rigged glTF models with animation blending plus procedural fallbacks for unrigged assets.
+
+## Noura V3 — Classic v1.4.8
+Noura is available in the Classic Three.js roster and bot selection. The exact user-supplied V3 GLB is embedded for offline play (SHA256 FB5EBE360B218CCC6DBCE16FEBAB2AFF7B128BB56050BC64EB61D87DA52B3838). She has 9,512 exported triangles, embedded textures and no rig; existing procedural locomotion handles her. This uses V3, not Pisciasa V4. There are nine operative entries and ten models including Robot, because Abdulkarim's alternate outfit is grouped as a skin.

@@ -1,6 +1,6 @@
 {
-  "version": "1.4.7",
+  "version": "1.4.8",
   "name": "LAN_FPS",
-  "date": "2026-10-30",
-  "notes": "New map: Schoolyard, an Egyptian school courtyard with pointed arcades, a gallery ring and a locomotive halfway out of a tunnel."
+  "date": "2026-10-31",
+  "notes": "Add Noura V3 to the Classic roster with unrigged locomotion fallback."
 }

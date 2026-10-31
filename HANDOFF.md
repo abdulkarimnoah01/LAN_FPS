@@ -151,3 +151,6 @@ X:\Projects\game\LAN_FPS\
 ## 4. Standing Constraints
 - **CRITICAL RULE**: Do NOT initiate a system shutdown under any circumstances unless explicitly instructed by the user in a new prompt.
 - **Self-Contained Bundle**: Keep `LAN_FPS.html` completely standalone with no external CDNs or scripts.
+
+## 2026-10-31 — Noura V3 Classic integration
+Added exact source/assets/characters/Noura.glb, operative dossier and bot entry. Rebuilt offline Classic v1.4.8. No Babylon changes in this commit. Tests: 42 gameplay checks and Chrome Noura load/roster smoke passed; 9,512 triangles, six textured primitives, no clips or browser exceptions. UI-bundle artwork check has a pre-existing baseline failure for relay-panorama.jpg; verified against caf3fc1. No claim that this unrelated test passes. Source character repository is untouched.
