@@ -3,365 +3,569 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Spectre Orbit · Babylon 9 Online Terminal</title>
+<title>Spectre Orbit · Babylon 9 Netrunner Command Hub</title>
 <!--STYLE-->
 </head>
-<body class="terminal-ui reference-ui">
-<svg class="ui-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><defs>
-  <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M2 5h7l3 3h10v12H2z" fill="currentColor"/></symbol>
-  <symbol id="icon-play" viewBox="0 0 24 24"><path d="m6 3 16 9L6 21z" fill="currentColor"/></symbol>
-  <symbol id="icon-monitor" viewBox="0 0 32 32"><rect x="3" y="3" width="26" height="18" rx="1"/><path d="M13 21v4m6-4v4M8 26h16l4 4H4zM8 28h16"/></symbol>
-  <symbol id="icon-edit" viewBox="0 0 24 24"><path d="m4 16 11-11 4 4L8 20H4zm10-10 4 4M4 20h6"/></symbol>
-  <symbol id="icon-crew" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4" fill="currentColor"/><path d="M1 22v-5c0-6 16-6 16 0v5zm17-18c6 0 6 8 0 8m1 2c4 0 4 4 4 8h-4" fill="currentColor"/></symbol>
+<body>
+<svg class="ui-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;"><defs>
+  <symbol id="i-planet" viewBox="0 0 70 70"><circle cx="35" cy="35" r="14"/><ellipse cx="35" cy="35" rx="31" ry="11" transform="rotate(-20 35 35)"/><path d="M28 25c8 5 12 12 14 21"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></symbol>
+  <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c0-4 3.2-6 7.5-6s7.5 2 7.5 6"/></symbol>
+  <symbol id="i-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 1v5M12 18v5M1 12h5M18 12h5"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M9.5 2h5l.5 3 2 1 2.7-1 2.2 4-2.2 2 .2 2 2 2.1-2.2 4-2.8-1-1.9 1-.6 3h-5l-.6-3-1.8-1-2.8 1-2.2-4 2-2-.1-2-2.1-2.1 2.2-4 2.7 1 2-1z"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2.5" y="3" width="19" height="14" rx="2"/><path d="M9 22h6M12 17v5"/></symbol>
 </defs></svg>
-<main id="lobby">
-  <header class="masthead">
-    <div class="header-row">
-      <div class="brand-cluster"><a class="wordmark" href="#lobby" aria-label="Spectre Orbit home"><span class="brand-mark" aria-hidden="true">[F]</span> FIELDLINK</a><span id="game-version" class="badge-none">v1.5.0</span></div>
-      <div class="header-system"><span>Ⅱ ONLINE COMBAT TERMINAL</span><span>Ⅱ BABYLON 9 // SESSION MANAGER</span></div>
-      <div class="version-row">
-        <div class="signal-lamps" role="group" aria-label="Station status"><span id="lamp-identity" class="signal-lamp lit" role="img" aria-label="Callsign assigned"></span><span id="lamp-network" class="signal-lamp" role="img" aria-label="Uplink not configured"></span><span id="lamp-alert" class="signal-lamp" role="img" aria-label="No session error"></span></div>
-        <button id="btn-crt-toggle" class="ghost" type="button" aria-pressed="false" aria-label="CRT screen effect">CRT: OFF</button>
-        <button id="btn-header-roster" class="ghost" type="button">Operative roster <span aria-hidden="true">→</span></button>
-        <button id="btn-settings-lobby" class="ghost" type="button">Settings <span aria-hidden="true">⚙</span></button>
-      </div>
-    </div>
-  </header>
-  <section class="hero-banner" aria-labelledby="game-title">
-    <div class="hero-copy">
-      <p class="eyebrow">FIELDLINK OS // ONLINE SESSION MANAGER</p>
-      <h1 id="game-title">SPECTRE<span>_</span>ORBIT<span class="title-period">[ ONLINE ]</span></h1>
-      <div class="hero-baseline"><h2>Online network.<br> Direct engagement.</h2><p>2–12 players. Babylon 9 WebGPU/WebGL engine.<br>Configure your station and enter the field.</p></div>
-    </div>
-    <div class="hero-planet-display" aria-hidden="true">
-      <pre class="ascii-planet">
-                   <span class="star">.</span>            <span class="star">+</span>            <span class="star">.</span>
-            <span class="star">.</span>          <span class="planet-edge">.---""""""---.</span>
-                   <span class="planet-edge">.-'</span>  <span class="planet-core">/  .::::.  \</span>  <span class="planet-edge">'-.</span>          <span class="star">.</span>
-      <span class="star">.</span>        <span class="ring">.-'</span>     <span class="planet-core">|  ::::::::  |</span>     <span class="ring">'-.</span>
-   <span class="ring">.===-------/---------\</span>  <span class="planet-core">'::::'</span>  <span class="ring">/---------\-------===.</span>
-  <span class="ring">(  .---===={===========</span><span class="planet-front">'.______.'</span><span class="ring">===========}====---.  )</span>
-   <span class="ring">'===-------\-----------------------------/-------==='</span>
-        <span class="star">.</span>      <span class="ring">'-.</span>     <span class="planet-core">|  ::::::::  |</span>     <span class="ring">.-'</span>       <span class="star">.</span>
-                   <span class="planet-edge">'-.</span>  <span class="planet-core">\  '::::'  /</span>  <span class="planet-edge">.-'</span>
-            <span class="star">+</span>          <span class="planet-edge">'-..........-'</span>            <span class="star">+</span></pre>
-      <div class="ascii-planet-label">SECTOR 00 // CELESTIAL ORBIT</div>
-    </div>
-    <div class="session-readout" aria-label="Station configuration">
-      <div class="readout-heading"><span>STATION / CONFIG</span><span aria-hidden="true">01</span></div>
-      <dl><div><dt>operator</dt><dd id="term-operator">Ghost</dd></div><div><dt>uplink</dt><dd id="term-uplink">matchmaking server</dd></div><div><dt>roomboard</dt><dd id="term-roomboard">awaiting discovery</dd></div><div><dt>engine</dt><dd id="backend-badge">Babylon 9 WebGPU</dd></div></dl>
-    </div>
-  </section>
-  <div class="terminal-statusline"><span><span aria-hidden="true">//</span> session.setup</span><span id="terminal-session-status" role="status">Connecting to matchmaking server...</span></div>
-  <nav class="deployment-rail" aria-label="Deployment setup">
-    <button type="button" class="rail-step current" id="network-step" aria-current="step"><span class="step-number">01</span><svg class="rail-icon" aria-hidden="true"><use href="#icon-folder"/></svg><span>CONNECT <small id="rail-network-label">Quick match or join code</small></span><span class="step-state" aria-hidden="true">→</span></button>
-    <a href="#rooms-panel" class="rail-step" id="match-step"><span class="step-number">02</span><svg class="rail-icon" aria-hidden="true"><use href="#icon-play"/></svg><span>DEPLOY <small>Join or create a match</small></span><span class="step-state" aria-hidden="true">→</span></a>
-  </nav>
-  <div class="console-grid">
-  <div class="setup-column">
-  <section class="panel" id="identity-panel" aria-labelledby="identity-title">
-    <div class="panel-heading"><h2 id="identity-title"><span class="section-index">01</span> operator.profile</h2><span class="micro-label">PERSONNEL</span></div>
-    <label class="field-label" for="name">Callsign</label><input id="name" maxlength="20" placeholder="Enter your name" autocomplete="off" value="Ghost">
-    <div class="hero-equipped-card" id="hero-equipped-card">
-      <canvas id="lobby-portrait" width="96" height="112" aria-hidden="true"></canvas>
-      <div class="hero-equipped-avatar" id="hero-equipped-avatar" aria-hidden="true">01</div>
-      <div class="hero-equipped-info">
-        <span class="hero-equipped-label">ACTIVE OPERATIVE</span>
-        <div class="hero-equipped-name-row">
-          <b id="hero-equipped-name">Abdulkarim</b>
-          <span id="hero-equipped-badge" class="badge">INFILTRATOR</span>
-        </div>
-        <span id="hero-equipped-role" class="hint">Shadow Infiltrator · Signature: Combat Knife &amp; SMG</span>
-      </div>
-      <button id="btn-lobby-roster" class="btn-roster-launch" type="button" aria-label="Change operative in hero roster"><svg class="ui-icon" aria-hidden="true"><use href="#icon-edit"/></svg></button>
-    </div>
-    <div class="row">
-      <label>Mouse sensitivity <output id="sens-value" for="sens">22</output><input id="sens" aria-label="Mouse sensitivity" type="range" min="5" max="100" value="22"></label>
-      <label>Audio volume <output id="volume-value" for="volume">50%</output><input id="volume" aria-label="Audio volume" type="range" min="0" max="100" value="50"></label>
-    </div>
-    <button id="btn-settings-lobby-link" class="ghost settings-launch" type="button">Controls & sensitivity <span aria-hidden="true">↗</span></button>
-  </section>
 
-  <section class="panel network-panel" id="network-panel" aria-labelledby="network-title">
-    <div class="panel-heading"><h2 id="network-title"><span class="section-index">02</span> network.uplink</h2><span class="status-label" id="network-status">NOT CONNECTED</span></div>
-    <p class="hint">Online matchmaking connects players over WebSockets and WebRTC direct peer streams.</p>
-    <div class="network-actions">
-      <button id="btn-quick-match"><svg class="ui-icon" aria-hidden="true"><use href="#icon-play"/></svg><span>Quick Match (Auto-Join)</span><span aria-hidden="true">⚡</span></button>
-      <button id="btn-practice-match" class="ghost">Practice vs Bots <span class="button-note">Offline singleplayer</span></button>
-      <div class="direct-join-row" style="display:flex;gap:6px;margin-top:8px;">
-        <input id="input-join-code" maxlength="5" placeholder="CODE" autocomplete="off" style="text-transform:uppercase;max-width:90px;font-family:monospace;letter-spacing:2px;text-align:center;">
-        <button id="btn-join-code" class="ghost" type="button" style="flex:1;">Join Code →</button>
-      </div>
+<div class="shell" id="lobby">
+  <!-- PERSISTENT SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 70 70" fill="none" stroke="currentColor" stroke-width="2.1"><use href="#i-planet"/></svg>
+      <div class="brandname">SPECTRE <span>ORBIT / OS</span></div>
     </div>
-    <p class="folder-readout"><span>DIRECTORY</span> <b id="folder-name">ws://localhost:8080</b></p>
-  </section>
-  </div>
-  <section class="panel matches-panel" id="rooms-panel" aria-labelledby="rooms-title">
-    <div class="panel-heading"><h2 id="rooms-title"><span class="section-index">03</span> match.terminal</h2><span class="status-label" id="room-count">0 ROOMS FOUND</span></div>
-    <div class="room-browser">
-    <div class="subheading"><h3>Available rooms</h3><button id="btn-refresh-rooms" class="ghost" type="button" style="margin-left:auto;padding:2px 8px;font-size:11px;">↺ Refresh</button><span class="micro-label">/roomboard</span></div>
-    <ul id="rooms"></ul>
-    <div id="no-rooms" class="empty-state"><svg class="empty-monitor" aria-hidden="true"><use href="#icon-monitor"/></svg><span class="empty-symbol" aria-hidden="true">[ ]</span><div><b id="empty-title">Roomboard clear.</b><p id="empty-description">No active rooms found. Host a new match below or click Quick Match.</p></div></div>
+    <div class="nav-header small-cap">MAIN DIRECTORY</div>
+    <nav class="nav" aria-label="Main navigation">
+      <button class="nav-btn active" data-page="play" type="button"><svg><use href="#i-play"/></svg>Deploy</button>
+      <button class="nav-btn" data-page="operative" type="button"><svg><use href="#i-person"/></svg>Operative</button>
+      <button class="nav-btn" data-page="loadout" type="button"><svg><use href="#i-crosshair"/></svg>Loadout</button>
+      <button class="nav-btn" data-page="maps" type="button"><svg><use href="#i-map"/></svg>Battlefields</button>
+      <button class="nav-btn" data-page="settings" type="button"><svg><use href="#i-settings"/></svg>Settings</button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="small-cap" style="margin-bottom:10px;">NETWORK LINK</div>
+      <div class="server-status"><span id="server-status-dot" class="dot"></span><span id="network-status">Uplink connected</span></div>
+      <div class="sidebar-foot"><span>WS / MATCHMAKER</span><span id="game-version">v1.5.0</span></div>
+      <div class="sidebar-foot" style="margin-top:14px;"><span>ENGINE</span><span id="backend-badge">BABYLON 9</span></div>
     </div>
-    <div class="match-config">
-      <div class="subheading"><h3>Host a new match</h3><span class="micro-label">/match/new</span></div>
-      <div class="map-briefing" data-map="foundry"><div id="map-thumbnail" class="map-thumbnail" role="img" aria-label="Foundry Core source map preview"><span id="map-capture-label">SOURCE MAP PREVIEW</span></div><div class="map-copy"><span class="micro-label" id="map-index">SECTOR 01 / 10</span><h3 id="map-title">Foundry Core</h3><p id="map-description">Molten industrial casting pit. Elevated catwalks. Fast CQB encounters.</p></div></div>
-      <div class="match-fields">
-        <label class="field-label room-name-field">Room name<input id="room-name" maxlength="32" placeholder="Sector Alpha Deathmatch" autocomplete="off"></label>
-        <label class="field-label">Battlefield<select id="map-select" title="Choose map mode"><option value="foundry">Foundry Core · Molten Industrial (FFA 2–6)</option><option value="glowplant">Reactor Complex · Sub-Orbital Nuclear (TDM 4–10)</option><option value="zenith">Zenith Atrium · Vertical Sky Arena (4–12)</option><option value="railyard">Hadota Rail Yard · Freight Train Yard (4–12)</option><option value="school">Schoolyard · Egyptian Courtyard &amp; Tunnel (2–8)</option><option value="aftermath">Aftermath · Urban ruins</option><option value="river">River Forest · Valley & bridges</option><option value="forest">Pine Forest · Classic</option><option value="sandbox">Random Sandbox · Procedural</option><option value="arena">Arena · Retro classic</option></select></label>
-        <label class="field-label">Rules of engagement<select id="mode-select" title="Choose game mode"><option value="ffa">Free For All</option><option value="tdm">Team Deathmatch</option></select></label>
-        <div class="row">
-          <label>Max players<select id="max-players-select"><option value="2">2 Players</option><option value="4">4 Players</option><option value="6" selected>6 Players</option><option value="8">8 Players</option><option value="12">12 Players</option></select></label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding-top:16px;"><input id="is-private-checkbox" type="checkbox"><span>Private match</span></label>
+  </aside>
+
+  <!-- WORKSPACE & MAIN CONTENT -->
+  <div class="workspace">
+    <header class="topbar">
+      <div class="crumb">ORBIT / <strong id="breadcrumb">DEPLOY</strong><span style="color:var(--cyan)">_</span></div>
+      <div class="top-right">
+        <div class="protocol"><span class="dot"></span><span id="protocol-status">NETWORK LINK STABLE</span></div>
+        <div class="profile-chip" data-page="operative" title="Open Operative Dossier">
+          <div class="chip-avatar" id="chipInitial">G</div>
+          <span id="chipCallsign">GHOST</span>
         </div>
       </div>
-      <div class="create-row"><svg class="crew-icon" aria-hidden="true"><use href="#icon-crew"/></svg><p class="hint" id="match-rules"><b>10</b> kills to win <span> / </span> 2–12 players</p><button id="btn-host-match">Deploy match <span aria-hidden="true">→</span></button></div>
-      <p class="hint" id="create-hint">Click Deploy Match to host an online arena, or Practice vs Bots to play offline.</p>
-    </div>
-  </section>
-  </div>
-  <p id="message" hidden></p>
-  <footer class="lobby-footer"><span>FIELD MANUAL /</span><span><kbd>W A S D</kbd> Move</span><span><kbd>R</kbd> Reload</span><span><kbd>G</kbd> Grenade</span><span><kbd>1–6</kbd> Weapons</span><span><kbd>Tab</kbd> Scores</span><span><kbd>Esc</kbd> Release mouse</span><span class="footer-note">BABYLON 9 WEBGPU/WEBGL2 ONLINE EDITION.</span></footer>
-</main>
+    </header>
 
-<div id="select" role="dialog" aria-modal="true" aria-labelledby="select-title" hidden>
-  <div class="select-card">
-    <p class="eyebrow">DEPLOYMENT / PERSONNEL CHECK</p>
-    <h2 id="select-title">Select operative.</h2>
-    <p id="select-sub" class="hint"></p>
-    <div class="stage">
-      <button id="char-prev" class="ghost arrow" aria-label="Previous character">‹</button>
-      <canvas id="preview" aria-label="Selected operative 3D preview"></canvas>
-      <button id="char-next" class="ghost arrow" aria-label="Next character">›</button>
-    </div>
-    <div id="char-name"></div>
-    <div id="char-list"></div>
-    <div class="row actions">
-      <button id="select-back" class="ghost">Back</button>
-      <button id="select-open-roster" class="ghost" type="button">Open dossier ↗</button>
-      <button id="select-go">Deploy →</button>
-    </div>
-    <p class="hint">← → to browse · Enter to play · Esc to go back</p>
-  </div>
-</div>
+    <main class="main">
+      <!-- VIEW 1: DEPLOY -->
+      <section class="view active" id="page-play">
+        <div class="viewgrid">
+          <div>
+            <section class="hero">
+              <div class="section-label"><span class="lead"></span>ONLINE COMBAT NETWORK <span style="color:var(--dim)">// 01</span></div>
+              <h1>Enter the<br><em>orbit.</em></h1>
+              <p>One terminal. Every route into the fight.<br>Find a squad, create a room, or deploy solo.</p>
+              <div class="orbit-mark" aria-hidden="true">
+                <svg viewBox="0 0 230 210" stroke-width="1">
+                  <circle cx="115" cy="106" r="59"/>
+                  <circle cx="115" cy="106" r="43" stroke-dasharray="1 8"/>
+                  <ellipse cx="115" cy="106" rx="104" ry="24" transform="rotate(-22 115 106)"/>
+                  <ellipse cx="115" cy="106" rx="108" ry="26" transform="rotate(-22 115 106)" opacity=".4"/>
+                  <path d="M115 12v24m0 140v22M14 105h22m158 0h22"/>
+                  <circle cx="115" cy="106" r="5" fill="currentColor" stroke="none"/>
+                </svg>
+              </div>
+            </section>
 
-<div id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
-  <div class="settings-card">
-    <div class="settings-header">
-      <div><p class="eyebrow">/SYSTEM/CONFIG</p><h2 id="settings-title">Station settings.</h2></div>
-      <button id="settings-close" class="ghost icon-btn" aria-label="Close settings">✕</button>
-    </div>
+            <section class="primary-action">
+              <div class="icon-disk"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg></div>
+              <div class="action-copy">
+                <div class="meta-top">01 / RECOMMENDED</div>
+                <h2>Quick Match</h2>
+                <p>Automatic matchmaking · online multiplayer</p>
+              </div>
+              <button class="btn btn-primary" id="btn-quick-match" type="button">Find a match <span class="arrow">↗</span></button>
+            </section>
 
-    <div class="settings-tabs">
-      <button class="tab-btn on" data-tab="tab-mouse">Sensitivity & Aim</button>
-      <button class="tab-btn" data-tab="tab-graphics">Graphics & Engine</button>
-      <button class="tab-btn" data-tab="tab-controls">Controls / Binds</button>
-    </div>
-
-    <!-- Mouse & Sensitivity Tab -->
-    <div id="tab-mouse" class="tab-content">
-      <div class="setting-item">
-        <div class="setting-label">
-          <label for="opt-sens">Look sensitivity</label>
-          <span id="opt-sens-num" class="badge">22</span>
-        </div>
-        <input id="opt-sens" type="range" min="5" max="100" value="22">
-      </div>
-
-      <div class="setting-item">
-        <div class="setting-label">
-          <label for="opt-ads-sens">ADS zoom sensitivity</label>
-          <span id="opt-ads-sens-num" class="badge">0.80x</span>
-        </div>
-        <input id="opt-ads-sens" type="range" min="10" max="200" step="5" value="80">
-      </div>
-
-      <div class="setting-item row-setting">
-        <label for="opt-invert-y">Invert Y-axis</label>
-        <input id="opt-invert-y" type="checkbox">
-      </div>
-
-      <div class="setting-item row-setting">
-        <span>Crouch Mode</span>
-        <div class="btn-group">
-          <button id="opt-crouch-hold" class="btn-choice on" type="button">Hold</button>
-          <button id="opt-crouch-toggle" class="btn-choice" type="button">Toggle</button>
-        </div>
-      </div>
-      <div class="setting-item row-setting">
-        <label for="opt-reduced-motion">Reduce interface motion <span class="hint">Still previews and instant transitions</span></label>
-        <input id="opt-reduced-motion" type="checkbox">
-      </div>
-      <div class="setting-item row-setting">
-        <label for="opt-crt">CRT screen effect <span id="crt-description" class="hint">Static scanlines and soft text glow. Menus and HUD only; gameplay stays clear.</span></label>
-        <input id="opt-crt" type="checkbox" aria-describedby="crt-description">
-      </div>
-    </div>
-
-    <!-- Graphics Tab -->
-    <div id="tab-graphics" class="tab-content" hidden>
-      <div class="setting-item">
-        <div class="setting-label">
-          <label for="preset-select">Quality preset</label>
-        </div>
-        <select id="preset-select" style="width: 100%; margin-top: 6px;">
-          <option value="low">LOW — Performance (0.8x DPR, Minimal FX)</option>
-          <option value="medium">MEDIUM — Balanced (1.0x DPR, Soft Shadows)</option>
-          <option value="high" selected>HIGH — Recommended (1.25x DPR, Full PBR, Bloom)</option>
-          <option value="ultra">ULTRA — Cinematic (1.5x DPR, 4K Shadows, Full Post-FX)</option>
-        </select>
-      </div>
-      <p class="hint" style="margin-top: 12px;">Spectre Orbit Online runs on <strong>Babylon.js 9</strong> with WebGPU acceleration and WebGL 2 fallback.</p>
-    </div>
-
-    <!-- Keybindings Tab -->
-    <div id="tab-controls" class="tab-content" hidden>
-      <p class="hint">Click a binding button and press any key to reassign it. Press Esc to cancel.</p>
-      <div id="bind-grid" class="bind-grid"></div>
-      <div class="row actions" style="margin-top: 10px;">
-        <button id="opt-reset-binds" class="ghost" type="button">Reset All Binds</button>
-      </div>
-    </div>
-
-    <div class="settings-footer">
-      <button id="settings-done" type="button">Apply & Close</button>
-    </div>
-  </div>
-</div>
-
-<div id="hero-roster-modal" role="dialog" aria-modal="true" aria-labelledby="roster-title" hidden>
-  <div class="roster-card">
-    <div class="roster-header">
-      <div class="roster-title-block">
-        <p class="eyebrow">/PERSONNEL/ARCHIVE</p>
-        <h2 id="roster-title">Operative registry.</h2>
-        <p class="hint">Inspect your crew. Choose your identity. Enter the field.</p>
-      </div>
-      <button id="roster-close" class="ghost icon-btn" aria-label="Close roster" type="button">✕</button>
-    </div>
-
-    <div class="roster-content">
-      <!-- Left: Operative List -->
-      <div class="roster-sidebar">
-        <div class="roster-sidebar-title">
-          <span>OPERATIVES</span>
-          <span id="roster-count" class="counter">8 / 8</span>
-        </div>
-        <div id="roster-cards" class="roster-cards"></div>
-      </div>
-
-      <!-- Center: 3D Stage & Interactive Viewport -->
-      <div class="roster-stage-area">
-        <div class="roster-viewport">
-          <canvas id="roster-canvas" tabindex="0" role="img" aria-label="3D operative. Arrow keys orbit and tilt; plus and minus zoom."></canvas>
-          <div class="roster-overlay">
-            <div class="roster-badge-group">
-              <span id="roster-hero-badge-icon" class="badge-icon">⚡</span>
-              <span id="roster-hero-class" class="badge">ASSAULT</span>
+            <div class="dual-actions">
+              <button class="choice" data-drawer="host" type="button">
+                <div class="choice-icon">＋</div>
+                <h3>Host Match</h3>
+                <p>Choose a battlefield, set the rules,<br>and open your own room.</p>
+              </button>
+              <button class="choice" data-drawer="join" type="button">
+                <div class="choice-icon">↗</div>
+                <h3>Join with Code</h3>
+                <p>Have an invite? Connect directly<br>to your squad's room.</p>
+              </button>
             </div>
-            <div class="roster-viewport-tools">
-              <button id="roster-btn-spin" class="ghost small-btn" type="button" title="Toggle Turntable Spin">↻ Spin: OFF</button>
-              <button id="roster-btn-reset" class="ghost small-btn" type="button" title="Reset View">⟲ Reset View</button>
-            </div>
-            <div class="roster-drag-tip">Drag / arrows to orbit · Scroll / + − to zoom</div>
-          </div>
-        </div>
 
-        <!-- Animation & Shader Toolbar -->
-        <div class="roster-toolbar">
-          <div class="toolbar-section">
-            <span class="toolbar-label">ANIMATION:</span>
-            <div id="roster-anim-group" class="btn-group">
-              <button class="anim-btn on" data-anim="idle" type="button">Idle</button>
-              <button class="anim-btn" data-anim="walk" type="button">Walk</button>
-              <button class="anim-btn" data-anim="run" type="button">Run</button>
-              <button class="anim-btn" data-anim="crouch" type="button">Crouch</button>
-              <button class="anim-btn" data-anim="die" type="button">Defeat</button>
+            <div class="linehead">
+              <h3>PUBLIC ROOMS <span id="room-count" style="color:var(--dim);font-weight:500;margin-left:8px;">00 ONLINE</span></h3>
+              <div style="display:flex;gap:12px;align-items:center;">
+                <button class="link" id="btn-refresh-rooms" type="button">↻ REFRESH</button>
+                <button class="link" data-drawer="browser" type="button">OPEN ROOM BROWSER &nbsp;↗</button>
+              </div>
+            </div>
+
+            <ul id="rooms"></ul>
+            <div id="no-rooms" class="empty-rooms">
+              <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><use href="#i-monitor"/></svg>
+              <div>
+                <h4 id="empty-title">Quiet in the network</h4>
+                <p id="empty-description">Room availability will appear here when connected. Create a match or open the room browser.</p>
+              </div>
+            </div>
+
+            <div class="practice-strip">
+              <div>
+                <strong>Practice offline</strong>
+                <span>LOCAL SESSION / BOTS / NO UPLINK REQUIRED</span>
+              </div>
+              <button class="btn btn-quiet small" id="btn-practice-match" type="button">Practice <span class="arrow">↗</span></button>
             </div>
           </div>
 
-          <div class="toolbar-section" id="roster-skin-section" hidden>
-            <span class="toolbar-label">OUTFIT:</span>
-            <div id="roster-skins" class="btn-group"></div>
-          </div>
+          <!-- RIGHT RAIL -->
+          <aside class="rightcol">
+            <div class="panel side-panel">
+              <div class="side-head">
+                <h3>STATION TELEMETRY</h3>
+                <span class="tag-outline" id="tele-status-tag">READY</span>
+              </div>
+              <div class="telemetry">
+                <div class="tele-row"><span>CONNECTION</span><strong id="term-uplink" class="online">ONLINE</strong></div>
+                <div class="tele-row"><span>ENGINE</span><strong id="term-engine">BABYLON 9</strong></div>
+                <div class="tele-row"><span>REGION</span><strong>LOCAL / AUTO</strong></div>
+                <div class="tele-row"><span>ROOMS</span><strong id="term-roomboard">0 ACTIVE</strong></div>
+              </div>
+              <div class="rail-divider"></div>
+              <div class="muted-note" id="folder-name">ws://localhost:8080</div>
+            </div>
 
-          <div class="toolbar-section">
-            <span class="toolbar-label">TEAM SHADER:</span>
-            <div id="roster-swatches" class="swatch-group"></div>
-          </div>
+            <div class="panel side-panel">
+              <div class="side-head" style="margin-bottom:14px;">
+                <h3>ACTIVE OPERATIVE</h3>
+                <button class="side-link" data-page="operative" type="button">EDIT ↗</button>
+              </div>
+              <div class="operative-card">
+                <canvas id="lobby-portrait" class="portrait" width="96" height="112" aria-label="Operative preview"></canvas>
+                <div>
+                  <div class="tag" id="hero-equipped-badge">INFILTRATOR</div>
+                  <h4 id="hero-equipped-name">Abdulkarim</h4>
+                  <p id="hero-equipped-role">Shadow Infiltrator</p>
+                </div>
+              </div>
+              <div class="rail-divider" style="margin:14px 0;"></div>
+              <div class="tele-row"><span>SIGNATURE</span><strong id="hero-equipped-wep">Combat Knife & SMG</strong></div>
+            </div>
+
+            <div class="panel side-panel">
+              <div class="side-head" style="margin-bottom:12px;">
+                <h3>FEATURED BATTLEFIELD</h3>
+                <button class="side-link" data-page="maps" type="button">VIEW ↗</button>
+              </div>
+              <div id="map-thumbnail" class="sector-pic" data-sector="01 / 10" role="img" aria-label="Battlefield preview"></div>
+              <div class="sectorname" id="map-title">Foundry Core</div>
+              <div class="sector-meta" id="map-description">Molten industrial casting pit. Fast CQB encounters.</div>
+            </div>
+          </aside>
         </div>
-      </div>
-
-      <!-- Right: Dossier & Tactical Stats -->
-      <div class="roster-dossier">
-        <div class="dossier-heading">
-          <div class="dossier-title-row">
-            <h1 id="dossier-name">ABDULKARIM</h1>
-            <span id="dossier-status-pill" class="pill-equipped">EQUIPPED</span>
-          </div>
-          <p id="dossier-subtitle" class="dossier-subtitle">Shadow Infiltrator</p>
+        <div class="footline">
+          <span>FIELD TERMINAL / DESIGNED FOR FAST ENTRY, NOT CONFIGURATION OVERLOAD</span>
+          <button data-page="loadout" type="button">VIEW LOADOUT & WEAPONS ↗</button>
         </div>
+      </section>
 
-        <div class="dossier-block">
-          <div class="dossier-block-title">OPERATIVE PROFILE</div>
-          <p class="hint">Dossier ratings are character lore. All operatives share the same combat rules.</p>
-          <div class="dossier-stats">
-            <div class="stat-line">
-              <span class="stat-label">Mobility</span>
-              <div class="stat-track"><div id="stat-mobility" class="stat-bar" style="width: 95%;"></div></div>
-              <span id="stat-mobility-val" class="stat-val">95</span>
+      <!-- VIEW 2: OPERATIVE DOSSIER & 3D TURNTABLE -->
+      <section class="view" id="page-operative">
+        <div class="section-label"><span class="lead"></span>PERSONNEL RECORD / 02</div>
+        <h1 class="page-title">Your operative.</h1>
+        <p class="page-desc">Profile and identity stay here, not in the matchmaking path. Your callsign is used throughout the interface.</p>
+
+        <div class="operative-layout-3col">
+          <!-- Left: Roster List -->
+          <div class="panel content-panel" style="padding:16px;">
+            <div class="small-cap" style="margin-bottom:12px;">CREW ARCHIVE (<span id="roster-count">8 / 8</span>)</div>
+            <div id="roster-cards" class="roster-sidebar-panel"></div>
+          </div>
+
+          <!-- Center: 3D Turntable Viewport -->
+          <div class="stage-viewport-panel">
+            <div class="roster-viewport-box">
+              <canvas id="roster-canvas" tabindex="0" role="img" aria-label="3D operative turntable. Drag to orbit, wheel to zoom."></canvas>
+              <div class="roster-badge-group">
+                <span class="badge" id="roster-hero-class">ASSAULT</span>
+              </div>
+              <div class="roster-viewport-controls">
+                <button id="roster-btn-spin" class="small-btn" type="button">↻ Spin: OFF</button>
+                <button id="roster-btn-reset" class="small-btn" type="button">⟲ Reset</button>
+              </div>
+              <div class="roster-drag-tip">Drag / arrows to orbit · Scroll / + − to zoom</div>
             </div>
-            <div class="stat-line">
-              <span class="stat-label">Durability</span>
-              <div class="stat-track"><div id="stat-durability" class="stat-bar" style="width: 65%;"></div></div>
-              <span id="stat-durability-val" class="stat-val">65</span>
-            </div>
-            <div class="stat-line">
-              <span class="stat-label">Precision</span>
-              <div class="stat-track"><div id="stat-precision" class="stat-bar" style="width: 80%;"></div></div>
-              <span id="stat-precision-val" class="stat-val">80</span>
-            </div>
-            <div class="stat-line">
-              <span class="stat-label">Firepower</span>
-              <div class="stat-track"><div id="stat-firepower" class="stat-bar" style="width: 80%;"></div></div>
-              <span id="stat-firepower-val" class="stat-val">80</span>
+
+            <div class="roster-toolbar">
+              <div class="toolbar-section">
+                <span class="toolbar-label">ANIMATION:</span>
+                <div id="roster-anim-group" class="btn-group">
+                  <button class="anim-btn on" data-anim="idle" type="button">Idle</button>
+                  <button class="anim-btn" data-anim="walk" type="button">Walk</button>
+                  <button class="anim-btn" data-anim="run" type="button">Run</button>
+                  <button class="anim-btn" data-anim="crouch" type="button">Crouch</button>
+                  <button class="anim-btn" data-anim="die" type="button">Defeat</button>
+                </div>
+              </div>
+
+              <div class="toolbar-section" id="roster-skin-section" hidden>
+                <span class="toolbar-label">OUTFIT:</span>
+                <div id="roster-skins" class="btn-group"></div>
+              </div>
+
+              <div class="toolbar-section">
+                <span class="toolbar-label">TEAM SHADER:</span>
+                <div id="roster-swatches" class="swatch-group"></div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="dossier-block">
-          <div class="dossier-block-title">SPECIALTY & LOADOUT</div>
-          <div class="dossier-perks">
+          <!-- Right: Dossier Details -->
+          <div class="panel content-panel roster-dossier-panel">
+            <div class="dossier-name-row">
+              <div>
+                <h2 id="dossier-name">ABDULKARIM</h2>
+                <div class="dossier-subtitle" id="dossier-subtitle">Shadow Infiltrator</div>
+              </div>
+              <span id="dossier-status-pill" class="pill-equipped">EQUIPPED</span>
+            </div>
+
+            <div class="form-group" style="margin:8px 0 14px;">
+              <label class="field-label" for="name">Operator Callsign</label>
+              <div style="display:flex;gap:8px;">
+                <input class="field" id="name" maxlength="18" autocomplete="off" value="Ghost">
+                <button class="btn btn-primary small" id="btn-apply-callsign" type="button">Apply</button>
+              </div>
+            </div>
+
+            <div class="small-cap">TACTICAL ATTRIBUTES</div>
+            <div class="dossier-stats">
+              <div class="stat-line">
+                <span class="stat-label">Mobility</span>
+                <div class="stat-track"><div id="stat-mobility" class="stat-bar" style="width: 95%;"></div></div>
+                <span id="stat-mobility-val" class="stat-val">95</span>
+              </div>
+              <div class="stat-line">
+                <span class="stat-label">Durability</span>
+                <div class="stat-track"><div id="stat-durability" class="stat-bar" style="width: 65%;"></div></div>
+                <span id="stat-durability-val" class="stat-val">65</span>
+              </div>
+              <div class="stat-line">
+                <span class="stat-label">Precision</span>
+                <div class="stat-track"><div id="stat-precision" class="stat-bar" style="width: 80%;"></div></div>
+                <span id="stat-precision-val" class="stat-val">80</span>
+              </div>
+              <div class="stat-line">
+                <span class="stat-label">Firepower</span>
+                <div class="stat-track"><div id="stat-firepower" class="stat-bar" style="width: 80%;"></div></div>
+                <span id="stat-firepower-val" class="stat-val">80</span>
+              </div>
+            </div>
+
             <div class="perk-card">
               <span class="perk-icon" id="dossier-weapon-icon">🗡</span>
               <div class="perk-info">
-                <b id="dossier-weapon">Combat Knife &amp; SMG</b>
-                <span class="hint">Signature Weapon</span>
+                <b id="dossier-weapon">Combat Knife & SMG</b>
+                <span id="dossier-trait">Signature Weapon</span>
+                <span id="dossier-trait-desc" class="muted-note">+15% sprint velocity with knife drawn & lethal backstabs</span>
               </div>
             </div>
-            <div class="perk-card">
-              <span class="perk-icon">+</span>
-              <div class="perk-info">
-                <b id="dossier-trait">Shadow Step</b>
-                <span id="dossier-trait-desc" class="hint">+15% sprint velocity with knife drawn &amp; lethal backstabs</span>
-              </div>
+
+            <div class="small-cap" style="margin-top:6px;">FIELD DOSSIER</div>
+            <p id="dossier-bio" class="dossier-bio-text"></p>
+
+            <div style="margin-top:auto;padding-top:10px;">
+              <button class="btn btn-primary" id="btn-roster-equip" type="button" style="width:100%;">✓ Equip Active Operative</button>
             </div>
           </div>
         </div>
+      </section>
 
-        <div class="dossier-block dossier-bio-block">
-          <div class="dossier-block-title">FIELD DOSSIER</div>
-          <p id="dossier-bio" class="dossier-bio-text"></p>
+      <!-- VIEW 3: LOADOUT -->
+      <section class="view" id="page-loadout">
+        <div class="section-label"><span class="lead"></span>FIELD EQUIPMENT / 03</div>
+        <h1 class="page-title">Your loadout.</h1>
+        <p class="page-desc">All weapons and combat equipment ready for engagement. Standard issue kit available across every sector.</p>
+
+        <div class="loadout-grid">
+          <div class="wep-spec-card">
+            <div class="wep-spec-head">
+              <span class="slot-tag">SLOT 01 · ASSAULT</span>
+              <span class="key-badge">KEY [1]</span>
+            </div>
+            <h3>AK-47 Assault Rifle</h3>
+            <p>Full-auto battle rifle. High muzzle velocity with reliable medium-to-long range stopping power. 30 round standard magazine.</p>
+            <div class="stat-line"><span class="stat-label">DAMAGE</span><div class="stat-track"><div class="stat-bar" style="width:75%"></div></div><span class="stat-val">25</span></div>
+            <div class="stat-line"><span class="stat-label">FIRE RATE</span><div class="stat-track"><div class="stat-bar" style="width:70%"></div></div><span class="stat-val">600</span></div>
+          </div>
+
+          <div class="wep-spec-card">
+            <div class="wep-spec-head">
+              <span class="slot-tag">SLOT 02 · BREACH</span>
+              <span class="key-badge">KEY [2]</span>
+            </div>
+            <h3>Tactical Shotgun</h3>
+            <p>Pump-action 12-gauge close-quarters combat shotgun. Multi-pellet spread designed for room-clearing and doorway chokepoints.</p>
+            <div class="stat-line"><span class="stat-label">DAMAGE</span><div class="stat-track"><div class="stat-bar" style="width:95%"></div></div><span class="stat-val">90</span></div>
+            <div class="stat-line"><span class="stat-label">FIRE RATE</span><div class="stat-track"><div class="stat-bar" style="width:30%"></div></div><span class="stat-val">80</span></div>
+          </div>
+
+          <div class="wep-spec-card">
+            <div class="wep-spec-head">
+              <span class="slot-tag">SLOT 03 · PRECISION</span>
+              <span class="key-badge">KEY [3]</span>
+            </div>
+            <h3>.50 Cal Sniper Rifle</h3>
+            <p>High-caliber bolt-action anti-materiel sniper rifle. High optic magnification with lethal 1-shot headshot elimination capability.</p>
+            <div class="stat-line"><span class="stat-label">DAMAGE</span><div class="stat-track"><div class="stat-bar" style="width:100%"></div></div><span class="stat-val">100+</span></div>
+            <div class="stat-line"><span class="stat-label">FIRE RATE</span><div class="stat-track"><div class="stat-bar" style="width:20%"></div></div><span class="stat-val">45</span></div>
+          </div>
+
+          <div class="wep-spec-card">
+            <div class="wep-spec-head">
+              <span class="slot-tag">SLOT 04 · MOBILITY</span>
+              <span class="key-badge">KEY [4]</span>
+            </div>
+            <h3>Tactical SMG</h3>
+            <p>Rapid-cycling submachine gun with 40-round extended magazine. Superior hipfire stability and tight bullet spread during movement.</p>
+            <div class="stat-line"><span class="stat-label">DAMAGE</span><div class="stat-track"><div class="stat-bar" style="width:50%"></div></div><span class="stat-val">18</span></div>
+            <div class="stat-line"><span class="stat-label">FIRE RATE</span><div class="stat-track"><div class="stat-bar" style="width:95%"></div></div><span class="stat-val">850</span></div>
+          </div>
+
+          <div class="wep-spec-card">
+            <div class="wep-spec-head">
+              <span class="slot-tag">SLOT 05 · SUPPRESSION</span>
+              <span class="key-badge">KEY [5]</span>
+            </div>
+            <h3>Heavy LMG</h3>
+            <p>Belt-fed 75-round squad automatic weapon. Sustained suppressive fire capable of locking down entire hallways and arena zones.</p>
+            <div class="stat-line"><span class="stat-label">DAMAGE</span><div class="stat-track"><div class="stat-bar" style="width:70%"></div></div><span class="stat-val">22</span></div>
+            <div class="stat-line"><span class="stat-label">FIRE RATE</span><div class="stat-track"><div class="stat-bar" style="width:80%"></div></div><span class="stat-val">700</span></div>
+          </div>
+
+          <div class="wep-spec-card">
+            <div class="wep-spec-head">
+              <span class="slot-tag">SLOT 06 · MELEE</span>
+              <span class="key-badge">KEY [6] / [V]</span>
+            </div>
+            <h3>Tactical Combat Knife</h3>
+            <p>Carbon-steel combat knife. Grants sprint velocity boost when equipped. Delivers lethal instant-kill strikes from behind.</p>
+            <div class="stat-line"><span class="stat-label">FRONT DAMAGE</span><div class="stat-track"><div class="stat-bar" style="width:60%"></div></div><span class="stat-val">55</span></div>
+            <div class="stat-line"><span class="stat-label">BACKSTAB</span><div class="stat-track"><div class="stat-bar" style="width:100%"></div></div><span class="stat-val">LETHAL</span></div>
+          </div>
         </div>
 
-        <div class="dossier-action-area">
-          <button id="btn-roster-equip" class="btn-equip-hero" type="button">✓ EQUIPPED ACTIVE HERO</button>
+        <div class="panel content-panel" style="margin-top:20px;">
+          <div class="small-cap">TACTICAL EQUIPMENT & COMBAT CONTROLS</div>
+          <div class="tag-list" style="margin-top:12px;">
+            <span class="pill emphasis">[1–6] WEAPONS</span>
+            <span class="pill">[G] FRAG GRENADE (AOE)</span>
+            <span class="pill">[R] RELOAD</span>
+            <span class="pill">[TAB] SCOREBOARD</span>
+            <span class="pill">[WASD] MOVEMENT</span>
+            <span class="pill">[SPACE] JUMP</span>
+            <span class="pill">[C] CROUCH</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: BATTLEFIELDS -->
+      <section class="view" id="page-maps">
+        <div class="section-label"><span class="lead"></span>TACTICAL DATABASE / 04</div>
+        <h1 class="page-title">Battlefields.</h1>
+        <p class="page-desc">Scan the 10 operational combat sectors. Review layout profiles, sightlines, and deploy directly into any sector.</p>
+
+        <div class="maps-catalog" id="maps-catalog-grid"></div>
+      </section>
+
+      <!-- VIEW 5: SETTINGS -->
+      <section class="view" id="page-settings">
+        <div class="section-label"><span class="lead"></span>STATION CONFIGURATION / 05</div>
+        <h1 class="page-title">Fine tune.</h1>
+        <p class="page-desc">Controls and system preferences stay out of the deployment flow, but remain one click away.</p>
+
+        <div class="page-grid">
+          <div class="panel content-panel">
+            <div class="small-cap" style="margin-bottom:20px;">INPUT & AUDIO</div>
+
+            <div class="settings-row">
+              <label for="opt-sens">Mouse look sensitivity</label>
+              <strong id="opt-sens-num">22</strong>
+            </div>
+            <input class="range" type="range" id="opt-sens" min="5" max="100" value="22">
+
+            <div class="rail-divider"></div>
+
+            <div class="settings-row">
+              <label for="opt-ads-sens">ADS zoom sensitivity</label>
+              <strong id="opt-ads-sens-num">0.80x</strong>
+            </div>
+            <input class="range" type="range" id="opt-ads-sens" min="10" max="200" step="5" value="80">
+
+            <div class="rail-divider"></div>
+
+            <div class="settings-row">
+              <label for="opt-invert-y">Invert Y-axis</label>
+              <input id="opt-invert-y" type="checkbox">
+            </div>
+
+            <div class="settings-row">
+              <span>Crouch mode</span>
+              <div class="btn-group">
+                <button id="opt-crouch-hold" class="btn-choice on" type="button">Hold</button>
+                <button id="opt-crouch-toggle" class="btn-choice" type="button">Toggle</button>
+              </div>
+            </div>
+
+            <div class="rail-divider"></div>
+
+            <div class="settings-row">
+              <label for="volume">Audio master volume</label>
+              <strong id="volume-value">50%</strong>
+            </div>
+            <input class="range" type="range" id="volume" min="0" max="100" value="50">
+
+            <div class="rail-divider"></div>
+
+            <div class="settings-row">
+              <label for="opt-crt">CRT screen effect (menus & HUD)</label>
+              <input id="opt-crt" type="checkbox">
+            </div>
+
+            <div class="settings-row">
+              <label for="opt-reduced-motion">Reduce interface motion</label>
+              <input id="opt-reduced-motion" type="checkbox">
+            </div>
+          </div>
+
+          <div class="panel content-panel">
+            <div class="small-cap" style="margin-bottom:16px;">GRAPHICS & KEYBINDINGS</div>
+
+            <div class="form-group">
+              <label class="field-label" for="preset-select">Quality preset</label>
+              <select class="field" id="preset-select">
+                <option value="low">LOW — Performance (0.8x DPR, Minimal FX)</option>
+                <option value="medium">MEDIUM — Balanced (1.0x DPR, Soft Shadows)</option>
+                <option value="high" selected>HIGH — Recommended (1.25x DPR, Full PBR, Bloom)</option>
+                <option value="ultra">ULTRA — Cinematic (1.5x DPR, 4K Shadows, Full Post-FX)</option>
+              </select>
+            </div>
+
+            <div class="small-cap" style="margin-top:20px;">KEYBOARD ASSIGNMENTS</div>
+            <p class="muted-note">Click a key button to rebind. Press Esc to cancel.</p>
+            <div id="bind-grid" class="bind-grid"></div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:24px;">
+              <button class="btn btn-quiet small" id="opt-reset-binds" type="button">Reset All Binds</button>
+              <button class="btn btn-primary" id="settings-done" type="button">Apply Preferences ↗</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- RIGHT-HAND SLIDE-OUT DRAWER -->
+<div class="overlay" id="overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Action panel">
+  <div class="drawer" id="drawer">
+    <div class="drawer-top">
+      <div>
+        <div class="section-label" id="drawerIndex">/ 01 OPERATION</div>
+        <h2 id="drawerTitle">Host Match</h2>
+      </div>
+      <button class="drawer-close" id="drawerClose" aria-label="Close panel" type="button">×</button>
+    </div>
+    <div class="drawer-body" id="drawerBody">
+      <!-- Host Match Drawer Content -->
+      <div id="drawer-content-host" hidden>
+        <p class="drawer-desc">Configure your tactical battleground and deploy an authoritative match.</p>
+        <div class="form-group">
+          <label class="field-label" for="room-name">Room Designation</label>
+          <input class="field" id="room-name" maxlength="32" placeholder="Sector Alpha Deathmatch" value="Sector Alpha Deathmatch" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="map-select">Battlefield</label>
+          <select class="field" id="map-select">
+            <option value="foundry">Foundry Core · Molten Industrial (FFA 2–6)</option>
+            <option value="glowplant">Reactor Complex · Sub-Orbital Nuclear (TDM 4–10)</option>
+            <option value="zenith">Zenith Atrium · Vertical Sky Arena (4–12)</option>
+            <option value="railyard">Hadota Rail Yard · Freight Train Yard (4–12)</option>
+            <option value="school">Schoolyard · Egyptian Courtyard &amp; Tunnel (2–8)</option>
+            <option value="aftermath">Aftermath · Urban ruins</option>
+            <option value="river">River Forest · Valley &amp; bridges</option>
+            <option value="forest">Pine Forest · Classic</option>
+            <option value="sandbox">Random Sandbox · Procedural</option>
+            <option value="arena">Classic Arena · Pure Deathmatch</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="mode-select">Rules of Engagement</label>
+          <select class="field" id="mode-select">
+            <option value="ffa">Free For All (FFA)</option>
+            <option value="tdm">Team Deathmatch (TDM)</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <div class="form-group">
+            <label class="field-label" for="max-players-select">Max Operatives</label>
+            <select class="field" id="max-players-select">
+              <option value="2">2 Players</option>
+              <option value="4">4 Players</option>
+              <option value="6" selected>6 Players</option>
+              <option value="8">8 Players</option>
+              <option value="12">12 Players</option>
+            </select>
+          </div>
+          <div class="form-group" style="display:flex;align-items:center;padding-top:22px;">
+            <label class="toggle" style="margin-right:8px;">
+              <input id="is-private-checkbox" type="checkbox">
+              <span class="knob"></span>
+            </label>
+            <span style="font-size:12px;color:var(--sub);">Private Room</span>
+          </div>
+        </div>
+        <div class="rail-divider"></div>
+        <p class="muted-note" id="match-rules">10 kills to win · 2–12 players</p>
+      </div>
+
+      <!-- Join by Code Drawer Content -->
+      <div id="drawer-content-join" hidden>
+        <p class="drawer-desc">Enter the 5-character invitation code provided by the squad host.</p>
+        <div class="form-group">
+          <label class="field-label" for="input-join-code">Invitation Code</label>
+          <input class="field code-entry" id="input-join-code" maxlength="6" placeholder="ENTER CODE" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="rail-divider"></div>
+        <div class="small-cap">SIGNAL VERIFICATION</div>
+        <p class="muted-note">Direct peer connection via WebRTC. Low-latency data channel established on join.</p>
+      </div>
+
+      <!-- Room Browser Drawer Content -->
+      <div id="drawer-content-browser" hidden>
+        <p class="drawer-desc">Public rooms currently advertising on the matchmaking uplink.</p>
+        <div id="drawer-rooms-list" style="display:grid;gap:8px;"></div>
+        <div style="margin-top:20px;">
+          <button class="btn btn-quiet" id="btn-refresh-rooms-drawer" type="button" style="width:100%;">↻ Refresh Directory</button>
         </div>
       </div>
+    </div>
+    <div class="drawer-bottom">
+      <div class="small-cap" id="drawerFoot">SECURE ONLINE SESSION</div>
+      <button class="btn btn-primary" id="drawerSubmit" type="button">Deploy Match ↗</button>
     </div>
   </div>
 </div>
 
+<!-- TOAST MESSAGE -->
+<div class="toast" role="status" id="toast"></div>
+
+<!-- COMBAT GAMEPLAY & RESTRAINED HUD -->
 <div id="game" hidden>
   <canvas id="view"></canvas>
   <div id="crosshair"></div>
@@ -385,24 +589,30 @@
   </div>
   <div id="elim-feed"></div>
   <ul id="feed"></ul>
+
+  <!-- Top Center: Match Status -->
   <div id="topbar">
     <span id="link"></span>
     <span id="tdm-score" class="tdm-score-banner" hidden></span>
     <span id="myscore"></span>
     <div id="host-bot-controls" class="btn-group">
-      <button id="btn-add-bot" class="ghost" type="button" title="Add Practice AI Bot">+ Bot</button>
-      <button id="btn-remove-bot" class="ghost" type="button" title="Remove AI Bot">- Bot</button>
+      <button id="btn-add-bot" type="button" title="Add Practice AI Bot">+ Bot</button>
+      <button id="btn-remove-bot" type="button" title="Remove AI Bot">- Bot</button>
     </div>
-    <button id="btn-scores-game" class="ghost" type="button" aria-controls="scoreboard" aria-pressed="false">Scores</button>
-    <button id="btn-settings-game" class="ghost" type="button">Settings</button>
-    <button id="leave">Leave</button>
+    <button id="btn-scores-game" type="button">Scores</button>
+    <button id="btn-settings-game" type="button">Settings</button>
+    <button id="leave" type="button">Leave Match</button>
   </div>
+
+  <!-- Top Left: Vitals -->
   <div id="vitals">
     <span class="hud-label">VITAL SIGNS</span>
     <div class="bar"><div id="hpbar"></div></div>
     <b id="hp">100</b><span>HP</span>
     <span id="stance" class="stance-pill">STAND</span>
   </div>
+
+  <!-- Bottom Center: Weapon Bar -->
   <div id="weapons">
     <button type="button" class="wep on" data-w="0"><span class="key">1</span><span class="wname">AK-47</span><span class="ammo-count">30</span></button>
     <button type="button" class="wep" data-w="1"><span class="key">2</span><span class="wname">Shotgun</span><span class="ammo-count">8</span></button>
@@ -411,21 +621,31 @@
     <button type="button" class="wep" data-w="4"><span class="key">5</span><span class="wname">LMG</span><span class="ammo-count">75</span></button>
     <button type="button" class="wep" data-w="5"><span class="key">6</span><span class="wname">Knife</span><span class="ammo-count">∞</span></button>
   </div>
+
+  <!-- Bottom Right: Ammo & Weapon -->
   <div id="ammo-row">
     <span class="hud-label">WEAPON SYSTEM</span>
-    <div id="grenades" title="Grenades (G)">💣 2</div>
     <div id="ammo">30 / 30</div>
+    <div id="grenades" title="Grenades (G)">FRAG / 2</div>
   </div>
-  <button id="center" type="button" hidden></button>
+
+  <!-- Center Prompt -->
+  <button id="center" type="button" hidden>Click to play</button>
+
+  <!-- Scoreboard (Tab) -->
   <div id="scoreboard" hidden>
-    <div class="board-heading">
-      <span class="eyebrow">MATCH TELEMETRY</span>
-      <h2>Standings</h2>
-    </div>
+    <div class="section-label">// MATCH TELEMETRY</div>
+    <h2 style="font-size:24px;margin:6px 0 16px;">Standings</h2>
     <table aria-label="Match scores"></table>
-    <p class="hint">Hold Tab to inspect · Eliminate to advance</p>
+    <p class="muted-note" style="margin-top:14px;">Hold Tab to inspect · Eliminate to advance</p>
   </div>
 </div>
+
+<!-- Fallback / compatibility containers -->
+<p id="message" hidden></p>
+<div id="select" hidden></div>
+<div id="settings-modal" hidden></div>
+<div id="hero-roster-modal" hidden></div>
 
 <!--SCRIPT-->
 </body>

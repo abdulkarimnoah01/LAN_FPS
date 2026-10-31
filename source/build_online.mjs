@@ -71,6 +71,13 @@ if (fs.existsSync(mapsDir)) {
       assets.maps[id].preview = 'data:image/jpeg;base64,' + fs.readFileSync(imgFile).toString('base64');
     }
   }
+  for (const id of ['aftermath', 'river', 'forest', 'sandbox', 'arena']) {
+    const imgFile = path.join(root, 'assets', 'ui', `map-${id}.jpg`);
+    if (!assets.maps[id]) assets.maps[id] = {};
+    if (fs.existsSync(imgFile)) {
+      assets.maps[id].preview = 'data:image/jpeg;base64,' + fs.readFileSync(imgFile).toString('base64');
+    }
+  }
 }
 
 const cfg = path.join(root, 'assets', 'assets.json');
@@ -88,7 +95,7 @@ const script = s => '<script>' + s.replace(/<\/script/gi, '<\\/script') + '</scr
 const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' blob: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws: wss: http: https: blob: data:; media-src data: blob:; base-uri 'none'; form-action 'none'">`;
 
 // Bundle CSS
-const css = ['style.css', 'reference.css']
+const css = ['style.css', 'netrunner.css']
   .map(name => fs.existsSync(path.join(root, name)) ? fs.readFileSync(path.join(root, name), 'utf8') : '')
   .join('\n')
   .replace(/url\(["']?assets\/ui\/([^"')]+)["']?\)/g, (_, name) => {
