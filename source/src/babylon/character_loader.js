@@ -77,8 +77,8 @@ export async function makeBabylonCharacter(scene, assets, charId, colorHex = '#3
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
-  const blob = new Blob([bytes.buffer], { type: 'model/gltf-binary' });
-  const container = await BABYLON.SceneLoader.LoadAssetContainerAsync('', '', blob, scene, null, '.glb');
+  const file = new File([bytes.buffer], `${charId}.glb`, { type: 'model/gltf-binary' });
+  const container = await BABYLON.SceneLoader.LoadAssetContainerAsync('', file, scene, null, '.glb');
 
   const root = new BABYLON.TransformNode(`char_${charId}`, scene);
   const instances = container.instantiateModelsToScene(name => `${name}_${Math.random().toString(36).slice(2, 6)}`);

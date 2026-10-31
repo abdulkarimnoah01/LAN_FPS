@@ -37,8 +37,8 @@ export async function loadBabylonMap(scene, mapId, assets, shadowGenerator = nul
     }
 
     if (arrayBuffer) {
-      const blob = new Blob([arrayBuffer], { type: 'model/gltf-binary' });
-      const container = await BABYLON.SceneLoader.LoadAssetContainerAsync('', '', blob, scene, null, '.glb');
+      const file = new File([arrayBuffer], `${mapId}.glb`, { type: 'model/gltf-binary' });
+      const container = await BABYLON.SceneLoader.LoadAssetContainerAsync('', file, scene, null, '.glb');
       container.addAllToScene();
 
       for (const m of container.meshes) {

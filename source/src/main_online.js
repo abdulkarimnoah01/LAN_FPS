@@ -76,9 +76,9 @@ function equipHero(heroId) {
   const nameEl = $('hero-equipped-name');
   const roleEl = $('hero-equipped-role');
   const badgeEl = $('hero-equipped-badge');
-  if (nameEl) nameEl.textContent = hero.name.toUpperCase();
-  if (roleEl) roleEl.textContent = hero.role.toUpperCase();
-  if (badgeEl) badgeEl.textContent = hero.badge;
+  if (nameEl) nameEl.textContent = (hero.name || hero.id || 'OPERATIVE').toUpperCase();
+  if (roleEl) roleEl.textContent = (hero.classType || hero.title || hero.role || 'OPERATIVE').toUpperCase();
+  if (badgeEl) badgeEl.textContent = hero.badge || '★';
 
   if (lobbyPortrait && assets) {
     lobbyPortrait.show(hero.id);
@@ -472,4 +472,19 @@ async function bootstrap() {
   }
 }
 
-window.addEventListener('DOMContentLoaded', bootstrap);
+// Global debug and test automation handle
+window.LANFPS_ONLINE = {
+  get session() { return session; },
+  get view() { return view; },
+  get assets() { return assets; },
+  get signaling() { return signaling; },
+  hostOnlineMatch,
+  joinOnlineMatch,
+  quickMatch,
+};
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
+}
