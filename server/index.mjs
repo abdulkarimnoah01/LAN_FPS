@@ -532,10 +532,11 @@ export function createServer(options = {}) {
 // Standalone execution
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 if (isMain) {
-  const instance = createServer({
-    staticDir: process.env.STATIC_DIR ? path.resolve(process.env.STATIC_DIR) : null,
-  });
+  const defaultStatic = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist/online');
+  const staticDir = process.env.STATIC_DIR ? path.resolve(process.env.STATIC_DIR) : (fs.existsSync(defaultStatic) ? defaultStatic : null);
+  const instance = createServer({ staticDir });
   instance.server.listen(PORT, HOST, () => {
     console.log(`[Spectre Orbit Server] Listening on http://${HOST}:${PORT} (Protocol: ${PROTOCOL_VERSION})`);
+    if (staticDir) console.log(`[Spectre Orbit Server] Serving web game from ${staticDir}`);
   });
 }
