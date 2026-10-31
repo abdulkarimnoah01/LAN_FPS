@@ -26,6 +26,10 @@ jobs:
           v=$(node -p "require('./version.json').version")
           [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "Tag $GITHUB_REF_NAME does not match version.json ($v)"; exit 1; }
 
+      - name: Server dependencies
+        working-directory: server
+        run: npm ci --omit=dev
+
       - name: Install and test
         working-directory: source
         run: |
@@ -36,10 +40,6 @@ jobs:
       - name: Build both bundles
         working-directory: source
         run: npm run build:all
-
-      - name: Server dependencies
-        working-directory: server
-        run: npm ci --omit=dev
 
       - name: Assemble host pack
         run: |
