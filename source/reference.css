@@ -65,14 +65,14 @@
 }
 .ascii-planet {
   margin:0; font-family:var(--mono); font-size:11px; line-height:1.2;
-  letter-spacing:0.02em; color:var(--data); text-shadow:0 0 6px rgba(56,189,248,0.35);
+  letter-spacing:0.02em; color:var(--data); text-shadow:0 0 6px color-mix(in srgb, var(--data) 35%, transparent);
   white-space:pre; text-align:center;
 }
 .ascii-planet .star { color:var(--dim); opacity:0.65; }
-.ascii-planet .planet-core { color:var(--accent); font-weight:700; text-shadow:0 0 6px rgba(250,204,21,0.4); }
+.ascii-planet .planet-core { color:var(--accent); font-weight:700; text-shadow:0 0 6px color-mix(in srgb, var(--accent) 40%, transparent); }
 .ascii-planet .planet-edge { color:var(--accent); opacity:0.9; }
-.ascii-planet .planet-front { color:var(--accent); font-weight:700; text-shadow:0 0 6px rgba(250,204,21,0.5); }
-.ascii-planet .ring { color:var(--data); text-shadow:0 0 6px rgba(56,189,248,0.45); }
+.ascii-planet .planet-front { color:var(--accent); font-weight:700; text-shadow:0 0 6px color-mix(in srgb, var(--accent) 50%, transparent); }
+.ascii-planet .ring { color:var(--data); text-shadow:0 0 6px color-mix(in srgb, var(--data) 45%, transparent); }
 .ascii-planet-label { font:10px var(--mono); color:var(--dim); letter-spacing:0.14em; margin-top:4px; text-transform:uppercase; }
 .reference-ui .hero-copy { padding:8px 20px 12px; min-width:0; }
 .reference-ui .hero-copy>.eyebrow { display:none; }

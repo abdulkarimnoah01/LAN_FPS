@@ -90,8 +90,8 @@
    - **Hazard Kill Floors**: Falling into molten pits or off floating sky platforms eliminates the player when dropping below `killY`.
    - **Tactical Sector Selector**: Lobby UI displays all 8 sectors with preview briefings and mode rules.
 
-4. **Operative Roster (9 Playable Heroes)**:
-   - Abdulkarim, ElDeep, Gemy, Hamdy, Hooda, Romero, Mina, and Robot, with custom skeletal rigs and 5 combat animation states.
+4. **Operative Roster (10 Playable Heroes)**:
+   - Abdulkarim, ElDeep, Gemy, Hamdy, Hooda, Romero, Mina, Robot, and Noura (unrigged low-poly with procedural locomotion fallback).
 
 5. **In-Place File Updater (v1.3.3)**:
    - Browser File System Access API updates `LAN_FPS.html` in-place and reloads.

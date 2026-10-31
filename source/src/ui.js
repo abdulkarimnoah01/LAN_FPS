@@ -1,3 +1,4 @@
+import { initPalette } from './palette.js';
 /* Presentation-only state, accessible menu shells, and offline map briefings. */
 const $ = id => document.getElementById(id);
 const MAPS = {
@@ -60,7 +61,7 @@ export function setCrtEnabled(enabled) {
   $('btn-crt-toggle').textContent = on ? 'CRT: ON' : 'CRT: OFF';
   $('btn-crt-toggle').setAttribute('aria-pressed', String(on));
   $('opt-crt').checked = on;
-  try { localStorage.setItem('lanfps.crt', String(on)); } catch {}
+  try { localStorage.setItem('lanfps.crtfx', String(on)); } catch {}
 }
 
 function syncPressed(root) {
@@ -70,8 +71,9 @@ function syncPressed(root) {
 }
 
 export function initInterface() {
+  initPalette();
   let crt = false;
-  try { crt = localStorage.getItem('lanfps.crt') === 'true'; } catch {}
+  try { crt = localStorage.getItem('lanfps.crtfx') !== 'false'; } catch {}
   setCrtEnabled(crt);
   $('btn-crt-toggle').addEventListener('click', () => setCrtEnabled(!document.documentElement.classList.contains('crt-enabled')));
   $('opt-crt').addEventListener('change', e => setCrtEnabled(e.target.checked));

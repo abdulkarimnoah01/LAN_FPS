@@ -6,6 +6,7 @@ import { HostSession, GuestSession } from './game.js';
 import { View, CharacterPreview, HeroViewer, loadAssets, buildWorld } from './render_babylon.js';
 import { Hud, Sound } from './hud.js';
 import { B } from './sim.js';
+import { initPalette } from './palette.js';
 import { HERO_ROSTER, getHeroData, SKIN_OF, baseHeroId } from './heroes.js';
 
 const $ = id => document.getElementById(id);
@@ -89,7 +90,7 @@ function setCrtEnabled(enabled) {
     $('btn-crt-toggle').setAttribute('aria-pressed', String(on));
   }
   if ($('opt-crt')) $('opt-crt').checked = on;
-  store.set('crt', String(on));
+  store.set('crtfx', String(on));
 }
 
 /* ---- Toast Notifications ---- */
@@ -1190,9 +1191,10 @@ function setupInputHandlers() {
 
 /* ---- Client Bootstrap ---- */
 async function bootstrap() {
+  initPalette();
   // Load saved preferences
   let crt = false;
-  try { crt = store.get('crt', 'false') === 'true'; } catch {}
+  try { crt = store.get('crtfx', 'true') === 'true'; } catch {}
   setCrtEnabled(crt);
 
   // Setup view routing delegation

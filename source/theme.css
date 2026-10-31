@@ -1,0 +1,167 @@
+/* SPECTRE ORBIT — shared terminal theme (online Hub + legacy Fieldlink).
+   Loaded last. Palette inputs (--p-*) feed both token systems; html[data-palette] swaps them. */
+
+:root {
+  --p-bg: #0a0506;
+  --p-accent: #ff3b30;
+  --p-warm: #ffb347;
+  --display-face: Bahnschrift, 'DIN Alternate', 'Arial Narrow', 'Segoe UI', sans-serif;
+  --ease-out: cubic-bezier(.23, 1, .32, 1);
+}
+:root[data-palette="cyan"]   { --p-bg: #060a0e; --p-accent: #66e9e3; --p-warm: #e2f475; }
+:root[data-palette="amber"]  { --p-bg: #0b0a04; --p-accent: #fcee0a; --p-warm: #ff9f1c; }
+:root[data-palette="green"]  { --p-bg: #040a06; --p-accent: #4dff88; --p-warm: #d8ff5e; }
+:root[data-palette="violet"] { --p-bg: #08050f; --p-accent: #b48cff; --p-warm: #ff7bd0; }
+
+:root {
+  /* Hub tokens */
+  --bg: var(--p-bg);
+  --surface: color-mix(in srgb, var(--p-accent) 5%, var(--p-bg));
+  --surface2: color-mix(in srgb, var(--p-accent) 8%, var(--p-bg));
+  --surface3: color-mix(in srgb, var(--p-accent) 12%, var(--p-bg));
+  --line: color-mix(in srgb, var(--p-accent) 28%, var(--p-bg));
+  --line2: color-mix(in srgb, var(--p-accent) 45%, var(--p-bg));
+  --text: color-mix(in srgb, var(--p-accent) 6%, #fff);
+  --sub: color-mix(in srgb, var(--p-accent) 22%, #ddd);
+  --dim: color-mix(in srgb, var(--p-accent) 30%, #9c9c9c);
+  --cyan: var(--p-accent);
+  --cyan2: color-mix(in srgb, var(--p-accent) 82%, #000);
+  --lime: var(--p-warm);
+  --on-accent: color-mix(in srgb, var(--p-bg) 55%, #000);
+  --mono: 'Cascadia Mono', 'IBM Plex Mono', Consolas, 'Courier New', monospace;
+  /* Legacy Fieldlink tokens */
+  --panel: color-mix(in srgb, var(--p-accent) 6%, var(--p-bg));
+  --panel-hi: color-mix(in srgb, var(--p-accent) 13%, var(--p-bg));
+  --well: color-mix(in srgb, var(--p-accent) 3%, var(--p-bg));
+  --wine: color-mix(in srgb, var(--p-accent) 15%, var(--p-bg));
+  --line-soft: color-mix(in srgb, var(--p-accent) 18%, var(--p-bg));
+  --accent: var(--p-accent);
+  --data: color-mix(in srgb, var(--p-accent) 60%, #fff);
+  --focus: color-mix(in srgb, var(--p-accent) 40%, #fff);
+  --ink: var(--on-accent);
+  --alert-bg: color-mix(in srgb, var(--p-warm) 14%, var(--p-bg));
+  --action-bg: color-mix(in srgb, var(--p-accent) 14%, var(--p-bg));
+  --data-bg: color-mix(in srgb, var(--p-accent) 10%, var(--p-bg));
+  --hud: color-mix(in srgb, var(--p-bg) 96%, transparent);
+  --crt-line: color-mix(in srgb, var(--p-accent) 7%, transparent);
+  --crt-halo: color-mix(in srgb, var(--p-accent) 45%, transparent);
+}
+
+/* ---- Surface: tinted grid + ambient glow ---- */
+html, body { background-color: var(--bg); }
+body {
+  background-image:
+    radial-gradient(900px 520px at 12% -8%, color-mix(in srgb, var(--p-accent) 14%, transparent), transparent 70%),
+    linear-gradient(color-mix(in srgb, var(--p-accent) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--p-accent) 4%, transparent) 1px, transparent 1px);
+  background-size: auto, 32px 32px, 32px 32px;
+  background-attachment: fixed;
+}
+::selection { background: var(--p-accent); color: var(--on-accent); }
+:root { accent-color: var(--p-accent); caret-color: var(--p-accent); scrollbar-color: var(--line2) var(--bg); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--line2); border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--p-accent); }
+
+/* ---- Display voice ---- */
+.hero h1, .terminal-ui .hero-banner h1, .brandname, .action-copy h2 {
+  font-family: var(--display-face);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  text-wrap: balance;
+}
+.hero h1, .terminal-ui .hero-banner h1 {
+  color: var(--p-accent);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--p-accent) 32%, transparent);
+}
+.hero h1 em { color: var(--text); font-style: normal; }
+:is(.section-label, .small-cap, .mini-label, .field-label, .nav-header, .side-head h3, .linehead h3, .crumb, .protocol, .micro-label) {
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .14em;
+}
+
+/* ---- Square panels with corner brackets ---- */
+:is(.panel, .side-panel, .choice, .content-panel, .room-card) {
+  border-radius: 2px;
+  --br: var(--p-accent);
+  background-image:
+    linear-gradient(var(--br), var(--br)), linear-gradient(var(--br), var(--br)),
+    linear-gradient(var(--br), var(--br)), linear-gradient(var(--br), var(--br)),
+    linear-gradient(var(--br), var(--br)), linear-gradient(var(--br), var(--br)),
+    linear-gradient(var(--br), var(--br)), linear-gradient(var(--br), var(--br));
+  background-size: 10px 1px, 1px 10px, 10px 1px, 1px 10px, 10px 1px, 1px 10px, 10px 1px, 1px 10px;
+  background-position: 0 0, 0 0, 100% 0, 100% 0, 0 100%, 0 100%, 100% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  transition: border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  :is(.choice, .room-card, .nav-btn, .btn):hover { border-color: var(--p-accent); }
+  :is(.choice, .room-card):hover { box-shadow: 0 6px 22px color-mix(in srgb, var(--p-accent) 16%, transparent); }
+}
+.primary-action { border-radius: 2px; border-color: var(--line2); background: linear-gradient(100deg, var(--surface3), var(--surface) 70%); }
+.btn, .btn-primary {
+  border-radius: 0;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+.btn-primary {
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  font-weight: 700;
+}
+button { transition: background 160ms var(--ease-out), color 160ms var(--ease-out), border-color 160ms var(--ease-out), transform 120ms var(--ease-out); }
+button:active { transform: scale(.97); }
+.nav-btn.active { background: color-mix(in srgb, var(--p-accent) 14%, transparent); color: var(--p-accent); }
+.dot { animation: so-pulse 2.4s ease-in-out infinite; }
+@keyframes so-pulse { 50% { opacity: .45; } }
+
+/* ---- Palette switch button ---- */
+#btn-palette {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 32px; padding: 0 12px;
+  border: 1px solid var(--line2); border-radius: 0;
+  color: var(--text); font: 600 11px var(--mono); letter-spacing: .12em; text-transform: uppercase;
+}
+#btn-palette::before { content: ''; width: 10px; height: 10px; background: var(--p-accent); box-shadow: 0 0 8px var(--p-accent); }
+#btn-palette:hover { border-color: var(--p-accent); color: var(--p-accent); }
+
+/* ---- Animated CRT (menus only; the lobby is hidden during play) ---- */
+html.crt-enabled body:has(#lobby:not([hidden]))::before,
+html.crt-enabled body:has(#lobby:not([hidden]))::after {
+  content: ''; position: fixed; left: 0; right: 0; z-index: 9999; pointer-events: none;
+}
+html.crt-enabled body:has(#lobby:not([hidden]))::before {
+  top: 0; bottom: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, .15) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, .55) 100%);
+  animation: so-flicker 5s steps(1, end) infinite;
+}
+html.crt-enabled body:has(#lobby:not([hidden]))::after {
+  height: 24vh; top: -30vh;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--p-accent) 7%, transparent) 50%, transparent);
+  animation: so-roll 8s linear infinite;
+}
+@keyframes so-roll { to { transform: translateY(150vh); } }
+@keyframes so-flicker {
+  0%, 100% { opacity: 1; } 41% { opacity: .93; } 42% { opacity: 1; } 77% { opacity: .96; } 78% { opacity: 1; }
+}
+html.crt-enabled :is(h1, h2, h3, .brandname, .crumb, .nav-btn.active, .wordmark, .readout-heading) {
+  text-shadow: 0 0 7px var(--crt-halo), 1px 0 color-mix(in srgb, #f03 38%, transparent), -1px 0 color-mix(in srgb, #0cf 24%, transparent);
+}
+html.crt-enabled :is(input, select, textarea) { text-shadow: none; }
+html.crt-enabled :is(.hero h1, .terminal-ui .hero-banner h1) { animation: so-glitch 9s steps(1, end) infinite; }
+@keyframes so-glitch {
+  0%, 94%, 100% { transform: none; }
+  95% { transform: translateX(-2px); } 96% { transform: translateX(3px) skewX(-2deg); } 97% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.crt-enabled body::before, html.crt-enabled h1, .dot { animation: none !important; }
+  html.crt-enabled body::after { display: none !important; }
+}
+html.reduced-motion.crt-enabled body::before, html.reduced-motion.crt-enabled h1, html.reduced-motion .dot { animation: none !important; }
+html.reduced-motion.crt-enabled body::after { display: none !important; }

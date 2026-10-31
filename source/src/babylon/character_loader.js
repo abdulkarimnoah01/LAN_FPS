@@ -167,6 +167,14 @@ export class BabylonAvatar {
 
     // Animation state blending
     const speed = Math.hypot(p.vx || 0, p.vz || 0);
+
+    // Rigless models (e.g. Noura) have no clips: fake locomotion with a step bob and a death tip-over
+    if (!Object.keys(this.animGroups).length) {
+      const bob = p.alive && speed > 0.5 ? Math.abs(Math.sin(performance.now() / (speed > 4.5 ? 90 : 140))) * 0.06 : 0;
+      this.root.position.y = p.y + bob;
+      this.root.rotation.x = p.alive ? 0 : -Math.PI / 2;
+      return;
+    }
     let targetAnim = 'idle';
 
     if (!p.alive) {
