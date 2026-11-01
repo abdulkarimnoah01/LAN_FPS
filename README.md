@@ -135,7 +135,6 @@ LAN_FPS features 9 distinct playable operatives, each equipped with custom human
 | 07 | **Mina** | `RECON` | Sniper Rifle | Precision Scout (Extended radar range) |
 | 08 | **Romero** | `BREACHER` | Shotgun & Frags | Blast Shielding (-15% explosive self-damage) |
 | 09 | **Robot** | `VANGUARD` | AK-47 Vanguard | Hardened Armor (High bullet durability) |
-| 10 | **Noura** | `OPERATIVE` | SMG & Combat Knife | Combat Agility (Dynamic field movement) |
 
 Every `.glb` in `source/assets/characters/` is bundled directly into the standalone `LAN_FPS.html` via `npm run build`.
 

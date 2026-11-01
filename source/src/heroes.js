@@ -172,27 +172,6 @@ export const HERO_ROSTER = {
       { name: 'Crimson Strike', color: '#ef4444' },
       { name: 'Vanguard Gold', color: '#f59e0b' }
     ]
-  },
-  noura: {
-    id: 'noura',
-    name: 'Noura',
-    title: 'Tactical Operative',
-    classType: 'OPERATIVE',
-    badge: '⚡',
-    bio: 'Precision combat operative deployed for tactical field operations. Specialist in high-tempo engagements and dynamic situational response.',
-    stats: { mobility: 88, durability: 72, precision: 86, firepower: 84 },
-    signatureWeapon: 'SMG & Combat Knife',
-    signatureIcon: '🗡',
-    trait: 'Combat Agility',
-    traitDesc: 'Dynamic field movement and rapid handling transitions',
-    defaultColor: '#fcee0a',
-    swatches: [
-      { name: 'Neon Gold', color: '#fcee0a' },
-      { name: 'Tactical Red', color: '#ef4444' },
-      { name: 'Cyber Blue', color: '#3b82f6' },
-      { name: 'Stealth Carbon', color: '#18181b' },
-      { name: 'Ghost White', color: '#f8fafc' }
-    ]
   }
 };
 
