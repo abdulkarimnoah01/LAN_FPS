@@ -1,6 +1,6 @@
 {
-  "version": "1.5.0",
+  "version": "1.5.1",
   "name": "LAN_FPS",
   "date": "2026-11-01",
-  "notes": "Noura removed from the roster for now. Includes the online join code, one-click host launcher and the Arasaka red terminal theme."
+  "notes": "LAN build now uses the same Hub interface as the online build: sidebar, host drawer, battlefield catalog and the Arasaka red theme."
 }
