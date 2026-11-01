@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 
 const root = new URL('../', import.meta.url);
 const html = fs.readFileSync(new URL('../LAN_FPS.html', root), 'utf8');
-for (const name of ['relay-panorama.jpg', 'map-aftermath.jpg', 'map-river.jpg', 'map-forest.jpg', 'map-sandbox.jpg', 'map-arena.jpg']) {
+for (const name of ['map-aftermath.jpg', 'map-river.jpg', 'map-forest.jpg', 'map-sandbox.jpg', 'map-arena.jpg']) {
   const jpeg = fs.readFileSync(new URL('assets/ui/' + name, root));
   assert.equal(jpeg[0], 0xff, `${name} must be a packaged JPEG`);
   assert.equal(jpeg[1], 0xd8, `${name} must be a packaged JPEG`);
@@ -21,4 +21,4 @@ assert.equal(new Set(ids).size, ids.length, 'Duplicate IDs would break UI wiring
 for (const id of ['network-step','match-step','map-thumbnail','lobby-portrait','lamp-identity','lamp-network','lamp-alert','opt-crt']) {
   assert.ok(ids.includes(id), `Missing functional UI element ${id}`);
 }
-console.log('UI bundle checks passed: 9 offline images, unique IDs, required controls.');
+console.log('UI bundle checks passed: 8 offline images, unique IDs, required controls.');

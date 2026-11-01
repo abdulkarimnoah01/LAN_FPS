@@ -70,7 +70,7 @@ const script = s => '<script>' + s.replace(/<\/script/gi, '<\\/script') + '</scr
 const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; worker-src blob:; style-src 'unsafe-inline'; img-src data: blob:; connect-src data: blob: https://raw.githubusercontent.com; media-src data: blob:; base-uri 'none'; form-action 'none'">`;
 
 // Bundle the local UI artwork as data URLs, preserving single-file offline play.
-const css = ['style.css', 'reference.css', 'theme.css'].map(name => fs.readFileSync(path.join(root, name), 'utf8')).join('\n')
+const css = ['style.css', 'netrunner.css', 'theme.css'].map(name => fs.readFileSync(path.join(root, name), 'utf8')).join('\n')
   .replace(/url\(["']?assets\/ui\/([^"')]+)["']?\)/g, (_, name) => {
     const mime = /\.png$/i.test(name) ? 'image/png' : 'image/jpeg';
     return `url("data:${mime};base64,${fs.readFileSync(path.join(root, 'assets', 'ui', name)).toString('base64')}")`;

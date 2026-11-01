@@ -119,14 +119,14 @@ button:active { transform: scale(.97); }
 @keyframes so-pulse { 50% { opacity: .45; } }
 
 /* ---- Palette switch button ---- */
-#btn-palette {
+#btn-palette, #btn-crt-toggle, #btn-check-update {
   display: inline-flex; align-items: center; gap: 8px;
   min-height: 32px; padding: 0 12px;
   border: 1px solid var(--line2); border-radius: 0;
   color: var(--text); font: 600 11px var(--mono); letter-spacing: .12em; text-transform: uppercase;
 }
 #btn-palette::before { content: ''; width: 10px; height: 10px; background: var(--p-accent); box-shadow: 0 0 8px var(--p-accent); }
-#btn-palette:hover { border-color: var(--p-accent); color: var(--p-accent); }
+#btn-palette:hover, #btn-crt-toggle:hover, #btn-check-update:hover { border-color: var(--p-accent); color: var(--p-accent); }
 
 /* ---- Animated CRT (menus only; the lobby is hidden during play) ---- */
 html.crt-enabled body:has(#lobby:not([hidden]))::before,
@@ -170,3 +170,44 @@ html.reduced-motion.crt-enabled body::after { display: none !important; }
 .field-row:has(#opt-server) { grid-template-columns: 1fr auto; align-items: center; }
 .settings-row:has(#opt-server-current) { flex-direction: column; align-items: flex-start; gap: 4px; }
 #opt-server-current { font: 500 11px var(--mono); color: var(--dim); overflow-wrap: anywhere; }
+
+/* ---- Legacy LAN build on the Hub shell ---- */
+.top-right { flex-wrap: wrap; gap: 12px; }
+#btn-crt-toggle, #btn-check-update { background: transparent; white-space: nowrap; }
+#btn-crt-toggle[aria-pressed="true"] { border-color: var(--p-accent); color: var(--p-accent); }
+.signal-lamps { display: flex; gap: 6px; }
+.signal-lamp { width: 8px; height: 8px; border: 1px solid var(--line2); background: transparent; }
+.signal-lamp.lit { background: var(--p-accent); border-color: var(--p-accent); box-shadow: 0 0 8px var(--p-accent); }
+.protocol.terminal-error { color: #ff7e7e; }
+.protocol { max-width: 36ch; }
+.server-status:has(#network-status.connected) .dot { background: var(--lime); box-shadow: 0 0 10px color-mix(in srgb, var(--lime) 55%, transparent); }
+.step-row { display: flex; gap: 10px; margin: 0 0 12px; flex-wrap: wrap; }
+.step-chip {
+  display: inline-flex; align-items: baseline; gap: 8px; padding: 8px 12px; border: 1px solid var(--line);
+  background: transparent; color: var(--sub); font: 600 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; text-decoration: none; cursor: pointer;
+}
+.step-chip b { color: var(--p-accent); font-weight: 700; }
+.step-chip small { color: var(--dim); font: 10px var(--mono); letter-spacing: .04em; text-transform: none; }
+.step-chip.current { border-color: var(--p-accent); color: var(--text); }
+.step-chip.complete { border-color: color-mix(in srgb, var(--lime) 60%, var(--line)); color: var(--text); }
+.step-chip.complete b { color: var(--lime); }
+#rooms-panel[hidden] { display: none; }
+#rooms .room-card .btn:disabled { opacity: .45; }
+.capture-label { position: absolute; left: 8px; bottom: 8px; font: 9px var(--mono); letter-spacing: .1em; color: var(--text); background: color-mix(in srgb, var(--bg) 70%, transparent); padding: 2px 6px; }
+.sector-pic .capture-label { text-transform: uppercase; }
+.field-label { display: block; margin-bottom: 6px; }
+#identity-panel .field { width: 100%; }
+#update-banner:not([hidden]) { margin-bottom: 16px; }
+#message:not([hidden]) { margin: 12px 0 0; padding: 10px 14px; border: 1px solid var(--line2); font: 12px var(--mono); }
+#message.error { border-color: #ff7e7e; color: #ff9a9a; }
+@media (max-width: 1100px) { .protocol { display: none; } }
+
+/* ---- LAN build in-game HUD: keep the classic corner layout; netrunner.css positions it for the online build ---- */
+.lan-ui #vitals { top: auto; bottom: 24px; left: 24px; width: 244px; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; padding: 20px 20px 16px; border-radius: 0; }
+.lan-ui #vitals span { margin-left: 0; }
+.lan-ui #vitals .bar { order: 5; width: 100%; margin: 0; }
+.lan-ui .stance-pill { float: none; margin: 0 0 0 auto; }
+.lan-ui #topbar { left: 24px; right: 24px; top: 20px; width: auto; transform: none; gap: 12px; padding: 8px 12px; border-radius: 0; }
+.lan-ui #topbar #link { white-space: nowrap; }
+.lan-ui #ammo-row { top: auto; bottom: 24px; right: 24px; border-radius: 0; }
+@media (max-width: 640px) { .primary-action { flex-wrap: wrap; } .primary-action .btn { width: 100%; justify-content: center; } }

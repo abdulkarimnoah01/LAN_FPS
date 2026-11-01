@@ -3,130 +3,316 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Spectre Orbit · Fieldlink</title>
+<title>Spectre Orbit · Command Hub</title>
 <!--STYLE-->
 </head>
-<body class="terminal-ui reference-ui">
-<svg class="ui-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><defs>
-  <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M2 5h7l3 3h10v12H2z" fill="currentColor"/></symbol>
-  <symbol id="icon-play" viewBox="0 0 24 24"><path d="m6 3 16 9L6 21z" fill="currentColor"/></symbol>
-  <symbol id="icon-monitor" viewBox="0 0 32 32"><rect x="3" y="3" width="26" height="18" rx="1"/><path d="M13 21v4m6-4v4M8 26h16l4 4H4zM8 28h16"/></symbol>
-  <symbol id="icon-edit" viewBox="0 0 24 24"><path d="m4 16 11-11 4 4L8 20H4zm10-10 4 4M4 20h6"/></symbol>
-  <symbol id="icon-crew" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4" fill="currentColor"/><path d="M1 22v-5c0-6 16-6 16 0v5zm17-18c6 0 6 8 0 8m1 2c4 0 4 4 4 8h-4" fill="currentColor"/></symbol>
+<body class="lan-ui">
+<svg class="ui-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;"><defs>
+  <symbol id="i-planet" viewBox="0 0 70 70"><circle cx="35" cy="35" r="14"/><ellipse cx="35" cy="35" rx="31" ry="11" transform="rotate(-20 35 35)"/><path d="M28 25c8 5 12 12 14 21"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></symbol>
+  <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c0-4 3.2-6 7.5-6s7.5 2 7.5 6"/></symbol>
+  <symbol id="i-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 1v5M12 18v5M1 12h5M18 12h5"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M9.5 2h5l.5 3 2 1 2.7-1 2.2 4-2.2 2 .2 2 2 2.1-2.2 4-2.8-1-1.9 1-.6 3h-5l-.6-3-1.8-1-2.8 1-2.2-4 2-2-.1-2-2.1-2.1 2.2-4 2.7 1 2-1z"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2.5" y="3" width="19" height="14" rx="2"/><path d="M9 22h6M12 17v5"/></symbol>
 </defs></svg>
-<main id="lobby">
-  <header class="masthead">
-    <div class="header-row">
-      <div class="brand-cluster"><a class="wordmark" href="#lobby" aria-label="Spectre Orbit home"><span class="brand-mark" aria-hidden="true">[F]</span> FIELDLINK</a><span id="game-version" class="badge-none">v1.4.5</span></div>
-      <div class="header-system"><span>Ⅱ LOCAL COMBAT TERMINAL</span><span>Ⅱ FIELDLINK OS // SESSION MANAGER</span></div>
-      <div class="version-row">
-        <div class="signal-lamps" role="group" aria-label="Station status"><span id="lamp-identity" class="signal-lamp" role="img" aria-label="Callsign not assigned"></span><span id="lamp-network" class="signal-lamp" role="img" aria-label="Uplink not configured"></span><span id="lamp-alert" class="signal-lamp" role="img" aria-label="No session error"></span></div>
-        <button id="btn-palette" class="ghost" type="button">Arasaka</button>
-        <button id="btn-crt-toggle" class="ghost" type="button" aria-pressed="false" aria-label="CRT screen effect">CRT: OFF</button>
-        <button id="btn-header-roster" class="ghost" type="button">Operative roster <span aria-hidden="true">→</span></button>
-        <button id="btn-check-update" class="ghost" type="button">Check for updates</button>
-      </div>
+<div class="shell" id="lobby">
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 70 70" fill="none" stroke="currentColor" stroke-width="2.1"><use href="#i-planet"/></svg>
+      <div class="brandname">SPECTRE <span>ORBIT / LAN</span></div>
     </div>
-    <div id="update-banner" hidden>
-      <div class="update-info">
-        <b id="update-title">New update available!</b>
-        <span id="update-notes"></span>
-      </div>
-      <div class="update-actions">
-        <a id="btn-download-update" href="#" download="LAN_FPS.html">Download Update</a>
-        <button id="btn-dismiss-update" class="ghost" type="button">✕</button>
-      </div>
+    <div class="nav-header small-cap">MAIN DIRECTORY</div>
+    <nav class="nav" aria-label="Main navigation">
+      <button class="nav-btn active" data-page="play" type="button"><svg><use href="#i-play"/></svg>Deploy</button>
+      <button class="nav-btn" id="btn-header-roster" type="button"><svg><use href="#i-person"/></svg>Operative</button>
+      <button class="nav-btn" data-page="loadout" type="button"><svg><use href="#i-crosshair"/></svg>Loadout</button>
+      <button class="nav-btn" data-page="maps" type="button"><svg><use href="#i-map"/></svg>Battlefields</button>
+      <button class="nav-btn" id="btn-settings-lobby" type="button"><svg><use href="#i-settings"/></svg>Settings</button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="small-cap" style="margin-bottom:10px;">NETWORK LINK</div>
+      <div class="server-status"><span id="server-status-dot" class="dot offline"></span><span id="network-status">NOT CONNECTED</span></div>
+      <div class="sidebar-foot"><span>FOLDER / P2P</span><span id="game-version">v1.5.0</span></div>
+      <div class="sidebar-foot" style="margin-top:14px;"><span>ENGINE</span><span>THREE.JS</span></div>
     </div>
-  </header>
-  <section class="hero-banner" aria-labelledby="game-title">
-    <div class="hero-copy">
-      <p class="eyebrow">FIELDLINK OS / SESSION MANAGER</p>
-      <h1 id="game-title">SPECTRE<span>_</span>ORBIT<span class="title-period">[ LOCAL ]</span></h1>
-      <div class="hero-baseline"><h2>Local network.<br> Direct engagement.</h2><p>2–6 players. No central server.<br>Configure your station and enter the field.</p></div>
-    </div>
-    <div class="hero-planet-display" aria-hidden="true">
-      <pre class="ascii-planet">
-                   <span class="star">.</span>            <span class="star">+</span>            <span class="star">.</span>
-            <span class="star">.</span>          <span class="planet-edge">.---""""""---.</span>
-                   <span class="planet-edge">.-'</span>  <span class="planet-core">/  .::::.  \</span>  <span class="planet-edge">'-.</span>          <span class="star">.</span>
-      <span class="star">.</span>        <span class="ring">.-'</span>     <span class="planet-core">|  ::::::::  |</span>     <span class="ring">'-.</span>
-   <span class="ring">.===-------/---------\</span>  <span class="planet-core">'::::'</span>  <span class="ring">/---------\-------===.</span>
-  <span class="ring">(  .---===={===========</span><span class="planet-front">'.______.'</span><span class="ring">===========}====---.  )</span>
-   <span class="ring">'===-------\-----------------------------/-------==='</span>
-        <span class="star">.</span>      <span class="ring">'-.</span>     <span class="planet-core">|  ::::::::  |</span>     <span class="ring">.-'</span>       <span class="star">.</span>
-                   <span class="planet-edge">'-.</span>  <span class="planet-core">\  '::::'  /</span>  <span class="planet-edge">.-'</span>
-            <span class="star">+</span>          <span class="planet-edge">'-..........-'</span>            <span class="star">+</span></pre>
-      <div class="ascii-planet-label">SECTOR 00 // CELESTIAL ORBIT</div>
-    </div>
-    <div class="session-readout" aria-label="Station configuration">
-      <div class="readout-heading"><span>STATION / CONFIG</span><span aria-hidden="true">01</span></div>
-      <dl><div><dt>operator</dt><dd id="term-operator">not assigned</dd></div><div><dt>uplink</dt><dd id="term-uplink">not configured</dd></div><div><dt>roomboard</dt><dd id="term-roomboard">awaiting directory</dd></div><div><dt>transport</dt><dd>direct / WebRTC</dd></div></dl>
-    </div>
-  </section>
-  <div class="terminal-statusline"><span><span aria-hidden="true">//</span> session.setup</span><span id="terminal-session-status" role="status">Select an uplink to begin.</span></div>
-  <nav class="deployment-rail" aria-label="Deployment setup">
-    <button type="button" class="rail-step current" id="network-step" aria-current="step"><span class="step-number">01</span><svg class="rail-icon" aria-hidden="true"><use href="#icon-folder"/></svg><span>CONNECT <small id="rail-network-label">Choose a shared folder</small></span><span class="step-state" aria-hidden="true">→</span></button>
-    <a href="#rooms-panel" class="rail-step" id="match-step"><span class="step-number">02</span><svg class="rail-icon" aria-hidden="true"><use href="#icon-play"/></svg><span>DEPLOY <small>Join or create a match</small></span><span class="step-state" aria-hidden="true">→</span></a>
-  </nav>
-  <div class="console-grid">
-  <div class="setup-column">
-  <section class="panel" id="identity-panel" aria-labelledby="identity-title">
-    <div class="panel-heading"><h2 id="identity-title"><span class="section-index">01</span> operator.profile</h2><span class="micro-label">PERSONNEL</span></div>
-    <label class="field-label" for="name">Callsign</label><input id="name" maxlength="20" placeholder="Enter your name" autocomplete="off">
-    <div class="hero-equipped-card" id="hero-equipped-card">
-      <canvas id="lobby-portrait" width="96" height="112" aria-hidden="true"></canvas>
-      <div class="hero-equipped-avatar" id="hero-equipped-avatar" aria-hidden="true">01</div>
-      <div class="hero-equipped-info">
-        <span class="hero-equipped-label">ACTIVE OPERATIVE</span>
-        <div class="hero-equipped-name-row">
-          <b id="hero-equipped-name">Kimo</b>
-          <span id="hero-equipped-badge" class="badge">ASSAULT</span>
-        </div>
-        <span id="hero-equipped-role" class="hint">Assault Specialist · Signature: AK-47</span>
-      </div>
-      <button id="btn-lobby-roster" class="btn-roster-launch" type="button" aria-label="Change operative in hero roster"><svg class="ui-icon" aria-hidden="true"><use href="#icon-edit"/></svg></button>
-    </div>
-    <div class="row">
-      <label>Mouse sensitivity <output id="sens-value" for="sens">22</output><input id="sens" aria-label="Mouse sensitivity" type="range" min="5" max="100"></label>
-      <label>Audio volume <output id="volume-value" for="volume">50%</output><input id="volume" aria-label="Audio volume" type="range" min="0" max="100"></label>
-    </div>
-    <button id="btn-settings-lobby" class="ghost settings-launch" type="button">Controls & sensitivity <span aria-hidden="true">↗</span></button>
-  </section>
+  </aside>
 
-  <section class="panel network-panel" id="network-panel" aria-labelledby="network-title">
-    <div class="panel-heading"><h2 id="network-title"><span class="section-index">02</span> network.uplink</h2><span class="status-label" id="network-status">NOT CONNECTED</span></div>
-    <p class="hint">Choose the same shared network folder on every PC. It introduces players; combat uses a direct connection.</p>
-    <div class="network-actions">
-      <button id="choose"><svg class="ui-icon" aria-hidden="true"><use href="#icon-folder"/></svg><span>Choose shared folder</span><span aria-hidden="true">›</span></button>
-      <button id="reconnect" hidden></button>
-      <button id="local" class="ghost">Practice on this PC <span class="button-note">Two-tab test</span></button>
-    </div>
-    <p class="folder-readout"><span>DIRECTORY</span> <b id="folder-name">No folder selected</b></p>
-  </section>
-  </div>
-  <section class="panel matches-panel" id="rooms-panel" aria-labelledby="rooms-title">
-    <div class="panel-heading"><h2 id="rooms-title"><span class="section-index">03</span> match.terminal</h2><span class="status-label" id="room-count">AWAITING UPLINK</span></div>
-    <div class="room-browser">
-    <div class="subheading"><h3>Available rooms</h3><span class="micro-label">/roomboard</span></div>
-    <ul id="rooms"></ul>
-    <div id="no-rooms" class="empty-state"><svg class="empty-monitor" aria-hidden="true"><use href="#icon-monitor"/></svg><span class="empty-symbol" aria-hidden="true">[ ]</span><div><b id="empty-title">Roomboard not connected.</b><p id="empty-description">Connect a shared folder to discover rooms, or use this PC to practice.</p></div></div>
-    </div>
-    <div class="match-config">
-      <div class="subheading"><h3>Host a new match</h3><span class="micro-label">/match/new</span></div>
-      <div class="map-briefing" data-map="foundry"><div id="map-thumbnail" class="map-thumbnail" role="img" aria-label="Foundry Core source map preview"><span id="map-capture-label">SOURCE MAP PREVIEW</span></div><div class="map-copy"><span class="micro-label" id="map-index">SECTOR 01 / 08</span><h3 id="map-title">Foundry Core</h3><p id="map-description">Molten industrial casting pit. Elevated catwalks. Fast CQB encounters.</p></div></div>
-      <div class="match-fields">
-        <label class="field-label room-name-field">Room name<input id="room-name" maxlength="32" placeholder="Name your battleground" autocomplete="off"></label>
-        <label class="field-label">Battlefield<select id="map-select" title="Choose map mode"><option value="foundry">Foundry Core · Molten Industrial (FFA 2–6)</option><option value="glowplant">Reactor Complex · Sub-Orbital Nuclear (TDM 4–10)</option><option value="zenith">Zenith Atrium · Vertical Sky Arena (4–12)</option><option value="railyard">Hadota Rail Yard · Freight Train Yard (4–12)</option><option value="school">Schoolyard · Egyptian Courtyard &amp; Tunnel (2–8)</option><option value="aftermath">Aftermath · Urban ruins</option><option value="river">River Forest · Valley & bridges</option><option value="forest">Pine Forest · Classic</option><option value="sandbox">Random Sandbox · Procedural</option><option value="arena">Arena · Retro classic</option></select></label>
-        <label class="field-label">Rules of engagement<select id="mode-select" title="Choose game mode"><option value="ffa">Free For All</option><option value="tdm">Team Deathmatch</option></select></label>
+  <div class="workspace">
+    <header class="topbar">
+      <div class="crumb">ORBIT / <strong id="breadcrumb">DEPLOY</strong><span style="color:var(--cyan)">_</span></div>
+      <div class="top-right">
+        <div class="protocol"><span class="dot"></span><span id="terminal-session-status" role="status">Select an uplink to begin.</span></div>
+        <div class="signal-lamps" role="group" aria-label="Station status"><span id="lamp-identity" class="signal-lamp" role="img" aria-label="Callsign not assigned"></span><span id="lamp-network" class="signal-lamp" role="img" aria-label="Uplink not configured"></span><span id="lamp-alert" class="signal-lamp" role="img" aria-label="No session error"></span></div>
+        <button id="btn-palette" type="button">Arasaka</button>
+        <button id="btn-crt-toggle" type="button" aria-pressed="false" aria-label="CRT screen effect">CRT: OFF</button>
+        <button id="btn-check-update" type="button">Check for updates</button>
       </div>
-      <div class="create-row"><svg class="crew-icon" aria-hidden="true"><use href="#icon-crew"/></svg><p class="hint" id="match-rules"><b>10</b> kills to win <span> / </span> 2–6 players</p><button id="create" disabled>Create room <span aria-hidden="true">→</span></button></div>
-      <p class="hint" id="create-hint">Connect a shared folder or select practice to unlock hosting.</p>
-    </div>
-  </section>
+    </header>
+
+    <main class="main">
+      <div id="update-banner" hidden>
+        <div class="update-info">
+          <b id="update-title">New update available!</b>
+          <span id="update-notes"></span>
+        </div>
+        <div class="update-actions">
+          <a id="btn-download-update" href="#" download="LAN_FPS.html">Download Update</a>
+          <button id="btn-dismiss-update" class="ghost" type="button">✕</button>
+        </div>
+      </div>
+
+      <section class="view active" id="page-play">
+        <div class="viewgrid">
+          <div>
+            <section class="hero">
+              <div class="section-label"><span class="lead"></span>LOCAL COMBAT NETWORK <span style="color:var(--dim)">// 01</span></div>
+              <h1>Local network.<br><em>Direct fire.</em></h1>
+              <p>2–6 players. No central server.<br>Share one folder, host a room, and fight peer to peer.</p>
+              <div class="orbit-mark" aria-hidden="true">
+                <svg viewBox="0 0 230 210" stroke-width="1">
+                  <circle cx="115" cy="106" r="59"/>
+                  <circle cx="115" cy="106" r="43" stroke-dasharray="1 8"/>
+                  <ellipse cx="115" cy="106" rx="104" ry="24" transform="rotate(-22 115 106)"/>
+                  <ellipse cx="115" cy="106" rx="108" ry="26" transform="rotate(-22 115 106)" opacity=".4"/>
+                  <path d="M115 12v24m0 140v22M14 105h22m158 0h22"/>
+                  <circle cx="115" cy="106" r="5" fill="currentColor" stroke="none"/>
+                </svg>
+              </div>
+            </section>
+
+            <div class="step-row">
+              <button type="button" class="step-chip current" id="network-step" aria-current="step"><b>01</b> Connect <small id="rail-network-label">Choose a shared folder</small></button>
+              <a href="#rooms-panel" class="step-chip" id="match-step"><b>02</b> Deploy <small>Join or create a match</small></a>
+            </div>
+
+            <section class="primary-action" id="network-panel">
+              <div class="icon-disk"><svg viewBox="0 0 24 24"><use href="#i-monitor"/></svg></div>
+              <div class="action-copy">
+                <div class="meta-top">01 / NETWORK UPLINK</div>
+                <h2>Shared folder</h2>
+                <p>Pick the same folder on every PC. It introduces players; combat uses a direct connection.</p>
+              </div>
+              <button class="btn btn-primary" id="choose" type="button">Choose folder <span class="arrow">↗</span></button>
+              <button id="reconnect" type="button" hidden></button>
+            </section>
+
+            <div class="dual-actions">
+              <button class="choice" data-drawer="host" type="button">
+                <div class="choice-icon">＋</div>
+                <h3>Host Match</h3>
+                <p>Choose a battlefield, set the rules,<br>and open your own room.</p>
+              </button>
+              <button class="choice" id="local" type="button">
+                <div class="choice-icon">▷</div>
+                <h3>Practice solo</h3>
+                <p>Two-tab test on this browser.<br>No folder or network needed.</p>
+              </button>
+            </div>
+
+            <div id="rooms-panel">
+              <div class="linehead">
+                <h3>AVAILABLE ROOMS <span id="room-count" style="color:var(--dim);font-weight:500;margin-left:8px;">AWAITING UPLINK</span></h3>
+                <span class="micro-label">/roomboard</span>
+              </div>
+              <ul id="rooms"></ul>
+              <div id="no-rooms" class="empty-rooms">
+                <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><use href="#i-monitor"/></svg>
+                <div>
+                  <h4 id="empty-title">Roomboard not connected.</h4>
+                  <p id="empty-description">Connect a shared folder to discover rooms, or use this PC to practice.</p>
+                </div>
+              </div>
+            </div>
+            <p id="message" hidden></p>
+          </div>
+
+          <aside class="rightcol">
+            <div class="panel side-panel">
+              <div class="side-head">
+                <h3>STATION TELEMETRY</h3>
+                <span class="tag-outline">LAN</span>
+              </div>
+              <div class="telemetry">
+                <div class="tele-row"><span>OPERATOR</span><strong id="term-operator">not assigned</strong></div>
+                <div class="tele-row"><span>UPLINK</span><strong id="term-uplink">not configured</strong></div>
+                <div class="tele-row"><span>ROOMBOARD</span><strong id="term-roomboard">awaiting directory</strong></div>
+                <div class="tele-row"><span>TRANSPORT</span><strong>direct / WebRTC</strong></div>
+              </div>
+              <div class="rail-divider"></div>
+              <div class="muted-note"><span>DIRECTORY</span> <b id="folder-name">No folder selected</b></div>
+            </div>
+
+            <div class="panel side-panel" id="identity-panel">
+              <div class="side-head" style="margin-bottom:14px;">
+                <h3>OPERATOR PROFILE</h3>
+                <button class="side-link" id="btn-lobby-roster" type="button">CHANGE ↗</button>
+              </div>
+              <label class="field-label" for="name">Callsign</label>
+              <input class="field" id="name" maxlength="20" placeholder="Enter your name" autocomplete="off">
+              <div class="operative-card" style="margin-top:14px;">
+                <canvas id="lobby-portrait" class="portrait" width="96" height="112" aria-label="Operative preview"></canvas>
+                <div>
+                  <div class="tag" id="hero-equipped-badge">ASSAULT</div>
+                  <h4 id="hero-equipped-name">Kimo</h4>
+                  <p id="hero-equipped-role">Assault Specialist</p>
+                </div>
+              </div>
+              <div class="rail-divider" style="margin:14px 0;"></div>
+              <div class="settings-row"><label for="sens">Mouse sensitivity</label><output id="sens-value" for="sens">22</output></div>
+              <input class="range" id="sens" aria-label="Mouse sensitivity" type="range" min="5" max="100">
+              <div class="settings-row" style="margin-top:12px;"><label for="volume">Audio volume</label><output id="volume-value" for="volume">50%</output></div>
+              <input class="range" id="volume" aria-label="Audio volume" type="range" min="0" max="100">
+            </div>
+
+            <div class="panel side-panel map-briefing" data-map="foundry">
+              <div class="side-head" style="margin-bottom:12px;">
+                <h3>FEATURED BATTLEFIELD</h3>
+                <button class="side-link" data-page="maps" type="button">VIEW ↗</button>
+              </div>
+              <div id="map-thumbnail" class="sector-pic" role="img" aria-label="Battlefield preview"><span id="map-capture-label" class="capture-label">SOURCE MAP PREVIEW</span></div>
+              <div class="sectorname" id="map-title">Foundry Core</div>
+              <div class="sector-meta"><span id="map-index">SECTOR 01 / 10</span><br><span id="map-description">Molten industrial casting pit.</span></div>
+            </div>
+          </aside>
+        </div>
+        <div class="footline">
+          <span>FIELD MANUAL / <kbd>W A S D</kbd> Move · <kbd>R</kbd> Reload · <kbd>G</kbd> Grenade · <kbd>1–6</kbd> Weapons · <kbd>Tab</kbd> Scores · <kbd>Esc</kbd> Release mouse</span>
+          <button data-page="loadout" type="button">VIEW LOADOUT &amp; WEAPONS ↗</button>
+        </div>
+      </section>
+
+      <!-- VIEW 3: LOADOUT -->
+      <section class="view" id="page-loadout">
+        <div class="section-label"><span class="lead"></span>FIELD EQUIPMENT / 03</div>
+        <h1 class="page-title">Your loadout.</h1>
+        <p class="page-desc">All weapons and combat equipment ready for engagement. Standard issue kit available across every sector.</p>
+
+        <div class="loadout-grid">
+          <div class="wep-spec-card">
+            <div class="wep-spec-head">
+              <span class="slot-tag">SLOT 01 · ASSAULT</span>
+              <span class="key-badge">KEY [1]</span>
+            </div>
+            <h3>AK-47 Assault Rifle</h3>
+            <p>Full-auto battle rifle. High muzzle velocity with reliable medium-to-long range stopping power. 30 round standard magazine.</p>
+            <div class="stat-line"><span class="stat-label">DAMAGE</span><div class="stat-track"><div class="stat-bar" style="width:75%"></div></div><span class="stat-val">25</span></div>
+            <div class="stat-line"><span class="stat-label">FIRE RATE</span><div class="stat-track"><div class="stat-bar" style="width:70%"></div></div><span class="stat-val">600</span></div>
+          </div>
+
+          <div class="wep-spec-card">
+            <div class="wep-spec-head">
+              <span class="slot-tag">SLOT 02 · BREACH</span>
+              <span class="key-badge">KEY [2]</span>
+            </div>
+            <h3>Tactical Shotgun</h3>
+            <p>Pump-action 12-gauge close-quarters combat shotgun. Multi-pellet spread designed for room-clearing and doorway chokepoints.</p>
+            <div class="stat-line"><span class="stat-label">DAMAGE</span><div class="stat-track"><div class="stat-bar" style="width:95%"></div></div><span class="stat-val">90</span></div>
+            <div class="stat-line"><span class="stat-label">FIRE RATE</span><div class="stat-track"><div class="stat-bar" style="width:30%"></div></div><span class="stat-val">80</span></div>
+          </div>
+
+          <div class="wep-spec-card">
+            <div class="wep-spec-head">
+              <span class="slot-tag">SLOT 03 · PRECISION</span>
+              <span class="key-badge">KEY [3]</span>
+            </div>
+            <h3>.50 Cal Sniper Rifle</h3>
+            <p>High-caliber bolt-action anti-materiel sniper rifle. High optic magnification with lethal 1-shot headshot elimination capability.</p>
+            <div class="stat-line"><span class="stat-label">DAMAGE</span><div class="stat-track"><div class="stat-bar" style="width:100%"></div></div><span class="stat-val">100+</span></div>
+            <div class="stat-line"><span class="stat-label">FIRE RATE</span><div class="stat-track"><div class="stat-bar" style="width:20%"></div></div><span class="stat-val">45</span></div>
+          </div>
+
+          <div class="wep-spec-card">
+            <div class="wep-spec-head">
+              <span class="slot-tag">SLOT 04 · MOBILITY</span>
+              <span class="key-badge">KEY [4]</span>
+            </div>
+            <h3>Tactical SMG</h3>
+            <p>Rapid-cycling submachine gun with 40-round extended magazine. Superior hipfire stability and tight bullet spread during movement.</p>
+            <div class="stat-line"><span class="stat-label">DAMAGE</span><div class="stat-track"><div class="stat-bar" style="width:50%"></div></div><span class="stat-val">18</span></div>
+            <div class="stat-line"><span class="stat-label">FIRE RATE</span><div class="stat-track"><div class="stat-bar" style="width:95%"></div></div><span class="stat-val">850</span></div>
+          </div>
+
+          <div class="wep-spec-card">
+            <div class="wep-spec-head">
+              <span class="slot-tag">SLOT 05 · SUPPRESSION</span>
+              <span class="key-badge">KEY [5]</span>
+            </div>
+            <h3>Heavy LMG</h3>
+            <p>Belt-fed 75-round squad automatic weapon. Sustained suppressive fire capable of locking down entire hallways and arena zones.</p>
+            <div class="stat-line"><span class="stat-label">DAMAGE</span><div class="stat-track"><div class="stat-bar" style="width:70%"></div></div><span class="stat-val">22</span></div>
+            <div class="stat-line"><span class="stat-label">FIRE RATE</span><div class="stat-track"><div class="stat-bar" style="width:80%"></div></div><span class="stat-val">700</span></div>
+          </div>
+
+          <div class="wep-spec-card">
+            <div class="wep-spec-head">
+              <span class="slot-tag">SLOT 06 · MELEE</span>
+              <span class="key-badge">KEY [6] / [V]</span>
+            </div>
+            <h3>Tactical Combat Knife</h3>
+            <p>Carbon-steel combat knife. Grants sprint velocity boost when equipped. Delivers lethal instant-kill strikes from behind.</p>
+            <div class="stat-line"><span class="stat-label">FRONT DAMAGE</span><div class="stat-track"><div class="stat-bar" style="width:60%"></div></div><span class="stat-val">55</span></div>
+            <div class="stat-line"><span class="stat-label">BACKSTAB</span><div class="stat-track"><div class="stat-bar" style="width:100%"></div></div><span class="stat-val">LETHAL</span></div>
+          </div>
+        </div>
+
+        <div class="panel content-panel" style="margin-top:20px;">
+          <div class="small-cap">TACTICAL EQUIPMENT & COMBAT CONTROLS</div>
+          <div class="tag-list" style="margin-top:12px;">
+            <span class="pill emphasis">[1–6] WEAPONS</span>
+            <span class="pill">[G] FRAG GRENADE (AOE)</span>
+            <span class="pill">[R] RELOAD</span>
+            <span class="pill">[TAB] SCOREBOARD</span>
+            <span class="pill">[WASD] MOVEMENT</span>
+            <span class="pill">[SPACE] JUMP</span>
+            <span class="pill">[C] CROUCH</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="page-maps">
+        <div class="section-label"><span class="lead"></span>TACTICAL DATABASE / 04</div>
+        <h1 class="page-title">Battlefields.</h1>
+        <p class="page-desc">Scan the 10 combat sectors. Pick one to host a match on it.</p>
+        <div class="maps-catalog" id="maps-catalog-grid"></div>
+      </section>
+    </main>
   </div>
-  <p id="message" hidden></p>
-  <footer class="lobby-footer"><span>FIELD MANUAL /</span><span><kbd>W A S D</kbd> Move</span><span><kbd>R</kbd> Reload</span><span><kbd>G</kbd> Grenade</span><span><kbd>1–6</kbd> Weapons</span><span><kbd>Tab</kbd> Scores</span><span><kbd>Esc</kbd> Release mouse</span><span class="footer-note">BUILT FOR YOUR LOCAL NETWORK.</span></footer>
-</main>
+</div>
+
+<div class="overlay" id="overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Host a match">
+  <div class="drawer" id="drawer">
+    <div class="drawer-top">
+      <div>
+        <div class="section-label">/ 02 ROOM SETUP</div>
+        <h2>Host Match</h2>
+      </div>
+      <button class="drawer-close" id="drawerClose" aria-label="Close panel" type="button">×</button>
+    </div>
+    <div class="drawer-body">
+      <p class="drawer-desc">Name the room, choose a battlefield and the rules. Other PCs on the shared folder will see it.</p>
+      <div class="form-group">
+        <label class="field-label" for="room-name">Room Designation</label>
+        <input class="field" id="room-name" maxlength="32" placeholder="Name your battleground" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="field-label" for="map-select">Battlefield</label>
+        <select class="field" id="map-select" title="Choose map mode"><option value="foundry">Foundry Core · Molten Industrial (FFA 2–6)</option><option value="glowplant">Reactor Complex · Sub-Orbital Nuclear (TDM 4–10)</option><option value="zenith">Zenith Atrium · Vertical Sky Arena (4–12)</option><option value="railyard">Hadota Rail Yard · Freight Train Yard (4–12)</option><option value="school">Schoolyard · Egyptian Courtyard &amp; Tunnel (2–8)</option><option value="aftermath">Aftermath · Urban ruins</option><option value="river">River Forest · Valley &amp; bridges</option><option value="forest">Pine Forest · Classic</option><option value="sandbox">Random Sandbox · Procedural</option><option value="arena">Arena · Retro classic</option></select>
+      </div>
+      <div class="form-group">
+        <label class="field-label" for="mode-select">Rules of Engagement</label>
+        <select class="field" id="mode-select" title="Choose game mode"><option value="ffa">Free For All</option><option value="tdm">Team Deathmatch</option></select>
+      </div>
+      <div class="rail-divider"></div>
+      <p class="muted-note" id="match-rules"><b>10</b> kills to win <span> / </span> 2–6 players</p>
+      <p class="muted-note" id="create-hint">Connect a shared folder or select practice to unlock hosting.</p>
+    </div>
+    <div class="drawer-bottom">
+      <div class="small-cap">DEPLOYMENT CONFIGURATION</div>
+      <button class="btn btn-primary" id="create" type="button" disabled>Create room <span aria-hidden="true">↗</span></button>
+    </div>
+  </div>
+</div>
 
 <div id="select" role="dialog" aria-modal="true" aria-labelledby="select-title" hidden>
   <div class="select-card">
@@ -143,7 +329,7 @@
     <div class="row actions">
       <button id="select-back" class="ghost">Back</button>
       <button id="select-open-roster" class="ghost" type="button">Open dossier ↗</button>
-      <button id="select-go">Deploy →</button>
+      <button id="select-go" class="btn btn-primary">Deploy →</button>
     </div>
     <p class="hint">← → to browse · Enter to play · Esc to go back</p>
   </div>
@@ -211,7 +397,7 @@
     </div>
 
     <div class="settings-footer">
-      <button id="settings-done" type="button">Apply & Close</button>
+      <button id="settings-done" class="btn btn-primary" type="button">Apply & Close</button>
     </div>
   </div>
 </div>

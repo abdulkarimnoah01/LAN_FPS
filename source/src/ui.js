@@ -1,4 +1,5 @@
 import { initPalette } from './palette.js';
+import { initHub } from './hub.js';
 /* Presentation-only state, accessible menu shells, and offline map briefings. */
 const $ = id => document.getElementById(id);
 const MAPS = {
@@ -72,6 +73,7 @@ function syncPressed(root) {
 
 export function initInterface() {
   initPalette();
+  initHub();
   let crt = false;
   try { crt = localStorage.getItem('lanfps.crtfx') !== 'false'; } catch {}
   setCrtEnabled(crt);

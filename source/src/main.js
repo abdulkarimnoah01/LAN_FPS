@@ -215,11 +215,12 @@ async function refreshRooms() {
       list.replaceChildren(...rooms.map(r => {
         const li = document.createElement('li');
         const full = r.players >= r.max;
-        li.innerHTML = `<div><b></b><span></span></div><button ${full ? 'disabled' : ''}>${full ? 'Full' : 'Join'}</button>`;
-        li.querySelector('b').textContent = r.name;
+        li.className = 'room-card';
+        li.innerHTML = `<div class="room-card-info"><h4></h4><div class="room-card-meta"></div></div><button class="btn btn-primary small" ${full ? 'disabled' : ''}>${full ? 'Full' : 'Join'}</button>`;
+        li.querySelector('h4').textContent = r.name;
         const mapTag = MAP_LABELS[r.map] || 'Aftermath';
         const modeTag = r.mode === 'tdm' ? 'TDM' : 'FFA';
-        li.querySelector('span').textContent = `${r.host} · ${r.players}/${r.max} players · ${mapTag} · ${modeTag} · ${r.code}`;
+        li.querySelector('.room-card-meta').textContent = `${r.host} · ${r.players}/${r.max} players · ${mapTag} · ${modeTag} · ${r.code}`;
         li.querySelector('button').onclick = () => join(r);
         return li;
       }));
