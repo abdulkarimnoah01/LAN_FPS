@@ -33,6 +33,7 @@ export class Client {
     this.look = { yaw: 0, pitch: 0 };
     this.input = { b: 0, reload: false, melee: false, grenade: false };   // filled by the page's input handlers
     this.active = false;                    // pointer locked / playing
+    this.scopeZoom = 5;                     // sniper scope 4x-6x, mouse wheel while scoped
     this.aiming = false;                    // right click ADS
     this.selectedWeapon = 0;                // active weapon slot (0..4)
     this.seq = 0; this.pending = []; this.snaps = []; this.lastTick = -1;
@@ -214,6 +215,7 @@ export class Client {
     const o = this.offset, k = Math.exp(-dt * 15);
     o.x *= k; o.y *= k; o.z *= k;
     const me = this.me, shown = { ...me, x: me.x + o.x, y: me.y + o.y, z: me.z + o.z };
+    if (this.view) this.view.scopeZoom = this.scopeZoom;
     this.view?.render(dt, shown, this.others(), this.look, this.aiming, this.audio, this.me.w || 0);
     this.hud?.update(this);
   }

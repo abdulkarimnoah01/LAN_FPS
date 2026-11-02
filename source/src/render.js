@@ -1114,7 +1114,9 @@ export class View {
 
     // Smooth ADS interpolation & dynamic FOV
     this.ads = THREE.MathUtils.lerp(this.ads || 0, isAiming && me.alive ? 1 : 0, Math.min(1, dt * 16));
-    const targetFov = 75 - this.ads * (75 - wep.fov);
+    // Scope magnification is relative to the 75 degree hip view.
+    const adsFov = wep.id === 'sniper' ? 2 * Math.atan(Math.tan(37.5 * Math.PI / 180) / (this.scopeZoom || 5)) * 180 / Math.PI : wep.fov;
+    const targetFov = 75 - this.ads * (75 - adsFov);
     if (Math.abs(cam.fov - targetFov) > 0.02) { cam.fov = targetFov; cam.updateProjectionMatrix(); }
 
     // Weapon bob and recoil

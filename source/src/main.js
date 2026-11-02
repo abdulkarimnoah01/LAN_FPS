@@ -55,6 +55,31 @@ async function hasGrantedTarget() {
   return !!saved && (await saved.queryPermission({ mode: 'readwrite' }).catch(() => '')) === 'granted';
 }
 
+// Streams the bundle and reports percent (or MB when the server sends no length) through setStatus and the banner bar.
+async function readWithProgress(res, version, setStatus) {
+  const total = Number(res.headers.get('content-length')) || 0;
+  let bar = $('update-progress');
+  if (!bar && $('update-banner')) {
+    bar = document.createElement('progress');
+    bar.id = 'update-progress'; bar.max = 100; bar.style.cssText = 'width:100%;height:6px;display:block;margin-top:6px';
+    $('update-banner').appendChild(bar);
+  }
+  if (!res.body) return res.text();
+  const reader = res.body.getReader(), chunks = [];
+  let got = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value); got += value.length;
+    const mb = (got / 1048576).toFixed(1);
+    const pct = total ? Math.min(99, Math.round(got / total * 100)) : 0;
+    setStatus(total ? `Downloading v${version}… ${pct}% (${mb} MB)` : `Downloading v${version}… ${mb} MB`);
+    if (bar) { bar.hidden = false; if (total) bar.value = pct; else bar.removeAttribute('value'); }
+  }
+  if (bar) bar.value = 100;
+  return new TextDecoder().decode(await new Blob(chunks).arrayBuffer());
+}
+
 async function applyUpdate(info, setStatus) {
   let target = null;
   if (canWriteInPlace()) {
@@ -66,7 +91,7 @@ async function applyUpdate(info, setStatus) {
   try {
     const res = await fetch(UPDATE_CONFIG.bundleUrl, { cache: 'no-cache' });
     if (!res.ok) throw new Error('Status ' + res.status);
-    const text = await res.text();
+    const text = await readWithProgress(res, info.version, setStatus);
     // Never overwrite the game with a truncated page or a stale cached build.
     if (text.length < 1e6 || !/^\s*<!doctype html/i.test(text) || !text.includes('LANFPS_VERSION=' + JSON.stringify(info.version))) {
       setStatus('Build still publishing, try again in a few minutes');
@@ -945,8 +970,14 @@ addEventListener('keyup', e => {
 addEventListener('wheel', e => {
   if (!session || !session.client.active) return;
   const dir = e.deltaY > 0 ? 1 : -1;
-  session.client.cycleWeapon(dir);
+  const cl = session.client;
+  if (cl.aiming && cl.me?.w === 2) { cl.scopeZoom = Math.min(6, Math.max(4, cl.scopeZoom - dir * 0.5)); return; }
+  cl.cycleWeapon(dir);
 }, { passive: true });
+
+addEventListener('beforeunload', e => {
+  if (session?.client.active) { e.preventDefault(); e.returnValue = ''; }
+});
 
 addEventListener('blur', () => {
   if (session) {
@@ -976,6 +1007,9 @@ $('center').addEventListener('click', () => {
 document.addEventListener('pointerlockchange', () => {
   if (!session) return;
   session.client.active = document.pointerLockElement === $('view');
+  // Ctrl is crouch: keep Ctrl+W / Ctrl+S etc. from closing or saving the tab while playing (full lock only works in fullscreen).
+  if (session.client.active) navigator.keyboard?.lock?.(['ControlLeft', 'ControlRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'])?.catch?.(() => {});
+  else navigator.keyboard?.unlock?.();
   if (!session.client.active) {
     session.client.input.b = 0;
     session.client.aiming = false;

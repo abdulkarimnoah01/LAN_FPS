@@ -211,3 +211,30 @@ html.reduced-motion.crt-enabled body::after { display: none !important; }
 .lan-ui #topbar #link { white-space: nowrap; }
 .lan-ui #ammo-row { top: auto; bottom: 24px; right: 24px; border-radius: 0; }
 @media (max-width: 640px) { .primary-action { flex-wrap: wrap; } .primary-action .btn { width: 100%; justify-content: center; } }
+
+/* Sniper scope: circular lens (vmin so it stays round on wide screens), centred ring and reticle */
+#sniper-scope {
+  background: radial-gradient(circle at 50% 50%, transparent 0, transparent 36vmin, #000d 37.5vmin, #000 39vmin);
+}
+#sniper-scope .scope-cross-h, #sniper-scope .scope-cross-v {
+  background: #000d;
+  box-shadow: 0 0 2px #fffa;
+}
+#sniper-scope .scope-ring {
+  width: 120px; height: 120px; margin: 0;
+  transform: translate(-50%, -50%);
+  border: 1px solid #000a;
+  box-shadow: 0 0 2px #fff6;
+}
+#sniper-scope .scope-ring::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 4px; height: 4px; margin: 0;
+  transform: translate(-50%, -50%);
+  background: var(--bad, #f33); border-radius: 50%;
+}
+.scope-zoom {
+  position: absolute; left: 50%; top: calc(50% + 33vmin);
+  transform: translateX(-50%);
+  font: 700 13px/1 var(--mono, monospace); letter-spacing: .12em;
+  color: #fff9; text-shadow: 0 0 4px #000;
+}

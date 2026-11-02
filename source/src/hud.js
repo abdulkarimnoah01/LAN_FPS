@@ -53,6 +53,7 @@ export class Hud {
     if (this.sniperScope) {
       const scopeOn = client.aiming && me.alive && wep.id === 'sniper';
       this.sniperScope.hidden = !scopeOn;
+      if (scopeOn) set($('scope-zoom'), 'textContent', client.scopeZoom.toFixed(1) + 'X');
     }
 
     if (!this.wepCards) this.wepCards = document.querySelectorAll('#weapons .wep');
