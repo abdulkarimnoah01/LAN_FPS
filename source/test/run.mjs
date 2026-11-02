@@ -621,6 +621,30 @@ test('shooting barrel damages it, 0 HP detonates barrel AOE and removes collisio
   assert.deepEqual(customWorld.boxes[1], [0, -100, 0, 0, -100, 0], 'barrel collision box removed');
 });
 
+test('shotgun pellets hit a target that is just outside the bare hitbox', async () => {
+  const shooter = newPlayer('S', 'S', 0), victim = newPlayer('V', 'V', 1);
+  Object.assign(shooter, { x: 8, y: 0, z: 2, yaw: 0, pitch: 0, alive: true });
+  Object.assign(victim, { x: 8.5, y: 0, z: -3, alive: true });
+  const shotgun = WEAPONS.find(w => w.id === 'shotgun'), ak = WEAPONS.find(w => w.id === 'ak47');
+  assert.ok(castShot(world, [victim], shooter, shotgun, () => 0).hits.some(h => h.id === 'V'), 'pellets land on the padded box');
+  assert.equal(castShot(world, [victim], shooter, ak, () => 0).hits.length, 0, 'single bullets keep the exact hitbox');
+});
+
+test('gun game: ladder picks the weapon, only a knife kill wins', async () => {
+  const g = new HostGame(world, { mode: 'gungame', random: () => 0 });
+  const a = g.addPlayer('A', 'A'), b = g.addPlayer('B', 'B');
+  g.queueInput('A', [[1, 0, 0, 0, 2]]); g.step();
+  assert.equal(a.w, 0, 'client weapon choice is ignored, level 0 is the AK-47');
+  for (let i = 0; i < 5; i++) { g.kill(b, a, false, 'ak47'); b.alive = true; }
+  assert.equal(a.k, 5);
+  g.kill(b, a, false, 'ak47'); b.alive = true;
+  assert.equal(a.k, 5, 'no promotion past the knife without a knife kill');
+  g.queueInput('A', [[2, 0, 0, 0, 0]]); g.step();
+  assert.equal(WEAPONS[a.w].id, 'knife', 'last rung is the knife');
+  g.kill(b, a, false, 'knife');
+  assert.equal(g.phase, 'ended'); assert.equal(g.winner, 'A');
+});
+
 test('TDM disables friendly fire, tracks team kills, and triggers team victory', async () => {
   const g = new HostGame(world, { mode: 'tdm', random: () => 0 });
   const red1 = g.addPlayer('R1', 'RedOne');

@@ -27,7 +27,8 @@ export function updateBriefing() {
   $('map-thumbnail').style.backgroundImage = sourcePreview ? `url("${sourcePreview}")` : '';
   $('map-thumbnail').setAttribute('aria-label', sourcePreview && !ownCapture ? `${data[0]}: original source map preview` : `${data[0]}: actual in-game ${map === 'sandbox' ? 'sample; each room generates different terrain' : 'capture'}`);
   $('map-capture-label').textContent = sourcePreview && !ownCapture ? 'SOURCE MAP PREVIEW' : map === 'sandbox' ? 'IN-GAME SAMPLE' : 'IN-GAME CAPTURE';
-  $('match-rules').innerHTML = `<b>${$('mode-select').value === 'tdm' ? 25 : 10}</b> kills to win <span> / </span> 2–6 players`;
+  const mode = $('mode-select').value;
+  $('match-rules').innerHTML = mode === 'gungame' ? '<b>6</b> weapons, knife last <span> / </span> 2–6 players' : `<b>${mode === 'tdm' ? 25 : 10}</b> kills to win <span> / </span> 2–6 players`;
 }
 
 export function connectedUI(label) {

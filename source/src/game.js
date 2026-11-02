@@ -1,7 +1,7 @@
 /* Match sessions. The Client predicts the local player and interpolates everyone
    else; HostSession runs the authoritative HostGame next to its own Client;
    GuestSession talks to the host over the direct link. */
-import { DT, RULES, WEAPONS, B, newPlayer, stepPlayer, castShot, PREDICTED } from './sim.js';
+import { gunGameWeapon, DT, RULES, WEAPONS, B, newPlayer, stepPlayer, castShot, PREDICTED } from './sim.js';
 import { HostGame } from './hostgame.js';
 import { NetHost, NetGuest } from './net.js';
 
@@ -40,6 +40,7 @@ export class Client {
   }
 
   setWeapon(w) {
+    if (this.state?.mode === 'gungame') return;   // the ladder picks the weapon
     if (w >= 0 && w < WEAPONS.length && this.selectedWeapon !== w) {
       this.selectedWeapon = w;
     }
@@ -57,7 +58,7 @@ export class Client {
     if (this.input.reload) { b |= B.RELOAD; this.input.reload = false; }
     if (this.input.melee) { b |= B.MELEE; this.input.melee = false; }
     if (this.input.grenade) { b |= B.GRENADE; this.input.grenade = false; }
-    const w = this.selectedWeapon !== undefined ? this.selectedWeapon : (this.me.w || 0);
+    const w = this.state?.mode === 'gungame' ? gunGameWeapon(this.me.k) : this.selectedWeapon !== undefined ? this.selectedWeapon : (this.me.w || 0);
     const inp = { seq: ++this.seq, b, yaw: this.look.yaw, pitch: this.look.pitch, w };
     this.pending.push(inp);
     if (this.pending.length > 600) this.pending.shift();

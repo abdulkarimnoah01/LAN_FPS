@@ -3,7 +3,8 @@
    No DOM, no three.js: the Node tests import this file directly. */
 
 export const DT = 1 / 60;            // one input = one fixed simulation step
-export const R = 0.35;               // player half-width (m)
+export const R = 0.35;
+const PELLET_PAD = 0.3;               // player half-width (m)
 export const H = 1.8;                // player height standing (backward-compatible)
 export const EYE = 1.6;              // camera height above feet standing
 export const HEAD = 1.45;            // head hitbox starts here standing
@@ -16,7 +17,7 @@ const SPEED = 6.5, CROUCH_SPEED = 3.2, ACCEL = 70, AIR_ACCEL = 14, JUMP = 7.2, G
 
 export const WEAPONS = [
   { id: 'ak47', name: 'AK-47', mag: 30, fireTicks: 6, reloadTicks: 70, damage: 25, headDamage: 50, range: 150, pellets: 1, spread: 0.012, fov: 48 },
-  { id: 'shotgun', name: 'Shotgun', mag: 8, fireTicks: 42, reloadTicks: 85, damage: 16, headDamage: 28, range: 45, pellets: 8, spread: 0.065, fov: 56 },
+  { id: 'shotgun', name: 'Shotgun', mag: 8, fireTicks: 42, reloadTicks: 85, damage: 16, headDamage: 28, range: 45, pellets: 8, spread: 0.05, fov: 56 },
   { id: 'sniper', name: 'Sniper', mag: 5, fireTicks: 52, reloadTicks: 95, damage: 85, headDamage: 170, range: 300, pellets: 1, spread: 0.0008, fov: 16 },
   { id: 'smg', name: 'SMG', mag: 40, fireTicks: 3, reloadTicks: 55, damage: 15, headDamage: 30, range: 75, pellets: 1, spread: 0.038, fov: 54 },
   { id: 'lmg', name: 'LMG', mag: 75, fireTicks: 5, reloadTicks: 140, damage: 28, headDamage: 56, range: 160, pellets: 1, spread: 0.026, fov: 50 },
@@ -254,6 +255,10 @@ export function rayBox(o, d, b, max = Infinity) {
   return t0;
 }
 
+/* Gun game ladder (WEAPONS indices): AK-47, SMG, LMG, Shotgun, Sniper, then the knife. */
+export const GUN_ORDER = [0, 3, 4, 1, 2, 5];
+export const gunGameWeapon = k => GUN_ORDER[Math.min(k | 0, GUN_ORDER.length - 1)];
+
 export function hitboxes(p) {
   const h = p.cr ? H_CROUCH : H_STAND;
   const headStart = p.cr ? HEAD_CROUCH : HEAD_STAND;
@@ -272,6 +277,7 @@ export function castShot(world, players, shooter, wepInfo = null, rand = Math.ra
   const o = [shooter.x, shooter.y + eyeH, shooter.z];
   const hits = [];
   const tracers = [];
+  const pad = pellets > 1 ? PELLET_PAD : 0;   // scattered pellets get a fatter target so a point-blank blast lands
 
   for (let i = 0; i < pellets; i++) {
     let yaw = shooter.yaw, pitch = shooter.pitch;
@@ -303,6 +309,7 @@ export function castShot(world, players, shooter, wepInfo = null, rand = Math.ra
     for (const p of players) {
       if (p === shooter || !p.alive) continue;
       const hb = hitboxes(p);
+      if (pad) for (const b of [hb.head, hb.body]) { b[0] -= pad; b[2] -= pad; b[3] += pad; b[5] += pad; }
       const th = rayBox(o, d, hb.head, best);
       if (th < best) { best = th; hit = { id: p.id, head: true }; }
       const tb = rayBox(o, d, hb.body, best);

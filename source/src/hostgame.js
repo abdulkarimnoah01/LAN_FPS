@@ -1,6 +1,6 @@
 /* Authoritative match state. Only the host runs this: it applies every player's
    inputs, resolves shots, and owns health, kills, respawns, bots, barrels, grenades, and the round. */
-import { DT, RULES, WEAPONS, newPlayer, stepPlayer, castShot, PREDICTED, aim, rayBox, supported, B } from './sim.js';
+import { GUN_ORDER, gunGameWeapon, DT, RULES, WEAPONS, newPlayer, stepPlayer, castShot, PREDICTED, aim, rayBox, supported, B } from './sim.js';
 
 const MAX_CREDIT = 10;   // inputs a player may bank (absorbs network bursts, stops speed-ups)
 const MAX_QUEUE = 120;
@@ -26,7 +26,7 @@ export class HostGame {
   constructor(world, { random = Math.random, mode = 'ffa' } = {}) {
     this.world = world;
     this.random = random;
-    this.mode = mode; // 'ffa' or 'tdm'
+    this.mode = mode; // 'ffa', 'tdm' or 'gungame'
     this.players = new Map();
     this.queues = new Map();
     this.credit = new Map();
@@ -150,6 +150,7 @@ export class HostGame {
   }
 
   apply(p, inp) {
+    if (this.mode === 'gungame') inp = { ...inp, w: gunGameWeapon(p.k) };
     p.seq = inp.seq;
     if (stepPlayer(p, inp, this.world)) this.shoot(p);
     if (p.threwGrenade) {
@@ -335,8 +336,11 @@ export class HostGame {
   kill(victim, killer, head, wepId = 'ak47', backstab = false) {
     victim.hp = 0; victim.alive = false; victim.d++; victim.respawnAt = this.time + RULES.respawn;
     victim.vx = victim.vy = victim.vz = 0;
-    if (killer && killer !== victim) {
+    const gg = this.mode === 'gungame';
+    // Gun game: only a knife kill counts on the last rung. Each promotion hands over a full magazine.
+    if (killer && killer !== victim && !(gg && killer.k >= GUN_ORDER.length - 1 && wepId !== 'knife')) {
       killer.k++;
+      if (gg && killer.ammos) killer.ammos[gunGameWeapon(killer.k)] = WEAPONS[gunGameWeapon(killer.k)].mag;
       if (this.mode === 'tdm' && killer.team && killer.team !== 'none') {
         this.teams[killer.team].kills++;
       }
@@ -366,7 +370,7 @@ export class HostGame {
           this.events.push({ t: 'end', winner: killer.team, isTeam: true });
         }
       } else {
-        if (killer && killer.k >= RULES.winKills) {
+        if (killer && killer.k >= (gg ? GUN_ORDER.length : RULES.winKills)) {
           this.phase = 'ended';
           this.winner = killer.id;
           this.endAt = this.time + RULES.endPause;

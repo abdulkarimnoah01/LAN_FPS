@@ -22,10 +22,10 @@ const hud = new Hud(), sound = new Sound();
 const CURRENT_VERSION = window.LANFPS_VERSION || '1.5.1';
 const UPDATE_CONFIG = {
   versionUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/version.json',
-  bundleUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/LAN_FPS.html',
+  bundleUrl: 'https://raw.githubusercontent.com/abdulkarimnoah01/LAN_FPS/main/Spectre_Orbit_Classic.html',
 };
 
-/* In-place update: the page asks once for its own LAN_FPS.html (File System Access API), keeps
+/* In-place update: the page asks once for its own Spectre_Orbit_Classic.html (File System Access API), keeps
    that handle, and rewrites the file with the published build, then reloads. Browsers without the
    API fall back to a plain download. */
 const canWriteInPlace = () => typeof window.showSaveFilePicker === 'function';
@@ -40,7 +40,7 @@ async function getUpdateTarget() {
     } catch {}
   }
   const handle = await window.showSaveFilePicker({
-    suggestedName: 'LAN_FPS.html',
+    suggestedName: 'Spectre_Orbit_Classic.html',
     types: [{ description: 'Spectre Orbit game file', accept: { 'text/html': ['.html'] } }],
   });
   idb('readwrite', s => s.put(handle, 'updateTarget')).catch(() => {});  // remembered for next time; never blocks the update
@@ -58,7 +58,7 @@ async function hasGrantedTarget() {
 async function applyUpdate(info, setStatus) {
   let target = null;
   if (canWriteInPlace()) {
-    setStatus('Choose your LAN_FPS.html to update it…');
+    setStatus('Choose your Spectre_Orbit_Classic.html to update it…');
     try { target = await getUpdateTarget(); }
     catch (e) { if (e?.name === 'AbortError') { setStatus('Update cancelled'); return; } }
   }
@@ -83,10 +83,10 @@ async function applyUpdate(info, setStatus) {
     }
     const url = URL.createObjectURL(new Blob([text], { type: 'text/html' }));
     const a = document.createElement('a');
-    a.href = url; a.download = 'LAN_FPS.html';
+    a.href = url; a.download = 'Spectre_Orbit_Classic.html';
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
-    setStatus('Downloaded: replace LAN_FPS.html with it');
+    setStatus('Downloaded: replace Spectre_Orbit_Classic.html with it');
   } catch (err) {
     console.warn('Update failed:', err);
     setStatus('Update failed. Try again');
@@ -127,7 +127,7 @@ async function checkUpdate(manual = false) {
       // Pressing the button means "update me": do it right away, while the click still counts as a gesture.
       if (manual) await applyUpdate(data, setStatus);
       // On launch, update with no click when the remembered file already has write permission.
-      else if (lastApplied() === data.version) setStatus('Saved a different copy. Open the updated LAN_FPS.html');
+      else if (lastApplied() === data.version) setStatus('Saved a different copy. Open the updated Spectre_Orbit_Classic.html');
       else if (await hasGrantedTarget()) await applyUpdate(data, setStatus);
     } else {
       if (btn) {
@@ -219,7 +219,7 @@ async function refreshRooms() {
         li.innerHTML = `<div class="room-card-info"><h4></h4><div class="room-card-meta"></div></div><button class="btn btn-primary small" ${full ? 'disabled' : ''}>${full ? 'Full' : 'Join'}</button>`;
         li.querySelector('h4').textContent = r.name;
         const mapTag = MAP_LABELS[r.map] || 'Aftermath';
-        const modeTag = r.mode === 'tdm' ? 'TDM' : 'FFA';
+        const modeTag = r.mode === 'tdm' ? 'TDM' : r.mode === 'gungame' ? 'GUN GAME' : 'FFA';
         li.querySelector('.room-card-meta').textContent = `${r.host} · ${r.players}/${r.max} players · ${mapTag} · ${modeTag} · ${r.code}`;
         li.querySelector('button').onclick = () => join(r);
         return li;
@@ -621,7 +621,7 @@ async function host(char) {
     sandbox: 'Random Sandbox',
     arena: 'Classic Arena'
   }[map] || 'Foundry Core';
-  const modeTitle = mode === 'tdm' ? 'Team Deathmatch' : 'Free For All';
+  const modeTitle = mode === 'tdm' ? 'Team Deathmatch' : mode === 'gungame' ? 'Gun Game' : 'Free For All';
   if (typeof char !== 'string') char = await chooseCharacter(`Creating "${roomName}" · ${mapTitle} · ${modeTitle}`);
   if (!char || session) return;
   store.set('room', roomName);
@@ -657,7 +657,7 @@ async function join(room, char) {
     sandbox: 'Random Sandbox',
     arena: 'Classic Arena'
   }[map] || 'Foundry Core';
-  const modeTitle = mode === 'tdm' ? 'Team Deathmatch' : 'Free For All';
+  const modeTitle = mode === 'tdm' ? 'Team Deathmatch' : mode === 'gungame' ? 'Gun Game' : 'Free For All';
   if (typeof char !== 'string') char = await chooseCharacter(`Joining "${room.name}" · ${mapTitle} · ${modeTitle} · hosted by ${room.host}`);
   if (!char || session) return;
   try {

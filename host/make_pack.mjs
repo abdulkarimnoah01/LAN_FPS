@@ -17,7 +17,7 @@ fs.copyFileSync(need('server/index.mjs'), path.join(out, 'server', 'index.mjs'))
 fs.copyFileSync(need('server/package.json'), path.join(out, 'server', 'package.json'));
 fs.cpSync(need('server/node_modules'), path.join(out, 'server', 'node_modules'), { recursive: true });
 fs.copyFileSync(need('dist/online/index.html'), path.join(out, 'public', 'index.html'));
-fs.copyFileSync(need('LAN_FPS_online.html'), path.join(out, 'LAN_FPS_online.html'));
+fs.copyFileSync(need('Spectre_Orbit_Light.html'), path.join(out, 'Spectre_Orbit_Light.html'));
 
 const version = JSON.parse(fs.readFileSync(need('version.json'), 'utf8')).version;
 fs.writeFileSync(path.join(out, 'VERSION.txt'), `Spectre Orbit host pack v${version}\n`);

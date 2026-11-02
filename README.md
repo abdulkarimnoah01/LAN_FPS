@@ -1,7 +1,7 @@
 # Spectre Orbit
 
 A small low-poly first-person deathmatch for PCs on the same studio network.
-It is one HTML file (`LAN_FPS.html`) with everything built in: no install, no server, no internet.
+It is one HTML file (`Spectre_Orbit_Classic.html`) with everything built in: no install, no server, no internet.
 
 - 2–6 players, first to 10 kills (FFA) or 25 kills (TDM) wins the round, then a new round starts after 8 seconds.
 - Game Modes: **Free For All (Deathmatch)** and **Team Deathmatch (TDM)** with auto-balancing, friendly-fire immunity, and team score banners.
@@ -16,7 +16,7 @@ It is one HTML file (`LAN_FPS.html`) with everything built in: no install, no se
 
 ## Playing
 
-1. Copy `LAN_FPS.html` anywhere every PC can open it (the studio share is fine) and open it in **Chrome or Edge**.
+1. Copy `Spectre_Orbit_Classic.html` anywhere every PC can open it (the studio share is fine) and open it in **Chrome or Edge**.
 2. Type your name, then **Choose shared folder…** and pick the same network folder on every PC.
    The game makes a `_LAN_FPS_DATA` folder inside it. The browser asks for permission the first time; after that **Use "…" again** remembers the folder.
 3. One person chooses a map mode (Pine Forest, Random Sandbox, or Classic Arena) and clicks **Create room**. The room shows up in everyone else's list within a second or two; they click **Join**.
@@ -43,11 +43,11 @@ The host's game keeps running while its tab is in the background, but closing th
 
 ## Online play (Babylon 9 edition)
 
-`LAN_FPS_online.html` plays over the internet through a small matchmaking server. Matches are still peer-to-peer.
+`Spectre_Orbit_Light.html` plays over the internet through a small matchmaking server. Matches are still peer-to-peer.
 
 **Host** (the PC that runs the server): download `SpectreOrbit-Host-<version>.zip` from the [latest release](../../releases/latest), unzip it and double-click `Start_Host.bat`. It starts the server, opens a free Cloudflare tunnel (no VPN, no port forwarding) and prints a **join code**. Keep the window open while playing. The first run offers to install Node.js and `cloudflared` with winget.
 
-**Remote players**: open `LAN_FPS_online.html`, go to Settings, paste the join code under "Server join code or address" and press Save & reconnect. The code is remembered. It changes each time the host restarts the tunnel.
+**Remote players**: open `Spectre_Orbit_Light.html`, go to Settings, paste the join code under "Server join code or address" and press Save & reconnect. The code is remembered. It changes each time the host restarts the tunnel.
 
 Run `Start_Host.bat -NoTunnel` for LAN only. Strict NATs (some mobile data) may need a TURN relay; see `server/turnserver.conf`.
 
@@ -55,8 +55,8 @@ Run `Start_Host.bat -NoTunnel` for LAN only. Strict NATs (some mobile data) may 
 
 | Path | What it is |
 | --- | --- |
-| `LAN_FPS.html`, `version.json` | Legacy LAN build and update manifest. Keep at the root: the in-game updater reads them from `main`. |
-| `LAN_FPS_online.html` | Online build (Babylon 9). |
+| `Spectre_Orbit_Classic.html`, `version.json` | Classic LAN build (three.js) and update manifest. Keep at the root: the in-game updater reads them from `main`. `LAN_FPS.html` is an identical copy written by the build so builds older than v1.5.2 and `Update_LAN_FPS.ps1` can still update. |
+| `Spectre_Orbit_Light.html` | Online build (Babylon 9). |
 | `source/` | Game source, build scripts, tests, assets and the rigging tools. |
 | `server/` | Matchmaking and signaling server. |
 | `host/` | Host launcher and the script that builds the host pack. |
@@ -66,7 +66,7 @@ Run `Start_Host.bat -NoTunnel` for LAN only. Strict NATs (some mobile data) may 
 
 ### Cutting a release
 
-Bump `version.json`, commit, then `git tag vX.Y.Z && git push origin main --tags`. The workflow runs the tests, builds both bundles and attaches the host pack, `LAN_FPS_online.html` and `LAN_FPS.html` to the release.
+Bump `version.json`, commit, then `git tag vX.Y.Z && git push origin main --tags`. The workflow runs the tests, builds both bundles and attaches the host pack, `Spectre_Orbit_Light.html` and `Spectre_Orbit_Classic.html` to the release.
 
 ## Updating LAN_FPS on Any PC
 
@@ -86,7 +86,7 @@ In the lobby header next to the version badge (`v1.1.0`):
 ### 3. Publishing Updates (From Primary / Dev PC)
 When you make changes, balance weapons, or add characters on your primary PC:
 1. Double-click **`Publish_Update.bat`** (or run `powershell -ExecutionPolicy Bypass -File publish_update.ps1`).
-2. It automatically compiles `LAN_FPS.html`, runs verification tests, updates `version.json`, commits, and pushes to Git.
+2. It automatically compiles `Spectre_Orbit_Classic.html`, runs verification tests, updates `version.json`, commits, and pushes to Git.
 3. Every other PC can then immediately run `Update_LAN_FPS.bat` to receive the update!
 
 To customize your GitHub repository link, edit **`updater_config.json`**.
@@ -107,7 +107,7 @@ npm run build
 npm test
 ```
 
-`npm run build` writes `../LAN_FPS.html`. `npm test` runs the headless tests: room listing and signaling over a temp folder with a fake WebRTC pair, the failed-link message, and the host's movement, hit, kill, respawn and scoring rules.
+`npm run build` writes `../Spectre_Orbit_Classic.html`. `npm test` runs the headless tests: room listing and signaling over a temp folder with a fake WebRTC pair, the failed-link message, and the host's movement, hit, kill, respawn and scoring rules.
 
 | File | What it does |
 |---|---|
@@ -136,7 +136,7 @@ LAN_FPS features 9 distinct playable operatives, each equipped with custom human
 | 08 | **Romero** | `BREACHER` | Shotgun & Frags | Blast Shielding (-15% explosive self-damage) |
 | 09 | **Robot** | `VANGUARD` | AK-47 Vanguard | Hardened Armor (High bullet durability) |
 
-Every `.glb` in `source/assets/characters/` is bundled directly into the standalone `LAN_FPS.html` via `npm run build`.
+Every `.glb` in `source/assets/characters/` is bundled directly into the standalone `Spectre_Orbit_Classic.html` via `npm run build`.
 
 ### Automated Skeletal Rigging Pipeline (Blender)
 
@@ -161,7 +161,7 @@ The game needs binary glTF (`.glb`). `source/tools/usdz_to_glb.py` converts with
 
 It prints the model's size. A character should be about 1.8 m tall with its feet at 0; if not, fix it with `assets.json` (below).
 
-Each character adds its size to `LAN_FPS.html`: Kimo, with five textures, adds about 4 MB. Pass a smaller texture limit as a last argument (for example `512`) for lighter files.
+Each character adds its size to `Spectre_Orbit_Classic.html`: Kimo, with five textures, adds about 4 MB. Pass a smaller texture limit as a last argument (for example `512`) for lighter files.
 
 ## Replacing the placeholder models with glTF
 

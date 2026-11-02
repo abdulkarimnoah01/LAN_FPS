@@ -89,7 +89,7 @@ if ($code) {
   Say '  JOIN CODE (copied to clipboard):' White
   Say "      $code" Red
   Say ''
-  Say '  Remote PCs: open LAN_FPS_online.html, go to Settings, paste the code in' DarkGray
+  Say '  Remote PCs: open Spectre_Orbit_Light.html, go to Settings, paste the code in' DarkGray
   Say '  "Server join code", press Save & reconnect. It is remembered after that.' DarkGray
   Say "  Or open the file with  ?server=$code  added to its address." DarkGray
 } else {

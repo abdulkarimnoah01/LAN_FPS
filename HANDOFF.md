@@ -4,16 +4,16 @@
 > **Repository**: [https://github.com/abdulkarimnoah01/LAN_FPS](https://github.com/abdulkarimnoah01/LAN_FPS)  
 > **Current Version**: `v1.5.0` (Branch: `feat/babylon-online` / Baseline `v1.4.7` on `main`)  
 > **Architecture**:
-> - **Classic Edition**: Standalone single-file HTML5 bundle (`LAN_FPS.html`), Three.js renderer, P2P WebRTC DataChannel via shared-folder signaling.
-> - **Online Edition**: Babylon.js 9 (WebGPU / WebGL 2) bundle (`LAN_FPS_online.html` / `dist/online/index.html`), dedicated Node.js LTS matchmaking & signaling server (`server/index.mjs`), WebRTC DataChannels + STUN/TURN traversal.
+> - **Classic Edition**: Standalone single-file HTML5 bundle (`Spectre_Orbit_Classic.html`), Three.js renderer, P2P WebRTC DataChannel via shared-folder signaling.
+> - **Online Edition**: Babylon.js 9 (WebGPU / WebGL 2) bundle (`Spectre_Orbit_Light.html` / `dist/online/index.html`), dedicated Node.js LTS matchmaking & signaling server (`server/index.mjs`), WebRTC DataChannels + STUN/TURN traversal.
 
 ---
 
 ## 1. Executive Summary & Philosophy
 
 `Spectre Orbit` supports two independent, high-performance browser distributions:
-1. **Classic Edition (`LAN_FPS.html`)**: Serverless, zero-install, zero-dependency multiplayer FPS powered by Three.js for local studio or home network LAN play.
-2. **Online Edition (`LAN_FPS_online.html` & `dist/online/`)**: Internet multiplayer FPS powered by Babylon.js 9, WebGPU acceleration with WebGL 2 fallback, PBR materials, cascaded shadow maps, filmic tone mapping, and a dedicated WebSocket matchmaking server with STUN/TURN integration.
+1. **Classic Edition (`Spectre_Orbit_Classic.html`)**: Serverless, zero-install, zero-dependency multiplayer FPS powered by Three.js for local studio or home network LAN play.
+2. **Online Edition (`Spectre_Orbit_Light.html` & `dist/online/`)**: Internet multiplayer FPS powered by Babylon.js 9, WebGPU acceleration with WebGL 2 fallback, PBR materials, cascaded shadow maps, filmic tone mapping, and a dedicated WebSocket matchmaking server with STUN/TURN integration.
 
 ### Core Design Rules
 1. **Classic Edition Uncompromised**: Preserves 100% offline functionality, single-file distribution, zero external CDNs, and zero dependency on online services.
@@ -42,8 +42,8 @@
   - Trickle ICE, candidate buffering, reliable `rel` and fast `fast` DataChannels.
   - Tested with 3 automated transport and game session integration tests.
 - **Dual Build Pipelines**:
-  - `npm run build` -> builds Classic `LAN_FPS.html` (36.5 MB, v1.4.7)
-  - `npm run build:online` -> builds Online `LAN_FPS_online.html` (42.5 MB, Babylon 9) + `dist/online/index.html`
+  - `npm run build` -> builds Classic `Spectre_Orbit_Classic.html` (36.5 MB, v1.4.7)
+  - `npm run build:online` -> builds Online `Spectre_Orbit_Light.html` (42.5 MB, Babylon 9) + `dist/online/index.html`
   - `npm run test:all` -> runs all 56 tests across Classic, Online, Babylon renderer, and Server.
 - **UI & 3D Operative Turntable Parity (100% Three.js Match)**:
   - `source/index_online.html` & `source/index.html`: Replaced the relay outpost background photograph with a glowing retro terminal ASCII art representation of a planet with concentric orbital rings (`.ascii-planet`), with telemetry label `SECTOR 00 // CELESTIAL ORBIT`.
@@ -94,7 +94,7 @@
    - Abdulkarim, ElDeep, Gemy, Hamdy, Hooda, Romero, Mina, and Robot. Noura is parked: her rigged model and rig script live in `source/tools/noura/` and she is not in the roster.
 
 5. **In-Place File Updater (v1.3.3)**:
-   - Browser File System Access API updates `LAN_FPS.html` in-place and reloads.
+   - Browser File System Access API updates `Spectre_Orbit_Classic.html` in-place and reloads.
 
 ---
 
@@ -102,7 +102,7 @@
 
 ```
 X:\Projects\game\LAN_FPS\
-├── LAN_FPS.html            # Compiled, standalone playable game bundle (~12.5 MB)
+├── Spectre_Orbit_Classic.html            # Compiled, standalone playable game bundle (~12.5 MB)
 ├── README.md               # User & player documentation
 ├── HANDOFF.md              # THIS FILE: Technical architecture and state handoff
 ├── version.json            # Semantic version, build date, and release notes (v1.4.0)
@@ -150,4 +150,4 @@ X:\Projects\game\LAN_FPS\
 
 ## 4. Standing Constraints
 - **CRITICAL RULE**: Do NOT initiate a system shutdown under any circumstances unless explicitly instructed by the user in a new prompt.
-- **Self-Contained Bundle**: Keep `LAN_FPS.html` completely standalone with no external CDNs or scripts.
+- **Self-Contained Bundle**: Keep `Spectre_Orbit_Classic.html` completely standalone with no external CDNs or scripts.

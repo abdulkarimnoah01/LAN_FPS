@@ -1,5 +1,5 @@
 /* Heads-up display (plain DOM) and a few synthesized sounds. */
-import { RULES, WEAPONS } from './sim.js';
+import { GUN_ORDER, RULES, WEAPONS } from './sim.js';
 import { PLAYER_COLORS } from './render.js';
 
 const $ = id => document.getElementById(id);
@@ -46,7 +46,7 @@ export class Hud {
       set(this.score, 'textContent', `Target: ${RULES.winKillsTDM || 25} kills`);
     } else {
       if (this.tdmScore) this.tdmScore.hidden = true;
-      set(this.score, 'textContent', s ? `${me.k} / ${RULES.winKills} kills` : '');
+      set(this.score, 'textContent', s?.mode === 'gungame' ? `Gun ${Math.min(me.k + 1, GUN_ORDER.length)} / ${GUN_ORDER.length}` : s ? `${me.k} / ${RULES.winKills} kills` : '');
     }
     this.crosshair?.classList.toggle('ads', !!client.aiming);
 

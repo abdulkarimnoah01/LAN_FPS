@@ -2,7 +2,7 @@
 
 ## 1. Architecture Overview
 
-Spectre Orbit Online introduces an internet-ready, browser-playable multiplayer FPS powered by **Babylon.js 9** while preserving the standalone single-file Three.js LAN version (`LAN_FPS.html`).
+Spectre Orbit Online introduces an internet-ready, browser-playable multiplayer FPS powered by **Babylon.js 9** while preserving the standalone single-file Three.js LAN version (`Spectre_Orbit_Classic.html`).
 
 ```
                               [ CLIENT (Browser) ]
@@ -53,8 +53,8 @@ npm start
 cd source
 npm run build:all
 # Generates:
-# - LAN_FPS.html (Classic Three.js offline edition)
-# - LAN_FPS_online.html (Babylon.js standalone edition)
+# - Spectre_Orbit_Classic.html (Classic Three.js offline edition)
+# - Spectre_Orbit_Light.html (Babylon.js standalone edition)
 # - dist/online/index.html (Hosted web application)
 ```
 

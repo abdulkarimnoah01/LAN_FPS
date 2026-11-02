@@ -13,7 +13,7 @@ HOST (the PC that runs the match server)
             Start_Host.bat -NoBrowser  do not open the game page
 
 REMOTE PLAYERS
-  1. Open LAN_FPS_online.html (this file is in the pack; send it to friends once).
+  1. Open Spectre_Orbit_Light.html (this file is in the pack; send it to friends once).
   2. Settings -> "Server join code or address" -> paste the code -> Save & reconnect.
      The code is remembered. The host gets a new code each time they start the launcher.
   Or open the file with ?server=<code> added to its address.

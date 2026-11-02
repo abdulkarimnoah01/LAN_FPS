@@ -1,5 +1,5 @@
 /* Builds the Babylon.js Online Edition of Spectre Orbit:
-   - LAN_FPS_online.html (standalone file for local browser execution)
+   - Spectre_Orbit_Light.html (standalone file for local browser execution)
    - dist/online/index.html (for static hosting with reverse proxy)
 */
 
@@ -10,7 +10,7 @@ import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const outOnlineHtml = path.join(root, '..', 'LAN_FPS_online.html');
+const outOnlineHtml = path.join(root, '..', 'Spectre_Orbit_Light.html');
 const distOnlineDir = path.join(root, '..', 'dist', 'online');
 
 fs.mkdirSync(distOnlineDir, { recursive: true });

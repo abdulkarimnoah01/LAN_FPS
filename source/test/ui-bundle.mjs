@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 const root = new URL('../', import.meta.url);
-const html = fs.readFileSync(new URL('../LAN_FPS.html', root), 'utf8');
+const html = fs.readFileSync(new URL('../Spectre_Orbit_Classic.html', root), 'utf8');
 for (const name of ['map-aftermath.jpg', 'map-river.jpg', 'map-forest.jpg', 'map-sandbox.jpg', 'map-arena.jpg']) {
   const jpeg = fs.readFileSync(new URL('assets/ui/' + name, root));
   assert.equal(jpeg[0], 0xff, `${name} must be a packaged JPEG`);

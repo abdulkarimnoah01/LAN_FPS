@@ -1,7 +1,7 @@
 name: Release
 
 # Push a tag like v1.5.0 (must match version.json) to build the bundles and publish a GitHub Release
-# with the host pack zip, LAN_FPS_online.html and LAN_FPS.html attached.
+# with the host pack zip, Spectre_Orbit_Light.html and Spectre_Orbit_Classic.html attached.
 on:
   push:
     tags: ['v*']
@@ -52,5 +52,5 @@ jobs:
         run: |
           notes=$(node -p "require('./version.json').notes")
           gh release create "$GITHUB_REF_NAME" \
-            "release/SpectreOrbit-Host-${GITHUB_REF_NAME}.zip" LAN_FPS_online.html LAN_FPS.html \
+            "release/SpectreOrbit-Host-${GITHUB_REF_NAME}.zip" Spectre_Orbit_Light.html Spectre_Orbit_Classic.html \
             --title "Spectre Orbit $GITHUB_REF_NAME" --notes "$notes"

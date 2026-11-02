@@ -1,4 +1,4 @@
-/* Builds ../LAN_FPS.html: one self-contained file with three.js, the game, the
+/* Builds ../Spectre_Orbit_Classic.html (plus a LAN_FPS.html copy that older in-game updaters still fetch): one self-contained file with three.js, the game, the
    styles and any glTF models from ./assets inlined. Needs no server or internet.
 
    Usage (from this folder):  npm install   (once)
@@ -10,7 +10,7 @@ import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const out = path.join(root, '..', 'LAN_FPS.html');
+const out = path.join(root, '..', 'Spectre_Orbit_Classic.html');
 
 const bundle = await build({
   entryPoints: [path.join(root, 'src', 'main.js')], bundle: true, minify: true, format: 'iife',
@@ -83,4 +83,5 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8')
   .replace('<!--SCRIPT-->', () => script(`window.LANFPS_VERSION=${JSON.stringify(version)};window.LANFPS_ASSETS=` + JSON.stringify(assets) + ';') + '\n' + script(js));
 
 fs.writeFileSync(out, html);
+fs.copyFileSync(out, path.join(root, '..', 'LAN_FPS.html'));
 console.log(`Built ${path.relative(process.cwd(), out)}: ${(fs.statSync(out).size / 1024).toFixed(0)} KB (v${version})`);
