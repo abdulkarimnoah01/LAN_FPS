@@ -1,6 +1,6 @@
 {
-  "version": "1.6.0",
+  "version": "1.6.1",
   "name": "LAN_FPS",
   "date": "2026-11-02",
-  "notes": "Gun Game mode (kill to upgrade weapon, knife kill wins), wider shotgun pellet hitbox, builds renamed Spectre_Orbit_Classic / Spectre_Orbit_Light."
+  "notes": "Update download progress, sniper scope zoom 4-6X with wheel, centred scope reticle, Ctrl+W tab-close guard."
 }
