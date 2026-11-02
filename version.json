@@ -1,6 +1,6 @@
 {
-  "version": "1.5.1",
+  "version": "1.6.0",
   "name": "LAN_FPS",
-  "date": "2026-11-01",
-  "notes": "LAN build now uses the same Hub interface as the online build: sidebar, host drawer, battlefield catalog and the Arasaka red theme."
+  "date": "2026-11-02",
+  "notes": "Gun Game mode (kill to upgrade weapon, knife kill wins), wider shotgun pellet hitbox, builds renamed Spectre_Orbit_Classic / Spectre_Orbit_Light."
 }
