@@ -172,6 +172,27 @@ export const HERO_ROSTER = {
       { name: 'Crimson Strike', color: '#ef4444' },
       { name: 'Vanguard Gold', color: '#f59e0b' }
     ]
+  },
+  'nada-j': {
+    id: 'nada-j',
+    name: 'Nada J',
+    title: 'Neon Duelist',
+    classType: 'DUELIST',
+    badge: '🎩',
+    bio: 'Cool-headed night-shift operative who wins fights on timing: quick peeks, clean first shots and a calm reposition before the return fire lands.',
+    stats: { mobility: 88, durability: 66, precision: 90, firepower: 80 },
+    signatureWeapon: 'SMG & Sniper Rifle',
+    signatureIcon: '🎯',
+    trait: 'Smooth Step',
+    traitDesc: 'Fast strafe transitions and steady aim while moving',
+    defaultColor: '#e8deda',
+    swatches: [
+      { name: 'Ivory Suit', color: '#e8deda' },
+      { name: 'Midnight Shirt', color: '#1c2457' },
+      { name: 'Neon Pink', color: '#ec4899' },
+      { name: 'Sunset Amber', color: '#f59e0b' },
+      { name: 'Jet Black', color: '#16131a' }
+    ]
   }
 };
 
