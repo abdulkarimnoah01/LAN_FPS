@@ -1,6 +1,6 @@
 {
-  "version": "1.6.1",
+  "version": "1.7.0",
   "name": "LAN_FPS",
-  "date": "2026-11-02",
-  "notes": "Update download progress, sniper scope zoom 4-6X with wheel, centred scope reticle, Ctrl+W tab-close guard."
+  "date": "2026-11-04",
+  "notes": "New playable operative Nada J: faceted low-poly duelist in a white suit and fedora, rigged with idle, walk, run, crouch and death animations."
 }
