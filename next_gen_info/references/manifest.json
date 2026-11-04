@@ -1,0 +1,35 @@
+{
+  "source_conversation": "6aebb6e8-5754-83ea-9068-4d57e3b4ea8d",
+  "images": [
+    {
+      "file": "references/reference-01.png",
+      "original_name": "image(20261104-230029).png",
+      "bytes": 1917556,
+      "sha256": "c1772aa8ce6995aaf9b4e55fb076dbc1b7a6a0ce0c547685eaf0bcc991500177"
+    },
+    {
+      "file": "references/reference-02.png",
+      "original_name": "image(20261104-225902).png",
+      "bytes": 3486889,
+      "sha256": "a8702e556d1329f46b32ce4cb6fd06b60fd72238f0ec41b23ef1fcb254057025"
+    },
+    {
+      "file": "references/reference-03.png",
+      "original_name": "image(20261104-225320).png",
+      "bytes": 1399563,
+      "sha256": "b8a4aacb01d0c939fdb161a5826faf5a1b817e22403a72562351ba4eb064b271"
+    },
+    {
+      "file": "references/reference-04.png",
+      "original_name": "image(20261104-225302).png",
+      "bytes": 227610,
+      "sha256": "e9864b41ddd12d90de553dba8131f8877c465b6059a1954a22d9cd52a375644a"
+    },
+    {
+      "file": "references/reference-05.png",
+      "original_name": "image(20261104-225233).png",
+      "bytes": 366199,
+      "sha256": "3119c5cbfda2b0e63719c158a3b5e9475cd05f4651e3736a1885a0fbd3ae415f"
+    }
+  ]
+}
