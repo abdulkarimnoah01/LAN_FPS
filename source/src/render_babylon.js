@@ -17,6 +17,7 @@ export async function loadAssets() {
     characters: embedded.characters ? embedded.characters.map(c => ({
       id: charId(c.name),
       name: c.name,
+      ng: !!c.ng,
       glb: c.glb,
     })) : [],
     maps: embedded.maps || {},

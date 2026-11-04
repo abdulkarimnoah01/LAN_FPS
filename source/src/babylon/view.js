@@ -438,7 +438,7 @@ export class BabylonView {
       seenPids.add(p.id);
       let av = this.avatars.get(p.id);
       if (!av) {
-        av = new BabylonAvatar(this.scene, this.assets, p.id, p.name, p.slot || 0, p.char || 'abdulkarim', p.team || 'none');
+        av = new BabylonAvatar(this.scene, this.assets, p.id, p.name, p.slot || 0, p.char || 'abdulkarim', p.team || 'none', p.lk || '');
         this.avatars.set(p.id, av);
       }
       av.update(p, dt);

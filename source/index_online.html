@@ -219,9 +219,30 @@
                 <div id="roster-skins" class="btn-group"></div>
               </div>
 
-              <div class="toolbar-section">
-                <span class="toolbar-label">TEAM SHADER:</span>
-                <div id="roster-swatches" class="swatch-group"></div>
+              <div class="creator-panel" id="creator-panel" aria-label="Appearance creator">
+                <div class="toolbar-section">
+                  <span class="toolbar-label">PRESET:</span>
+                  <div id="creator-presets" class="btn-group" role="group" aria-label="Appearance presets"></div>
+                </div>
+                <div class="toolbar-section">
+                  <span class="toolbar-label">OUTFIT:</span>
+                  <div id="creator-outfits" class="btn-group" role="group" aria-label="Outfit surface"></div>
+                </div>
+                <div class="toolbar-section">
+                  <span class="toolbar-label">SKIN TONE:</span>
+                  <div id="creator-skins" class="btn-group" role="group" aria-label="Skin tone"></div>
+                </div>
+                <div class="toolbar-section">
+                  <span class="toolbar-label">SHADER:</span>
+                  <div id="creator-shaders" class="btn-group" role="group" aria-label="Shader look"></div>
+                  <span class="toolbar-label" style="margin-left:12px;">ACCENT:</span>
+                  <div id="creator-accents" class="swatch-group" role="group" aria-label="Accent colour"></div>
+                </div>
+                <div class="toolbar-section">
+                  <button id="creator-reset" class="small-btn" type="button">⟲ Default look</button>
+                  <button id="creator-revert" class="small-btn" type="button">↶ Revert to saved</button>
+                  <span id="creator-status" class="muted-note" aria-live="polite"></span>
+                </div>
               </div>
             </div>
           </div>

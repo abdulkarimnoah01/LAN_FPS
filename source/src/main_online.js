@@ -7,7 +7,12 @@ import { View, CharacterPreview, HeroViewer, loadAssets, buildWorld } from './re
 import { Hud, Sound } from './hud.js';
 import { B } from './sim.js';
 import { initPalette } from './palette.js';
-import { HERO_ROSTER, getHeroData, SKIN_OF, baseHeroId } from './heroes.js';
+import { HERO_ROSTER, getHeroData as legacyHeroData, SKIN_OF, baseHeroId } from './heroes.js';
+import { CATALOG, loadAppearance, saveAppearance, normalizeAppearance, applyPreset, encodeLook, sameLook, DEFAULT_LOOK, PRESETS } from './appearance.js';
+import { ngHeroData, NG_BODIES } from './ng_bodies.js';
+
+/* Next Gen bodies describe themselves; legacy roster entries keep their dossiers. */
+const getHeroData = (id, name) => ngHeroData(id) || legacyHeroData(id, name);
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -404,6 +409,15 @@ let currentRosterSkinId = null;
 let currentRosterColor = '#f0a640';
 let currentRosterAnim = 'idle';
 
+const defaultChar = () => (assets?.characters || []).find(c => c.ng)?.id || assets?.characters?.[0]?.id || 'abdulkarim';
+const equippedChar = () => {
+  const id = store.get('char', '');
+  return (assets?.characters || []).some(c => c.id === id) ? id : defaultChar();
+};
+/* Saved appearance code sent to the host when joining/hosting. */
+const equippedLookCode = () => encodeLook(loadAppearance(store, equippedChar()));
+let draftLook = null;   // creator edits, applied to the turntable until saved
+
 const rosterChars = () => {
   if (assets?.characters && assets.characters.length > 0) {
     return assets.characters.filter(c => !SKIN_OF[c.id]);
@@ -415,7 +429,7 @@ function updateLobbyHeroCard() {
   const chars = rosterChars();
   if (!chars || chars.length === 0) return;
 
-  const activeId = store.get('char', chars[0]?.id || 'abdulkarim');
+  const activeId = equippedChar();
   const heroChar = (assets?.characters || []).find(c => c.id === activeId) || chars[0];
   const hero = getHeroData(activeId, heroChar?.name);
   const heroIdx = chars.findIndex(c => c.id === baseHeroId(heroChar?.id));
@@ -434,7 +448,7 @@ function updateLobbyHeroCard() {
     if (!lobbyPortrait) {
       lobbyPortrait = new CharacterPreview($('lobby-portrait'), assets);
     }
-    lobbyPortrait.show(heroChar.id, hero.defaultColor || '#f0a640');
+    lobbyPortrait.show(heroChar.id, hero.defaultColor || '#f0a640', loadAppearance(store, heroChar.id));
   }
 }
 
@@ -442,7 +456,8 @@ function openOperativeView(selectedHeroId = null) {
   const chars = rosterChars();
   if (!chars || chars.length === 0) return;
 
-  const activeId = baseHeroId(store.get('char', chars[0].id));
+  const activeId = baseHeroId(equippedChar());
+  draftLook = loadAppearance(store, equippedChar());
   currentRosterHeroId = baseHeroId(selectedHeroId || activeId || chars[0].id);
 
   if (!heroViewer && assets && $('roster-canvas')) {
@@ -518,14 +533,14 @@ function selectRosterHero(id) {
   const hero = chars.find(c => c.id === baseHeroId(id)) || chars[0];
   id = currentRosterHeroId = hero.id;
   const data = getHeroData(hero.id, hero.name);
-  const storedId = store.get('char', chars[0].id);
+  const storedId = equippedChar();
 
   const availableChars = assets?.characters || [];
   const skins = (data.skins || []).filter(k => availableChars.some(c => c.id === k.id));
   if (!skins.some(k => k.id === currentRosterSkinId) || baseHeroId(currentRosterSkinId) !== id) {
     currentRosterSkinId = baseHeroId(storedId) === id && availableChars.some(c => c.id === storedId) ? storedId : id;
   }
-  const isEquipped = currentRosterSkinId === storedId;
+  const isEquipped = currentRosterSkinId === storedId && sameLook(draftLook, loadAppearance(store));
 
   // Highlight active sidebar card
   document.querySelectorAll('#roster-cards .roster-hero-item').forEach(el => {
@@ -544,11 +559,8 @@ function selectRosterHero(id) {
       btn.onclick = () => {
         currentRosterSkinId = k.id;
         skinsEl.querySelectorAll('.anim-btn').forEach(b => b.classList.toggle('on', b === btn));
-        updateRosterEquipButton(k.id === store.get('char', ''));
-        if ($('dossier-status-pill')) {
-          $('dossier-status-pill').textContent = k.id === store.get('char', '') ? 'EQUIPPED' : 'READY';
-        }
-        heroViewer?.show(k.id, currentRosterColor, currentRosterAnim);
+        refreshCreatorState();
+        heroViewer?.show(k.id, currentRosterColor, currentRosterAnim, draftLook);
       };
       return btn;
     }));
@@ -586,42 +598,20 @@ function selectRosterHero(id) {
 
   updateRosterEquipButton(isEquipped);
 
-  // Swatches
-  currentRosterColor = data.defaultColor || '#f0a640';
-  const swatchesEl = $('roster-swatches');
-  if (swatchesEl) {
-    swatchesEl.replaceChildren(...(data.swatches || [
-      { name: 'Default', color: currentRosterColor },
-      { name: 'Red', color: '#ef4444' },
-      { name: 'Blue', color: '#3b82f6' }
-    ]).map((s, idx) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'swatch-btn' + (idx === 0 ? ' on' : '');
-      btn.style.backgroundColor = s.color;
-      btn.title = s.name;
-      btn.setAttribute('aria-label', s.name + ' team shader');
-      btn.onclick = () => {
-        swatchesEl.querySelectorAll('.swatch-btn').forEach(b => b.classList.remove('on'));
-        btn.classList.add('on');
-        currentRosterColor = s.color;
-        heroViewer?.setColor(s.color);
-      };
-      return btn;
-    }));
-  }
+  currentRosterColor = data.defaultColor || '#22d3ee';
+  renderCreator();
 
-  heroViewer?.show(currentRosterSkinId, currentRosterColor, currentRosterAnim);
+  heroViewer?.show(currentRosterSkinId, currentRosterColor, currentRosterAnim, draftLook);
 }
 
 function updateRosterEquipButton(isEquipped) {
   const btn = $('btn-roster-equip');
   if (!btn) return;
   if (isEquipped) {
-    btn.textContent = '✓ CURRENTLY EQUIPPED';
+    btn.textContent = '✓ SAVED & EQUIPPED';
     btn.disabled = true;
   } else {
-    btn.textContent = '✓ Equip Active Operative';
+    btn.textContent = '✓ Save & Equip Operative';
     btn.disabled = false;
   }
 }
@@ -629,10 +619,57 @@ function updateRosterEquipButton(isEquipped) {
 function equipRosterHero(id) {
   store.set('char', id);
   store.set('equippedHero', id);
+  saveAppearance(store, { ...draftLook, bodyId: id });
   currentRosterSkinId = id;
   updateLobbyHeroCard();
   selectRosterHero(baseHeroId(id));
-  toast('Equipped operative: ' + getHeroData(id).name);
+  toast('Saved operative: ' + getHeroData(id).name);
+}
+
+/* ---- Appearance creator: one draft look, previewed on the live turntable rig ---- */
+function setDraft(next, status = '') {
+  draftLook = normalizeAppearance(next, currentRosterSkinId);
+  renderCreator();
+  if ($('creator-status')) $('creator-status').textContent = status || 'Previewing — press Save to keep it';
+  const st = $('creator-status');
+  heroViewer?.setLook(draftLook).catch(() => { if (st) st.textContent = 'Could not apply that look; using the default.'; });
+}
+
+function choiceButtons(el, items, selectedId, onPick, swatch = false) {
+  if (!el) return;
+  el.replaceChildren(...items.map(item => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = (swatch ? 'swatch-btn' : 'anim-btn') + (item.id === selectedId ? ' on' : '');
+    btn.setAttribute('aria-pressed', String(item.id === selectedId));
+    if (swatch) { btn.style.backgroundColor = item.color; btn.title = item.name; btn.setAttribute('aria-label', item.name + ' accent'); }
+    else btn.textContent = item.name;
+    btn.onclick = () => onPick(item.id);
+    return btn;
+  }));
+}
+
+function renderCreator() {
+  if (!draftLook) draftLook = loadAppearance(store, currentRosterSkinId);
+  const L = draftLook;
+  const preset = PRESETS.find(p => p.outfitId === L.outfitId && p.skinId === L.skinId && p.shaderId === L.shaderId && p.accentId === L.accentId);
+  choiceButtons($('creator-presets'), CATALOG.presets, preset?.id, id => setDraft(applyPreset(draftLook, id)));
+  choiceButtons($('creator-outfits'), CATALOG.outfits, L.outfitId, id => setDraft({ ...draftLook, outfitId: id }));
+  choiceButtons($('creator-skins'), CATALOG.skins, L.skinId, id => setDraft({ ...draftLook, skinId: id }));
+  choiceButtons($('creator-shaders'), CATALOG.shaders, L.shaderId, id => setDraft({ ...draftLook, shaderId: id }));
+  choiceButtons($('creator-accents'), CATALOG.accents, L.accentId, id => setDraft({ ...draftLook, accentId: id }), true);
+  if ($('creator-reset')) $('creator-reset').onclick = () => setDraft({ ...DEFAULT_LOOK }, 'Default look — press Save to keep it');
+  if ($('creator-revert')) $('creator-revert').onclick = () => setDraft(loadAppearance(store), 'Reverted to your saved look');
+  refreshCreatorState();
+}
+
+function refreshCreatorState() {
+  const equipped = currentRosterSkinId === equippedChar() && sameLook(draftLook, loadAppearance(store));
+  updateRosterEquipButton(equipped);
+  if ($('dossier-status-pill')) {
+    $('dossier-status-pill').textContent = equipped ? 'EQUIPPED' : 'READY';
+    $('dossier-status-pill').className = equipped ? 'pill-equipped' : 'pill-equipped off';
+  }
 }
 
 function applyCallsign() {
@@ -808,7 +845,8 @@ async function startPracticeMatch() {
   const map = $('map-select')?.value || 'foundry';
   const mode = $('mode-select')?.value || 'ffa';
   const seed = map === 'sandbox' ? Math.floor(Math.random() * 900000 + 100000) : 0;
-  const char = store.get('char', 'abdulkarim');
+  const char = equippedChar();
+  const look = equippedLookCode();
 
   toast('Deploying offline practice match with bots...');
   try {
@@ -822,6 +860,7 @@ async function startPracticeMatch() {
       id: myId,
       name: playerName(),
       char,
+      look,
       roomName,
       map,
       seed,
@@ -833,8 +872,10 @@ async function startPracticeMatch() {
     });
 
     await session.start();
-    session.addBot('Recon-Alpha', 'mina', 'medium');
-    session.addBot('Heavy-Bravo', 'robot', 'medium');
+    const ng = (assets.characters || []).filter(c => c.ng);
+    const botChar = i => ng.length ? ng[(i + 1) % ng.length].id : '';
+    session.addBot('Recon-Alpha', botChar(1) || 'mina', 'medium', encodeLook(applyPreset({}, PRESETS[2].id)));
+    session.addBot('Heavy-Bravo', botChar(2) || 'robot', 'medium', encodeLook(applyPreset({}, PRESETS[4].id)));
     hud.session = session;
     showGame(true);
   } catch (e) {
@@ -852,7 +893,8 @@ async function hostOnlineMatch() {
   const maxPlayers = parseInt($('max-players-select')?.value || '6', 10);
   const isPrivate = $('is-private-checkbox')?.checked || false;
   const seed = map === 'sandbox' ? Math.floor(Math.random() * 900000 + 100000) : 0;
-  const char = store.get('char', 'abdulkarim');
+  const char = equippedChar();
+  const look = equippedLookCode();
 
   if (!signaling || !signaling.connected) {
     toast('Connecting to matchmaking server on port 8080...');
@@ -877,6 +919,7 @@ async function hostOnlineMatch() {
       id: myId,
       name: playerName(),
       char,
+      look,
       roomName,
       map,
       seed,
@@ -900,7 +943,8 @@ async function hostOnlineMatch() {
 
 async function joinOnlineMatch(code) {
   if (session || !assets) return;
-  const char = store.get('char', 'abdulkarim');
+  const char = equippedChar();
+  const look = equippedLookCode();
   const cleanCode = (code || '').trim().toUpperCase();
 
   if (!cleanCode) {
@@ -917,6 +961,7 @@ async function joinOnlineMatch(code) {
       id: myId,
       name: playerName(),
       char,
+      look,
       view,
       hud,
       audio: sound,
@@ -924,10 +969,12 @@ async function joinOnlineMatch(code) {
     });
 
     await s.join({ code: cleanCode }, statusText => toast(statusText));
+    await s.waitForInit();
 
     world = buildWorld(assets, s.map, s.seed);
     await prepareView(world);
     s.client.world = world;
+    s.client.view = view;   // the view may not have existed when the session was created
 
     hud.session = s;
     showGame(true);

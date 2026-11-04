@@ -7,9 +7,10 @@
     "build:online": "node build_online.mjs",
     "build:all": "node build.mjs && node build_online.mjs",
     "test": "node test/run.mjs",
-    "test:online": "node test/net_online_test.mjs && node test/babylon_render_test.mjs && node test/online_game_session_test.mjs",
-    "test:all": "node test/run.mjs && node test/net_online_test.mjs && node test/babylon_render_test.mjs && node test/online_game_session_test.mjs",
-    "test:ui": "node test/ui-bundle.mjs"
+    "test:online": "node test/net_online_test.mjs && node test/babylon_render_test.mjs && node test/online_game_session_test.mjs && node test/appearance_test.mjs",
+    "test:all": "node test/run.mjs && node test/net_online_test.mjs && node test/babylon_render_test.mjs && node test/online_game_session_test.mjs && node test/appearance_test.mjs",
+    "test:ui": "node test/ui-bundle.mjs",
+    "build:characters": "node tools/build_ng_characters.mjs"
   },
   "devDependencies": {
     "@babylonjs/core": "^9.33.1",

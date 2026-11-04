@@ -1,5 +1,6 @@
 /* Authoritative match state. Only the host runs this: it applies every player's
    inputs, resolves shots, and owns health, kills, respawns, bots, barrels, grenades, and the round. */
+import { canonicalLook, makeLookLimiter, MAX_LOOK_BYTES } from './appearance.js';
 import { GUN_ORDER, gunGameWeapon, DT, RULES, WEAPONS, newPlayer, stepPlayer, castShot, PREDICTED, aim, rayBox, supported, B } from './sim.js';
 
 const MAX_CREDIT = 10;   // inputs a player may bank (absorbs network bursts, stops speed-ups)
@@ -43,13 +44,14 @@ export class HostGame {
     this.teams = { red: { kills: 0 }, blue: { kills: 0 } };
   }
 
-  addPlayer(id, name, char = '', team = null) {
+  addPlayer(id, name, char = '', team = null, look = '') {
     if (this.players.has(id)) return this.players.get(id);
     if (this.players.size >= RULES.maxPlayers) throw Error('Room is full');
     const used = new Set([...this.players.values()].map(p => p.slot));
     let slot = 0; while (used.has(slot)) slot++;
     const p = newPlayer(id, String(name || 'Player').slice(0, 20), slot);
     p.char = String(char || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').slice(0, 32);
+    p.look = canonicalLook(look);
 
     if (this.mode === 'tdm') {
       const redCount = [...this.players.values()].filter(x => x.team === 'red').length;
@@ -67,7 +69,18 @@ export class HostGame {
     return p;
   }
 
-  addBot(name = null, char = '', diff = 'medium') {
+  /* Cosmetic look change from a player. The host canonicalises it and rate-limits per player;
+     the next snapshot carries the result to everyone (including late joiners). */
+  setLook(id, raw, now = this.time) {
+    const p = this.players.get(id);
+    if (!p) return false;
+    if (typeof raw === 'string' ? raw.length > MAX_LOOK_BYTES : !raw || typeof raw !== 'object') return false;
+    if (!(this.lookLimiter ||= makeLookLimiter())(id, now)) return false;
+    p.look = canonicalLook(raw);
+    return true;
+  }
+
+  addBot(name = null, char = '', diff = 'medium', look = '') {
     if (this.players.size >= RULES.maxPlayers) throw Error('Room is full');
     const existing = new Set([...this.players.values()].map(p => p.name));
     let botName = name;
@@ -76,7 +89,7 @@ export class HostGame {
     }
     const chosenChar = char || CHAR_ROSTER[this.bots.size % CHAR_ROSTER.length];
     const botId = 'bot_' + Math.random().toString(36).slice(2, 8);
-    const p = this.addPlayer(botId, botName, chosenChar);
+    const p = this.addPlayer(botId, botName, chosenChar, null, look);
     p.isBot = true;
     p.botDiff = diff;
     p.botStrafeDir = Math.random() > 0.5 ? 1 : -1;
@@ -531,6 +544,7 @@ export class HostGame {
         name: p.name,
         slot: p.slot,
         char: p.char,
+        lk: p.look,
         team: p.team,
         isBot: !!p.isBot,
         yaw: round(p.yaw),

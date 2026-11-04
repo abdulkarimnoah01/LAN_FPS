@@ -223,8 +223,8 @@ export class Client {
 
 /* Host: authoritative game + local client + direct links to every guest. */
 export class HostSession {
-  constructor({ lobby, world, id, name, char, roomName, map = 'forest', seed = 0, mode = 'ffa', view, hud, audio, RTC, onExit, NetHostClass = NetHost, signaling }) {
-    Object.assign(this, { lobby, world, id, name, char, roomName, map, seed, mode, onExit });
+  constructor({ lobby, world, id, name, char, look = '', roomName, map = 'forest', seed = 0, mode = 'ffa', view, hud, audio, RTC, onExit, NetHostClass = NetHost, signaling }) {
+    Object.assign(this, { lobby, world, id, name, char, look, roomName, map, seed, mode, onExit });
     this.game = new HostGame(world, { mode });
     this.client = new Client({ world, id, view, hud, audio, send: m => this.handle(id, m) });
     this.net = new NetHostClass({
@@ -244,15 +244,15 @@ export class HostSession {
       onLeave: p => this.game.removePlayer(p.id),
     });
   }
-  addBot(name = null, char = '', diff = 'medium') {
-    return this.game.addBot(name, char, diff);
+  addBot(name = null, char = '', diff = 'medium', look = '') {
+    return this.game.addBot(name, char, diff, look);
   }
   removeBot(id = null) {
     return this.game.removeBot(id);
   }
   link() { const n = this.net.peers.size; return { mode: 'host', text: n ? `Hosting · ${n} direct link${n > 1 ? 's' : ''}` : 'Hosting · waiting for players' }; }
   async start() {
-    this.game.addPlayer(this.id, this.name, this.char);
+    this.game.addPlayer(this.id, this.name, this.char, null, this.look);
     this.code = await this.net.start();
     this.stopTicker = startTicker(() => this.step());
     return this.code;
@@ -270,6 +270,7 @@ export class HostSession {
     if (!m || typeof m.t !== 'string') return;
     if (m.t === 'i') this.game.queueInput(id, m.in);
     else if (m.t === 'ping' && peer) this.net.send(peer, { t: 'pong', c: m.c });
+    else if (m.t === 'look') this.game.setLook(id, m.lk);
     else if (m.t === 'bye' && peer) this.net.drop(peer, 'left');
   }
   async stop() { this.stopTicker?.(); await this.net.stop(); }
@@ -277,8 +278,9 @@ export class HostSession {
 
 /* Guest: predicted local player, everything else from the host. */
 export class GuestSession {
-  constructor({ lobby, world, id, name, char, map = 'forest', seed = 0, mode = 'ffa', view, hud, audio, RTC, onExit, NetGuestClass = NetGuest, signaling }) {
-    Object.assign(this, { onExit, map, seed, mode, ping: null });
+  constructor({ lobby, world, id, name, char, look = '', map = 'forest', seed = 0, mode = 'ffa', view, hud, audio, RTC, onExit, NetGuestClass = NetGuest, signaling }) {
+    Object.assign(this, { onExit, map, seed, mode, look, ping: null });
+    this.initReceived = new Promise(res => { this._resolveInit = res; });
     this.client = new Client({ world, id, view, hud, audio, send: m => this.net.send(m, m.t === 'i') });
     this.net = new NetGuestClass({
       lobby, signaling, RTC, id, name, char,
@@ -286,6 +288,9 @@ export class GuestSession {
         if (m.t === 's') this.client.onSnapshot(m);
         else if (m.t === 'init') {
           if (m.mode) this.mode = m.mode;
+          if (typeof m.map === 'string') this.map = m.map;
+          if (Number.isFinite(m.seed)) this.seed = m.seed;
+          this._resolveInit?.(m);
         }
         else if (m.t === 'pong') this.ping = Math.round(performance.now() - m.c);
         else if (m.t === 'bye') this.end('The host closed the room.');
@@ -299,12 +304,17 @@ export class GuestSession {
   async join(room, onStatus) {
     this.room = room;
     await this.net.connect(room, { onStatus });
+    if (this.look) this.net.send({ t: 'look', lk: this.look });
     let pingAt = 0;
     this.stopTicker = startTicker(() => {
       this.client.tick();
       const t = performance.now();
       if (t - pingAt > 1000) { pingAt = t; this.net.send({ t: 'ping', c: t }); }
     });
+  }
+  /* Resolves once the host's init (map, seed, mode) arrived; the world must not be built before. */
+  waitForInit(ms = 10000) {
+    return Promise.race([this.initReceived, new Promise((_, rej) => setTimeout(() => rej(new Error('The host did not send the match settings in time.')), ms))]);
   }
   end(msg) { if (this.ended) return; this.ended = true; this.stop(); this.onExit?.(msg); }
   stop() { this.stopTicker?.(); this.net.send({ t: 'bye' }); setTimeout(() => this.net.close(), 100); }
