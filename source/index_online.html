@@ -30,6 +30,7 @@
       <button class="nav-btn" data-page="operative" type="button"><svg><use href="#i-person"/></svg>Operative</button>
       <button class="nav-btn" data-page="loadout" type="button"><svg><use href="#i-crosshair"/></svg>Loadout</button>
       <button class="nav-btn" data-page="maps" type="button"><svg><use href="#i-map"/></svg>Battlefields</button>
+      <button class="nav-btn" data-page="editor" type="button"><svg><use href="#i-map"/></svg>Map Editor</button>
       <button class="nav-btn" data-page="settings" type="button"><svg><use href="#i-settings"/></svg>Settings</button>
     </nav>
     <div class="sidebar-bottom">
@@ -219,9 +220,30 @@
                 <div id="roster-skins" class="btn-group"></div>
               </div>
 
-              <div class="toolbar-section">
-                <span class="toolbar-label">TEAM SHADER:</span>
-                <div id="roster-swatches" class="swatch-group"></div>
+              <div class="creator-panel" id="creator-panel" aria-label="Appearance creator">
+                <div class="toolbar-section">
+                  <span class="toolbar-label">PRESET:</span>
+                  <div id="creator-presets" class="btn-group" role="group" aria-label="Appearance presets"></div>
+                </div>
+                <div class="toolbar-section">
+                  <span class="toolbar-label">OUTFIT:</span>
+                  <div id="creator-outfits" class="btn-group" role="group" aria-label="Outfit surface"></div>
+                </div>
+                <div class="toolbar-section">
+                  <span class="toolbar-label">SKIN TONE:</span>
+                  <div id="creator-skins" class="btn-group" role="group" aria-label="Skin tone"></div>
+                </div>
+                <div class="toolbar-section">
+                  <span class="toolbar-label">SHADER:</span>
+                  <div id="creator-shaders" class="btn-group" role="group" aria-label="Shader look"></div>
+                  <span class="toolbar-label" style="margin-left:12px;">ACCENT:</span>
+                  <div id="creator-accents" class="swatch-group" role="group" aria-label="Accent colour"></div>
+                </div>
+                <div class="toolbar-section">
+                  <button id="creator-reset" class="small-btn" type="button">⟲ Default look</button>
+                  <button id="creator-revert" class="small-btn" type="button">↶ Revert to saved</button>
+                  <span id="creator-status" class="muted-note" aria-live="polite"></span>
+                </div>
               </div>
             </div>
           </div>
@@ -385,6 +407,14 @@
       </section>
 
       <!-- VIEW 5: SETTINGS -->
+      <!-- VIEW: MAP EDITOR -->
+      <section class="view" id="page-editor">
+        <div class="section-label"><span class="lead"></span>MAP WORKSHOP / 05</div>
+        <h1 class="page-title">Map editor.</h1>
+        <p class="page-desc">Build an arena, check it is playable, then play-test it or host it. Guests receive your map when they join.</p>
+        <div id="editor-root"></div>
+      </section>
+
       <section class="view" id="page-settings">
         <div class="section-label"><span class="lead"></span>STATION CONFIGURATION / 05</div>
         <h1 class="page-title">Fine tune.</h1>
@@ -505,6 +535,7 @@
         <div class="form-group">
           <label class="field-label" for="map-select">Battlefield</label>
           <select class="field" id="map-select">
+            <option value="orbit">Orbit Crown · Tiny Planet Arena (2–6)</option>
             <option value="foundry">Foundry Core · Molten Industrial (FFA 2–6)</option>
             <option value="glowplant">Reactor Complex · Sub-Orbital Nuclear (TDM 4–10)</option>
             <option value="zenith">Zenith Atrium · Vertical Sky Arena (4–12)</option>
@@ -523,6 +554,12 @@
             <option value="ffa">Free For All (FFA)</option>
             <option value="tdm">Team Deathmatch (TDM)</option>
           </select>
+          <p class="muted-note" id="mode-brief" style="margin-top:6px;"></p>
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="weather-select">Weather</label>
+          <select class="field" id="weather-select"></select>
+          <p class="muted-note" id="weather-note" style="margin-top:6px;"></p>
         </div>
         <div class="field-row">
           <div class="form-group">
@@ -603,7 +640,10 @@
   <div id="elim-feed"></div>
   <ul id="feed"></ul>
 
-  <!-- Top Center: Match Status -->
+  <!-- Top Center: Mode / score / objective (filled by hud_online.js) -->
+  <div id="objective" role="status" aria-live="off" hidden></div>
+
+  <!-- Top Right: link + match controls -->
   <div id="topbar">
     <span id="link"></span>
     <span id="tdm-score" class="tdm-score-banner" hidden></span>

@@ -1,5 +1,10 @@
 /* Authoritative match state. Only the host runs this: it applies every player's
    inputs, resolves shots, and owns health, kills, respawns, bots, barrels, grenades, and the round. */
+import { isTeamMode } from './modes.js';
+import { weatherAt, encodeWeather, normalizeWeatherOption } from './weather.js';
+import { newObjective, stepObjective, objectiveSnapshot } from './objectives.js';
+import { canonicalLook, makeLookLimiter, MAX_LOOK_BYTES } from './appearance.js';
+import { GRENADE, stepGrenadeBody } from './sim.js';
 import { GUN_ORDER, gunGameWeapon, DT, RULES, WEAPONS, newPlayer, stepPlayer, castShot, PREDICTED, aim, rayBox, supported, B } from './sim.js';
 
 const MAX_CREDIT = 10;   // inputs a player may bank (absorbs network bursts, stops speed-ups)
@@ -23,10 +28,13 @@ export function hasLOS(world, from, to) {
 }
 
 export class HostGame {
-  constructor(world, { random = Math.random, mode = 'ffa' } = {}) {
+  constructor(world, { random = Math.random, mode = 'ffa', weather = 'off', weatherSeed = 0 } = {}) {
     this.world = world;
+    this.weather = normalizeWeatherOption(weather);
+    this.weatherSeed = weatherSeed | 0;
     this.random = random;
-    this.mode = mode; // 'ffa', 'tdm' or 'gungame'
+    this.mode = mode; // 'ffa', 'tdm', 'gungame', 'control' or 'ctf' (see modes.js)
+    this.team = isTeamMode(mode);
     this.players = new Map();
     this.queues = new Map();
     this.credit = new Map();
@@ -41,17 +49,20 @@ export class HostGame {
     this.endAt = 0;
     this.events = [];
     this.teams = { red: { kills: 0 }, blue: { kills: 0 } };
+    this.objective = newObjective(mode, world);
+    if ((mode === 'control' || mode === 'ctf') && !this.objective) throw Error(`${mode.toUpperCase()} is not available on this map`);
   }
 
-  addPlayer(id, name, char = '', team = null) {
+  addPlayer(id, name, char = '', team = null, look = '') {
     if (this.players.has(id)) return this.players.get(id);
     if (this.players.size >= RULES.maxPlayers) throw Error('Room is full');
     const used = new Set([...this.players.values()].map(p => p.slot));
     let slot = 0; while (used.has(slot)) slot++;
     const p = newPlayer(id, String(name || 'Player').slice(0, 20), slot);
     p.char = String(char || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').slice(0, 32);
+    p.look = canonicalLook(look);
 
-    if (this.mode === 'tdm') {
+    if (this.team) {
       const redCount = [...this.players.values()].filter(x => x.team === 'red').length;
       const blueCount = [...this.players.values()].filter(x => x.team === 'blue').length;
       p.team = team || (redCount <= blueCount ? 'red' : 'blue');
@@ -67,7 +78,18 @@ export class HostGame {
     return p;
   }
 
-  addBot(name = null, char = '', diff = 'medium') {
+  /* Cosmetic look change from a player. The host canonicalises it and rate-limits per player;
+     the next snapshot carries the result to everyone (including late joiners). */
+  setLook(id, raw, now = this.time) {
+    const p = this.players.get(id);
+    if (!p) return false;
+    if (typeof raw === 'string' ? raw.length > MAX_LOOK_BYTES : !raw || typeof raw !== 'object') return false;
+    if (!(this.lookLimiter ||= makeLookLimiter())(id, now)) return false;
+    p.look = canonicalLook(raw);
+    return true;
+  }
+
+  addBot(name = null, char = '', diff = 'medium', look = '') {
     if (this.players.size >= RULES.maxPlayers) throw Error('Room is full');
     const existing = new Set([...this.players.values()].map(p => p.name));
     let botName = name;
@@ -76,7 +98,7 @@ export class HostGame {
     }
     const chosenChar = char || CHAR_ROSTER[this.bots.size % CHAR_ROSTER.length];
     const botId = 'bot_' + Math.random().toString(36).slice(2, 8);
-    const p = this.addPlayer(botId, botName, chosenChar);
+    const p = this.addPlayer(botId, botName, chosenChar, null, look);
     p.isBot = true;
     p.botDiff = diff;
     p.botStrafeDir = Math.random() > 0.5 ? 1 : -1;
@@ -141,6 +163,14 @@ export class HostGame {
     // Step Active Grenades
     this.stepGrenades();
 
+    // Objective modes (host ticks, resolved once per round)
+    if (this.objective && this.phase === 'play') {
+      const { state, events, result } = stepObjective(this.objective, this.players.values());
+      this.objective = state;
+      for (const e of events) this.events.push(e);
+      if (result) this.endRound(result.winner, true);
+    }
+
     // End Phase Check
     if (this.phase === 'ended' && this.time >= this.endAt) this.restart();
 
@@ -168,10 +198,10 @@ export class HostGame {
       x: p.x + d[0] * 0.45,
       y: p.y + eyeH,
       z: p.z + d[2] * 0.45,
-      vx: d[0] * 19 + p.vx * 0.35,
-      vy: d[1] * 19 + 4.2,
-      vz: d[2] * 19 + p.vz * 0.35,
-      fuse: 2.2,
+      vx: d[0] * GRENADE.speed + p.vx * 0.35,
+      vy: d[1] * GRENADE.speed + GRENADE.lift,
+      vz: d[2] * GRENADE.speed + p.vz * 0.35,
+      fuse: GRENADE.fuse,
       owner: p.id,
       alive: true,
     };
@@ -191,45 +221,7 @@ export class HostGame {
 
   stepGrenades() {
     for (const g of this.grenades) {
-      g.vy -= 18 * DT;
-      g.x += g.vx * DT;
-      g.y += g.vy * DT;
-      g.z += g.vz * DT;
-
-      // Box bounce collision
-      for (const b of this.world.boxes) {
-        if (g.x > b[0] - 0.15 && g.x < b[3] + 0.15 && g.y > b[1] - 0.15 && g.y < b[4] + 0.15 && g.z > b[2] - 0.15 && g.z < b[5] + 0.15) {
-          const dTop = Math.abs(g.y - (b[4] + 0.15));
-          const dBot = Math.abs(g.y - (b[1] - 0.15));
-          const dMinX = Math.abs(g.x - (b[0] - 0.15));
-          const dMaxX = Math.abs(g.x - (b[3] + 0.15));
-          const dMinZ = Math.abs(g.z - (b[2] - 0.15));
-          const dMaxZ = Math.abs(g.z - (b[5] + 0.15));
-
-          const minD = Math.min(dTop, dBot, dMinX, dMaxX, dMinZ, dMaxZ);
-          if (minD === dTop) {
-            g.y = b[4] + 0.15;
-            g.vy = Math.abs(g.vy) * 0.45;
-            if (Math.abs(g.vy) < 0.8) g.vy = 0;
-            g.vx *= 0.65; g.vz *= 0.65;
-          } else if (minD === dBot) {
-            g.y = b[1] - 0.15;
-            g.vy = -Math.abs(g.vy) * 0.45;
-          } else if (minD === dMinX || minD === dMaxX) {
-            g.vx = -g.vx * 0.55;
-            g.x = minD === dMinX ? b[0] - 0.15 : b[3] + 0.15;
-          } else {
-            g.vz = -g.vz * 0.55;
-            g.z = minD === dMinZ ? b[2] - 0.15 : b[5] + 0.15;
-          }
-        }
-      }
-
-      // Rolling friction when rolling on the ground
-      if (Math.abs(g.vy) < 0.8) {
-        g.vx *= 0.95;
-        g.vz *= 0.95;
-      }
+      stepGrenadeBody(g, this.world.boxes, DT);
 
       g.fuse -= DT;
       if (g.fuse <= 0 && g.alive) {
@@ -255,7 +247,7 @@ export class HostGame {
     // Damage Players
     for (const p of this.players.values()) {
       if (!p.alive) continue;
-      if (this.mode === 'tdm' && attacker && p.team === attacker.team && p !== attacker) continue;
+      if (this.team && attacker && p.team === attacker.team && p !== attacker) continue;
       const dist = Math.hypot(p.x - x, (p.y + 0.9) - y, p.z - z);
       if (dist <= maxRadius) {
         if (!hasLOS(this.world, [x, y, z], [p.x, p.y + 0.9, p.z])) continue;
@@ -318,7 +310,7 @@ export class HostGame {
         } else if (h.id) {
           const victim = this.players.get(h.id);
           if (victim && victim.alive) {
-            if (this.mode === 'tdm' && victim.team === p.team && victim !== p) continue; // No friendly fire
+            if (this.team && victim.team === p.team && victim !== p) continue; // No friendly fire
             this.damage(victim, p, h.head, wep, h.backstab);
           }
         }
@@ -341,7 +333,7 @@ export class HostGame {
     if (killer && killer !== victim && !(gg && killer.k >= GUN_ORDER.length - 1 && wepId !== 'knife')) {
       killer.k++;
       if (gg && killer.ammos) killer.ammos[gunGameWeapon(killer.k)] = WEAPONS[gunGameWeapon(killer.k)].mag;
-      if (this.mode === 'tdm' && killer.team && killer.team !== 'none') {
+      if (this.team && killer.team && killer.team !== 'none') {
         this.teams[killer.team].kills++;
       }
     }
@@ -360,7 +352,7 @@ export class HostGame {
     });
 
     // Check Win Condition
-    if (this.phase === 'play') {
+    if (this.phase === 'play' && !this.objective) {
       if (this.mode === 'tdm') {
         const winKills = RULES.winKillsTDM || 25;
         if (killer && this.teams[killer.team]?.kills >= winKills) {
@@ -380,8 +372,18 @@ export class HostGame {
     }
   }
 
+  /* Ends the round once; `winner` is a team, a player id or 'draw'. */
+  endRound(winner, isTeam) {
+    if (this.phase !== 'play') return;
+    this.phase = 'ended';
+    this.winner = winner;
+    this.endAt = this.time + RULES.endPause;
+    this.events.push({ t: 'end', winner, isTeam, draw: winner === 'draw' });
+  }
+
   restart() {
     this.phase = 'play';
+    if (this.objective) this.objective = newObjective(this.mode, this.world);
     this.winner = null;
     this.teams.red.kills = 0;
     this.teams.blue.kills = 0;
@@ -396,9 +398,9 @@ export class HostGame {
   // Spawn at the point farthest from living opponents (floors count, so a spawn
   // directly above or below an enemy is no safer than one in the same room).
   spawn(p) {
-    const others = [...this.players.values()].filter(o => o !== p && o.alive && (this.mode !== 'tdm' || o.team !== p.team));
+    const others = [...this.players.values()].filter(o => o !== p && o.alive && (!this.team || o.team !== p.team));
     let pool = this.world.spawns;
-    if (this.mode === 'tdm') {
+    if (this.team) {
       const mine = pool.filter(s => s.team === p.team);
       if (mine.length >= 2) pool = mine;
     }
@@ -430,7 +432,7 @@ export class HostGame {
       }
 
       // Find best target
-      const enemies = [...this.players.values()].filter(o => o !== bot && o.alive && (this.mode !== 'tdm' || o.team !== bot.team));
+      const enemies = [...this.players.values()].filter(o => o !== bot && o.alive && (!this.team || o.team !== bot.team));
       let bestTarget = null, bestDist = Infinity;
       for (const e of enemies) {
         const d = Math.hypot(e.x - bot.x, e.z - bot.z);
@@ -531,6 +533,7 @@ export class HostGame {
         name: p.name,
         slot: p.slot,
         char: p.char,
+        lk: p.look,
         team: p.team,
         isBot: !!p.isBot,
         yaw: round(p.yaw),
@@ -555,6 +558,8 @@ export class HostGame {
       teams: this.teams,
       winner: this.winner,
       endIn: this.phase === 'ended' ? round(this.endAt - this.time) : 0,
+      ...(this.objective ? { obj: objectiveSnapshot(this.objective) } : {}),
+      ...(this.weather !== 'off' ? { wx: encodeWeather(weatherAt(this.weather, this.weatherSeed, this.time)) } : {}),
       players,
     };
   }

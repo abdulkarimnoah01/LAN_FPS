@@ -10,8 +10,11 @@ function apply(id) {
   try { localStorage.setItem(KEY, pid); } catch {}
 }
 
-export function initPalette() {
-  let id = 'red';
+/* `extra` palettes are prepended (the online build adds its Orbit theme); `fallback` is the
+   palette used when the player never chose one. Classic calls initPalette() unchanged. */
+export function initPalette(extra = [], fallback = 'red') {
+  for (const p of [...extra].reverse()) if (!PALETTES.some(q => q[0] === p[0])) PALETTES.unshift(p);
+  let id = fallback;
   try { id = localStorage.getItem(KEY) || id; } catch {}
   apply(id);
   document.getElementById('btn-palette')?.addEventListener('click', () => {

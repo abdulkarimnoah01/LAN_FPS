@@ -4,10 +4,22 @@
 import { OnlineSignalingClient, OnlineNetHost, LocalNetHost, OnlineNetGuest, LinkError } from './net_online.js';
 import { HostSession, GuestSession } from './game.js';
 import { View, CharacterPreview, HeroViewer, loadAssets, buildWorld } from './render_babylon.js';
-import { Hud, Sound } from './hud.js';
+import { Sound } from './hud.js';
+import { OnlineHud } from './hud_online.js';
+import { publicModes, MODE_CATALOG, modeSupportsMap } from './modes.js';
+import { PLANET_GENERATOR_VERSION } from './planet_map.js';
+import { WEATHER_OPTIONS, WEATHER_LABELS, weatherAllowed } from './weather.js';
+import { MapEditor, getActiveCustomMap, setActiveCustomMap } from './editor_online.js';
+import { validateCustomMap, CUSTOM_MAP_ID } from './custom_map.js';
+import { openMapPreview } from './babylon/editor_preview.js';
 import { B } from './sim.js';
 import { initPalette } from './palette.js';
-import { HERO_ROSTER, getHeroData, SKIN_OF, baseHeroId } from './heroes.js';
+import { HERO_ROSTER, getHeroData as legacyHeroData, SKIN_OF, baseHeroId } from './heroes.js';
+import { CATALOG, loadAppearance, saveAppearance, normalizeAppearance, applyPreset, encodeLook, sameLook, DEFAULT_LOOK, PRESETS } from './appearance.js';
+import { ngHeroData, NG_BODIES } from './ng_bodies.js';
+
+/* Next Gen bodies describe themselves; legacy roster entries keep their dossiers. */
+const getHeroData = (id, name) => ngHeroData(id) || legacyHeroData(id, name);
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -28,10 +40,42 @@ function cleanName(s, max = 20, fallback = 'Operative') {
 
 const myId = randomHex(8);
 let signaling = null, session = null, view = null, world = null, assets = null;
-const hud = new Hud(), sound = new Sound();
+const hud = new OnlineHud(), sound = new Sound();
+
+/* Public mode selector comes from the catalog, so only finished modes are offered. */
+function populateModeSelect() {
+  const sel = $('mode-select');
+  if (!sel) return;
+  const prev = sel.value;
+  const map = $('map-select')?.value;
+  if ($('map-select') && !$('map-select').dataset.modeSync) { $('map-select').dataset.modeSync = '1'; $('map-select').addEventListener('change', populateModeSelect); }
+  const customModes = map === CUSTOM_MAP_ID ? (validateCustomMap(getActiveCustomMap()).modes || []) : null;
+  sel.replaceChildren(...publicModes().filter(m => customModes ? customModes.includes(m.id) : (!map || modeSupportsMap(m.id, map))).map(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = `${m.name} (${m.short})`; o.title = m.brief; return o; }));
+  if (MODE_CATALOG[prev]?.ready && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+  const note = $('mode-brief');
+  const sync = () => { if (note) note.textContent = MODE_CATALOG[sel.value]?.brief || ''; };
+  sel.onchange = sync; sync();
+  populateWeatherSelect();
+}
+
+/* Weather choice for the host; indoor/space maps have none. */
+function populateWeatherSelect() {
+  const sel = $('weather-select');
+  if (!sel) return;
+  const map = $('map-select')?.value, allowed = weatherAllowed(map);
+  const prev = sel.value || store.get('weather', 'dynamic');
+  sel.replaceChildren(...(allowed ? WEATHER_OPTIONS : ['off']).map(id => { const o = document.createElement('option'); o.value = id; o.textContent = id === 'off' && !allowed ? 'None (indoor arena)' : WEATHER_LABELS[id]; return o; }));
+  sel.value = allowed && WEATHER_OPTIONS.includes(prev) ? prev : (allowed ? 'dynamic' : 'off');
+  sel.disabled = !allowed;
+  sel.onchange = () => store.set('weather', sel.value);
+  if ($('weather-note')) $('weather-note').textContent = allowed ? 'Dynamic cycles sunny, cloudy, fog and rain every few minutes. Cosmetic only.' : 'This arena is indoors or in orbit, so it has no weather.';
+}
+const chosenWeather = map => (weatherAllowed(map) ? ($('weather-select')?.value || 'dynamic') : 'off');
 
 /* ---- Map Briefings & Presentation Data ---- */
 const MAPS = {
+  custom: ['Custom Map', 'A map built in the Map Editor and sent to every player when they join.'],
+  orbit: ['Orbit Crown', 'A seeded tiny-planet arena: a terraced crown district on top of a little world. Plaza, ring road, covered flanks and two team stations.'],
   foundry: ['Foundry Core', 'Molten industrial casting pit. Elevated catwalks. Fast CQB encounters.'],
   glowplant: ['Reactor Complex', 'Sub-orbital nuclear facility with pulsating blue plasma cores and dual jump pads.'],
   zenith: ['Zenith Atrium', 'High-altitude vertical multi-tier sky arena with velocity jump pads and vertigo sightlines.'],
@@ -45,6 +89,7 @@ const MAPS = {
 };
 
 const MAP_CATALOG = [
+  { id: 'orbit', sector: '00', cqb: 'Planet arena. Central plaza with a beacon, a ring road loop, covered colonnades and team stations. A new layout seed for every room; the crown plays on flat ground (not walk-around gravity).' },
   { id: 'foundry', sector: '01', cqb: 'Molten industrial casting pit. Elevated catwalks. Fast CQB encounters.' },
   { id: 'glowplant', sector: '02', cqb: 'Sub-orbital nuclear facility with pulsating blue plasma cores and dual jump pads.' },
   { id: 'zenith', sector: '03', cqb: 'High-altitude vertical multi-tier sky arena with velocity jump pads and vertigo sightlines.' },
@@ -110,8 +155,42 @@ const PAGE_NAMES = {
   operative: 'OPERATIVE',
   loadout: 'LOADOUT',
   maps: 'BATTLEFIELDS',
+  editor: 'MAP EDITOR',
   settings: 'SETTINGS',
 };
+
+/* ---- Map editor & custom maps ---- */
+let mapEditor = null;
+function openEditor() {
+  if (!mapEditor && $('editor-root')) {
+    mapEditor = new MapEditor($('editor-root'), {
+      toast,
+      createPreview: world => openMapPreview(world),
+      onPlay: () => { refreshCustomMapOption(); const sel = $('map-select'); sel.value = CUSTOM_MAP_ID; populateModeSelect(); startPracticeMatch(); },
+      onHost: () => { refreshCustomMapOption(); go('play'); const sel = $('map-select'); sel.value = CUSTOM_MAP_ID; populateModeSelect(); openDrawer('host'); },
+    });
+  }
+  requestAnimationFrame(() => mapEditor?.draw());
+}
+
+/* Keeps a "Custom" entry in the map picker for the editor's active map. */
+function refreshCustomMapOption() {
+  const sel = $('map-select');
+  if (!sel) return;
+  const m = getActiveCustomMap();
+  let opt = sel.querySelector(`option[value="${CUSTOM_MAP_ID}"]`);
+  if (!m) { opt?.remove(); return; }
+  if (!opt) { opt = document.createElement('option'); opt.value = CUSTOM_MAP_ID; sel.prepend(opt); }
+  opt.textContent = `Custom · ${m.name} (${m.size} m)`;
+}
+
+/* World for the host's chosen map; custom maps must pass validation first. */
+function hostWorld(map, seed) {
+  if (map !== CUSTOM_MAP_ID) return buildWorld(assets, map, seed);
+  const v = validateCustomMap(getActiveCustomMap());
+  if (!v.ok) throw new Error('Your custom map is not playable yet: ' + (v.errors[0] || 'open the Map Editor to fix it.'));
+  return buildWorld(assets, CUSTOM_MAP_ID, 0, getActiveCustomMap());
+}
 let activePage = 'play';
 
 function go(page) {
@@ -137,6 +216,7 @@ function go(page) {
   if (page === 'settings') {
     syncSettingsUI();
   }
+  if (page === 'editor') openEditor();
   if (page === 'maps') {
     renderMapsCatalog();
   }
@@ -404,6 +484,15 @@ let currentRosterSkinId = null;
 let currentRosterColor = '#f0a640';
 let currentRosterAnim = 'idle';
 
+const defaultChar = () => (assets?.characters || []).find(c => c.ng)?.id || assets?.characters?.[0]?.id || 'abdulkarim';
+const equippedChar = () => {
+  const id = store.get('char', '');
+  return (assets?.characters || []).some(c => c.id === id) ? id : defaultChar();
+};
+/* Saved appearance code sent to the host when joining/hosting. */
+const equippedLookCode = () => encodeLook(loadAppearance(store, equippedChar()));
+let draftLook = null;   // creator edits, applied to the turntable until saved
+
 const rosterChars = () => {
   if (assets?.characters && assets.characters.length > 0) {
     return assets.characters.filter(c => !SKIN_OF[c.id]);
@@ -415,7 +504,7 @@ function updateLobbyHeroCard() {
   const chars = rosterChars();
   if (!chars || chars.length === 0) return;
 
-  const activeId = store.get('char', chars[0]?.id || 'abdulkarim');
+  const activeId = equippedChar();
   const heroChar = (assets?.characters || []).find(c => c.id === activeId) || chars[0];
   const hero = getHeroData(activeId, heroChar?.name);
   const heroIdx = chars.findIndex(c => c.id === baseHeroId(heroChar?.id));
@@ -434,7 +523,7 @@ function updateLobbyHeroCard() {
     if (!lobbyPortrait) {
       lobbyPortrait = new CharacterPreview($('lobby-portrait'), assets);
     }
-    lobbyPortrait.show(heroChar.id, hero.defaultColor || '#f0a640');
+    lobbyPortrait.show(heroChar.id, hero.defaultColor || '#f0a640', loadAppearance(store, heroChar.id));
   }
 }
 
@@ -442,7 +531,8 @@ function openOperativeView(selectedHeroId = null) {
   const chars = rosterChars();
   if (!chars || chars.length === 0) return;
 
-  const activeId = baseHeroId(store.get('char', chars[0].id));
+  const activeId = baseHeroId(equippedChar());
+  draftLook = loadAppearance(store, equippedChar());
   currentRosterHeroId = baseHeroId(selectedHeroId || activeId || chars[0].id);
 
   if (!heroViewer && assets && $('roster-canvas')) {
@@ -518,14 +608,14 @@ function selectRosterHero(id) {
   const hero = chars.find(c => c.id === baseHeroId(id)) || chars[0];
   id = currentRosterHeroId = hero.id;
   const data = getHeroData(hero.id, hero.name);
-  const storedId = store.get('char', chars[0].id);
+  const storedId = equippedChar();
 
   const availableChars = assets?.characters || [];
   const skins = (data.skins || []).filter(k => availableChars.some(c => c.id === k.id));
   if (!skins.some(k => k.id === currentRosterSkinId) || baseHeroId(currentRosterSkinId) !== id) {
     currentRosterSkinId = baseHeroId(storedId) === id && availableChars.some(c => c.id === storedId) ? storedId : id;
   }
-  const isEquipped = currentRosterSkinId === storedId;
+  const isEquipped = currentRosterSkinId === storedId && sameLook(draftLook, loadAppearance(store));
 
   // Highlight active sidebar card
   document.querySelectorAll('#roster-cards .roster-hero-item').forEach(el => {
@@ -544,11 +634,8 @@ function selectRosterHero(id) {
       btn.onclick = () => {
         currentRosterSkinId = k.id;
         skinsEl.querySelectorAll('.anim-btn').forEach(b => b.classList.toggle('on', b === btn));
-        updateRosterEquipButton(k.id === store.get('char', ''));
-        if ($('dossier-status-pill')) {
-          $('dossier-status-pill').textContent = k.id === store.get('char', '') ? 'EQUIPPED' : 'READY';
-        }
-        heroViewer?.show(k.id, currentRosterColor, currentRosterAnim);
+        refreshCreatorState();
+        heroViewer?.show(k.id, currentRosterColor, currentRosterAnim, draftLook);
       };
       return btn;
     }));
@@ -586,42 +673,20 @@ function selectRosterHero(id) {
 
   updateRosterEquipButton(isEquipped);
 
-  // Swatches
-  currentRosterColor = data.defaultColor || '#f0a640';
-  const swatchesEl = $('roster-swatches');
-  if (swatchesEl) {
-    swatchesEl.replaceChildren(...(data.swatches || [
-      { name: 'Default', color: currentRosterColor },
-      { name: 'Red', color: '#ef4444' },
-      { name: 'Blue', color: '#3b82f6' }
-    ]).map((s, idx) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'swatch-btn' + (idx === 0 ? ' on' : '');
-      btn.style.backgroundColor = s.color;
-      btn.title = s.name;
-      btn.setAttribute('aria-label', s.name + ' team shader');
-      btn.onclick = () => {
-        swatchesEl.querySelectorAll('.swatch-btn').forEach(b => b.classList.remove('on'));
-        btn.classList.add('on');
-        currentRosterColor = s.color;
-        heroViewer?.setColor(s.color);
-      };
-      return btn;
-    }));
-  }
+  currentRosterColor = data.defaultColor || '#22d3ee';
+  renderCreator();
 
-  heroViewer?.show(currentRosterSkinId, currentRosterColor, currentRosterAnim);
+  heroViewer?.show(currentRosterSkinId, currentRosterColor, currentRosterAnim, draftLook);
 }
 
 function updateRosterEquipButton(isEquipped) {
   const btn = $('btn-roster-equip');
   if (!btn) return;
   if (isEquipped) {
-    btn.textContent = '✓ CURRENTLY EQUIPPED';
+    btn.textContent = '✓ SAVED & EQUIPPED';
     btn.disabled = true;
   } else {
-    btn.textContent = '✓ Equip Active Operative';
+    btn.textContent = '✓ Save & Equip Operative';
     btn.disabled = false;
   }
 }
@@ -629,10 +694,57 @@ function updateRosterEquipButton(isEquipped) {
 function equipRosterHero(id) {
   store.set('char', id);
   store.set('equippedHero', id);
+  saveAppearance(store, { ...draftLook, bodyId: id });
   currentRosterSkinId = id;
   updateLobbyHeroCard();
   selectRosterHero(baseHeroId(id));
-  toast('Equipped operative: ' + getHeroData(id).name);
+  toast('Saved operative: ' + getHeroData(id).name);
+}
+
+/* ---- Appearance creator: one draft look, previewed on the live turntable rig ---- */
+function setDraft(next, status = '') {
+  draftLook = normalizeAppearance(next, currentRosterSkinId);
+  renderCreator();
+  if ($('creator-status')) $('creator-status').textContent = status || 'Previewing — press Save to keep it';
+  const st = $('creator-status');
+  heroViewer?.setLook(draftLook).catch(() => { if (st) st.textContent = 'Could not apply that look; using the default.'; });
+}
+
+function choiceButtons(el, items, selectedId, onPick, swatch = false) {
+  if (!el) return;
+  el.replaceChildren(...items.map(item => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = (swatch ? 'swatch-btn' : 'anim-btn') + (item.id === selectedId ? ' on' : '');
+    btn.setAttribute('aria-pressed', String(item.id === selectedId));
+    if (swatch) { btn.style.backgroundColor = item.color; btn.title = item.name; btn.setAttribute('aria-label', item.name + ' accent'); }
+    else btn.textContent = item.name;
+    btn.onclick = () => onPick(item.id);
+    return btn;
+  }));
+}
+
+function renderCreator() {
+  if (!draftLook) draftLook = loadAppearance(store, currentRosterSkinId);
+  const L = draftLook;
+  const preset = PRESETS.find(p => p.outfitId === L.outfitId && p.skinId === L.skinId && p.shaderId === L.shaderId && p.accentId === L.accentId);
+  choiceButtons($('creator-presets'), CATALOG.presets, preset?.id, id => setDraft(applyPreset(draftLook, id)));
+  choiceButtons($('creator-outfits'), CATALOG.outfits, L.outfitId, id => setDraft({ ...draftLook, outfitId: id }));
+  choiceButtons($('creator-skins'), CATALOG.skins, L.skinId, id => setDraft({ ...draftLook, skinId: id }));
+  choiceButtons($('creator-shaders'), CATALOG.shaders, L.shaderId, id => setDraft({ ...draftLook, shaderId: id }));
+  choiceButtons($('creator-accents'), CATALOG.accents, L.accentId, id => setDraft({ ...draftLook, accentId: id }), true);
+  if ($('creator-reset')) $('creator-reset').onclick = () => setDraft({ ...DEFAULT_LOOK }, 'Default look — press Save to keep it');
+  if ($('creator-revert')) $('creator-revert').onclick = () => setDraft(loadAppearance(store), 'Reverted to your saved look');
+  refreshCreatorState();
+}
+
+function refreshCreatorState() {
+  const equipped = currentRosterSkinId === equippedChar() && sameLook(draftLook, loadAppearance(store));
+  updateRosterEquipButton(equipped);
+  if ($('dossier-status-pill')) {
+    $('dossier-status-pill').textContent = equipped ? 'EQUIPPED' : 'READY';
+    $('dossier-status-pill').className = equipped ? 'pill-equipped' : 'pill-equipped off';
+  }
 }
 
 function applyCallsign() {
@@ -807,12 +919,13 @@ async function startPracticeMatch() {
   const roomName = cleanName($('room-name')?.value, 32, playerName() + "'s Arena");
   const map = $('map-select')?.value || 'foundry';
   const mode = $('mode-select')?.value || 'ffa';
-  const seed = map === 'sandbox' ? Math.floor(Math.random() * 900000 + 100000) : 0;
-  const char = store.get('char', 'abdulkarim');
+  const seed = map === 'sandbox' || map === 'orbit' ? Math.floor(Math.random() * 900000 + 100000) : 0;
+  const char = equippedChar();
+  const look = equippedLookCode();
 
   toast('Deploying offline practice match with bots...');
   try {
-    world = buildWorld(assets, map, seed);
+    world = hostWorld(map, seed);
     await prepareView(world);
 
     session = new HostSession({
@@ -822,10 +935,12 @@ async function startPracticeMatch() {
       id: myId,
       name: playerName(),
       char,
+      look,
       roomName,
       map,
       seed,
       mode,
+      weather: chosenWeather(map),
       view,
       hud,
       audio: sound,
@@ -833,8 +948,10 @@ async function startPracticeMatch() {
     });
 
     await session.start();
-    session.addBot('Recon-Alpha', 'mina', 'medium');
-    session.addBot('Heavy-Bravo', 'robot', 'medium');
+    const ng = (assets.characters || []).filter(c => c.ng);
+    const botChar = i => ng.length ? ng[(i + 1) % ng.length].id : '';
+    session.addBot('Recon-Alpha', botChar(1) || 'mina', 'medium', encodeLook(applyPreset({}, PRESETS[2].id)));
+    session.addBot('Heavy-Bravo', botChar(2) || 'robot', 'medium', encodeLook(applyPreset({}, PRESETS[4].id)));
     hud.session = session;
     showGame(true);
   } catch (e) {
@@ -851,8 +968,9 @@ async function hostOnlineMatch() {
   const mode = $('mode-select')?.value || 'ffa';
   const maxPlayers = parseInt($('max-players-select')?.value || '6', 10);
   const isPrivate = $('is-private-checkbox')?.checked || false;
-  const seed = map === 'sandbox' ? Math.floor(Math.random() * 900000 + 100000) : 0;
-  const char = store.get('char', 'abdulkarim');
+  const seed = map === 'sandbox' || map === 'orbit' ? Math.floor(Math.random() * 900000 + 100000) : 0;
+  const char = equippedChar();
+  const look = equippedLookCode();
 
   if (!signaling || !signaling.connected) {
     toast('Connecting to matchmaking server on port 8080...');
@@ -867,7 +985,7 @@ async function hostOnlineMatch() {
 
   toast('Creating match on online server...');
   try {
-    world = buildWorld(assets, map, seed);
+    world = hostWorld(map, seed);
     await prepareView(world);
 
     session = new HostSession({
@@ -877,10 +995,12 @@ async function hostOnlineMatch() {
       id: myId,
       name: playerName(),
       char,
+      look,
       roomName,
       map,
       seed,
       mode,
+      weather: chosenWeather(map),
       view,
       hud,
       audio: sound,
@@ -900,7 +1020,8 @@ async function hostOnlineMatch() {
 
 async function joinOnlineMatch(code) {
   if (session || !assets) return;
-  const char = store.get('char', 'abdulkarim');
+  const char = equippedChar();
+  const look = equippedLookCode();
   const cleanCode = (code || '').trim().toUpperCase();
 
   if (!cleanCode) {
@@ -909,14 +1030,16 @@ async function joinOnlineMatch(code) {
   }
 
   toast(`Connecting to match [${cleanCode}]...`);
+  let s = null;
   try {
-    const s = session = new GuestSession({
+    s = session = new GuestSession({
       signaling,
       NetGuestClass: OnlineNetGuest,
       world: buildWorld(assets, 'foundry', 0),
       id: myId,
       name: playerName(),
       char,
+      look,
       view,
       hud,
       audio: sound,
@@ -924,15 +1047,21 @@ async function joinOnlineMatch(code) {
     });
 
     await s.join({ code: cleanCode }, statusText => toast(statusText));
+    const init = await s.waitForInit();
+    if (init?.gen && init.gen !== PLANET_GENERATOR_VERSION) throw new Error(`This room uses Orbit Crown generator v${init.gen}; your build has v${PLANET_GENERATOR_VERSION}. Update the game to join.`);
 
-    world = buildWorld(assets, s.map, s.seed);
+    world = buildWorld(assets, s.map, s.seed, s.map === CUSTOM_MAP_ID ? init?.custom : null);
+    if (init?.hash && world.layoutHash !== init.hash) throw new Error('Map mismatch: your copy of this map differs from the host\'s, so the match would play on different collision. Update both games to the same version.');
     await prepareView(world);
     s.client.world = world;
+    s.client.view = view;   // the view may not have existed when the session was created
 
     hud.session = s;
     showGame(true);
   } catch (e) {
     session = null;
+    try { s?.stop(); } catch {}       // never leave a half-joined player on the host
+    showGame(false);
     console.error('Join error:', e);
     toast(e instanceof LinkError ? e.message : 'Could not join match: ' + e.message);
   }
@@ -1200,7 +1329,9 @@ function setupInputHandlers() {
 
 /* ---- Client Bootstrap ---- */
 async function bootstrap() {
-  initPalette();
+  initPalette([['orbit', 'Orbit']], 'orbit');
+  refreshCustomMapOption();
+  populateModeSelect();
   const serverInput = $('opt-server');
   if (serverInput) {
     serverInput.value = store.get('serverUrl', '');

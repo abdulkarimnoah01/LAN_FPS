@@ -2,7 +2,8 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { createBabylonEngine } from './engine_factory.js';
-import { makeBabylonCharacter } from './character_loader.js';
+import { makeBabylonCharacter, disposeCharacter, clipName } from './character_loader.js';
+import { applyAppearance } from './appearance_materials.js';
 import { hexToColor3 } from './materials.js';
 
 export class BabylonCharacterPreview {
@@ -69,29 +70,34 @@ export class BabylonCharacterPreview {
     });
 
     if (this.pendingShow) {
-      const { id, colorHex } = this.pendingShow;
+      const { id, colorHex, look } = this.pendingShow;
       this.pendingShow = null;
-      this.show(id, colorHex);
+      this.show(id, colorHex, look);
     }
   }
 
-  async show(id, colorHex = '#f0a640') {
+  async show(id, colorHex = '#f0a640', look = null) {
     if (!this.scene) {
-      this.pendingShow = { id, colorHex };
+      this.pendingShow = { id, colorHex, look };
       return;
     }
-    if (this.currentModel) {
-      this.currentModel.root.dispose();
-      this.currentModel = null;
+    if (this.currentModel && this.currentModel.bodyId === id && look) {
+      await applyAppearance(this.currentModel, look);
+      this.render();
+      return;
     }
-
+    const token = (this._loadToken = (this._loadToken || 0) + 1);
     const char = await makeBabylonCharacter(this.scene, this.assets, id, colorHex);
+    if (token !== this._loadToken) { disposeCharacter(char); return; }
+    if (this.currentModel) disposeCharacter(this.currentModel);
+    this.currentModel = null;
+    if (look) await applyAppearance(char, look);
     char.root.rotation.y = 0;
     char.root.parent = this.turnNode;
     this.currentModel = char;
 
     for (const ag of char.animationGroups) {
-      if (/idle/i.test(ag.name)) {
+      if (clipName(ag.name).toLowerCase() === 'idle') {
         ag.play(true);
       }
     }
@@ -230,9 +236,9 @@ export class BabylonHeroViewer {
     });
 
     if (this.pendingLoad) {
-      const { id, color, animName } = this.pendingLoad;
+      const { id, color, animName, look } = this.pendingLoad;
       this.pendingLoad = null;
-      this.show(id, color, animName);
+      this.show(id, color, animName, look);
     }
   }
 
@@ -296,22 +302,24 @@ export class BabylonHeroViewer {
     }, { passive: false });
   }
 
-  async show(id, color = '#f0a640', animName = 'idle') {
+  async show(id, color = '#f0a640', animName = 'idle', look = null) {
     this.currentCharId = id;
     this.currentColor = color;
     this.currentAnimName = animName;
+    if (look) this.currentLook = look;
 
     if (!this.scene) {
-      this.pendingLoad = { id, color, animName };
+      this.pendingLoad = { id, color, animName, look };
       return;
     }
 
-    if (this.currentModel) {
-      this.currentModel.root.dispose();
-      this.currentModel = null;
-    }
-
+    const token = (this._loadToken = (this._loadToken || 0) + 1);
     const char = await makeBabylonCharacter(this.scene, this.assets, id, color);
+    if (token !== this._loadToken) { disposeCharacter(char); return; }
+    if (this.currentModel) disposeCharacter(this.currentModel);
+    this.currentModel = null;
+    if (this.currentLook) await applyAppearance(char, this.currentLook);
+    if (token !== this._loadToken) { disposeCharacter(char); return; }
     char.root.rotation.y = 0;
     char.root.parent = this.turnNode;
     this.currentModel = char;
@@ -321,12 +329,21 @@ export class BabylonHeroViewer {
     this.render();
   }
 
+  /* Same resolver as gameplay: re-skins the loaded rig in place, no GLB reload. */
+  async setLook(look) {
+    this.currentLook = look;
+    if (this.currentModel) {
+      await applyAppearance(this.currentModel, look);
+      this.render();
+    }
+  }
+
   playAnimation(name) {
     this.currentAnimName = name;
     if (!this.currentModel || !this.currentModel.animationGroups) return;
 
     const ags = this.currentModel.animationGroups;
-    let target = ags.find(ag => new RegExp(name, 'i').test(ag.name));
+    let target = ags.find(ag => clipName(ag.name).toLowerCase() === name) || ags.find(ag => new RegExp(name, 'i').test(ag.name));
     if (!target && name !== 'idle') {
       target = ags.find(ag => /idle/i.test(ag.name));
     }

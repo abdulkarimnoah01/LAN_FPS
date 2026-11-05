@@ -130,9 +130,9 @@ export class Client {
             this.audio?.melee(false, false, pan);
           } else {
             if (e.tracers && e.tracers.length > 1) {
-              for (const tr of e.tracers) this.view?.shot(tr.from, tr.to, false, wepId);
+              for (const tr of e.tracers) this.view?.shot(tr.from, tr.to, false, wepId, e.id);
             } else {
-              this.view?.shot(e.from, e.to, false, wepId);
+              this.view?.shot(e.from, e.to, false, wepId, e.id);
             }
             const d = Math.hypot(e.from[0] - this.me.x, e.from[2] - this.me.z);
             const pan = this.audio?.panFor(this.me.x, this.me.z, this.look.yaw, e.from[0], e.from[2]) || 0;
@@ -181,8 +181,20 @@ export class Client {
         break;
       case 'join': hud?.feed(`${e.name} joined`); break;
       case 'leave': hud?.feed(`${this.name(e.id)} left`); break;
+      case 'flag': {
+        const who = e.by ? this.name(e.by) : '';
+        const T = (e.team || '').toUpperCase();
+        const text = e.act === 'take' ? `${who} took the ${T} flag` : e.act === 'drop' ? `${T} flag dropped` : e.act === 'capture' ? `${who} captured the ${T} flag!` : `${T} flag returned`;
+        hud?.feed(text, e.act === 'capture');
+        break;
+      }
+      case 'zone':
+        hud?.feed(e.owner ? `${e.owner.toUpperCase()} captured the zone` : `${(e.by || '').toUpperCase()} neutralised the zone`);
+        break;
       case 'end':
-        if (e.isTeam) {
+        if (e.draw) {
+          hud?.feed('DRAW — scores level at the time limit', true);
+        } else if (e.isTeam) {
           const teamLabel = e.winner === 'red' ? 'RED TEAM' : 'BLUE TEAM';
           hud?.feed(`${teamLabel} WINS THE MATCH!`, true);
         } else {
@@ -215,7 +227,7 @@ export class Client {
     const o = this.offset, k = Math.exp(-dt * 15);
     o.x *= k; o.y *= k; o.z *= k;
     const me = this.me, shown = { ...me, x: me.x + o.x, y: me.y + o.y, z: me.z + o.z };
-    if (this.view) this.view.scopeZoom = this.scopeZoom;
+    if (this.view) { this.view.scopeZoom = this.scopeZoom; this.view.objective = this.state?.obj || null; this.view.weather = this.state?.wx || null; }
     this.view?.render(dt, shown, this.others(), this.look, this.aiming, this.audio, this.me.w || 0);
     this.hud?.update(this);
   }
@@ -223,9 +235,9 @@ export class Client {
 
 /* Host: authoritative game + local client + direct links to every guest. */
 export class HostSession {
-  constructor({ lobby, world, id, name, char, roomName, map = 'forest', seed = 0, mode = 'ffa', view, hud, audio, RTC, onExit, NetHostClass = NetHost, signaling }) {
-    Object.assign(this, { lobby, world, id, name, char, roomName, map, seed, mode, onExit });
-    this.game = new HostGame(world, { mode });
+  constructor({ lobby, world, id, name, char, look = '', roomName, map = 'forest', seed = 0, mode = 'ffa', weather = 'off', view, hud, audio, RTC, onExit, NetHostClass = NetHost, signaling }) {
+    Object.assign(this, { lobby, world, id, name, char, look, roomName, map, seed, mode, weather, onExit });
+    this.game = new HostGame(world, { mode, weather, weatherSeed: (seed ^ 0x2545f491) + Math.floor(Math.random() * 1e6) });
     this.client = new Client({ world, id, view, hud, audio, send: m => this.handle(id, m) });
     this.net = new NetHostClass({
       lobby, signaling, RTC, id, name, roomName, map, seed, mode,
@@ -234,7 +246,7 @@ export class HostSession {
       onPeer: p => {
         try {
           this.game.addPlayer(p.id, p.name, p.char);
-          this.net.send(p, { t: 'init', map: this.map, seed: this.seed, mode: this.mode });
+          this.net.send(p, { t: 'init', map: this.map, seed: this.seed, mode: this.mode, ...(this.world?.layoutHash ? { gen: this.world.planet?.generatorVersion, hash: this.world.layoutHash } : {}), ...(this.world?.custom ? { custom: this.world.custom } : {}) });
         } catch (e) {
           this.net.send(p, { t: 'refused', msg: e.message });
           setTimeout(() => this.net.drop(p, 'full'), 500);
@@ -244,15 +256,15 @@ export class HostSession {
       onLeave: p => this.game.removePlayer(p.id),
     });
   }
-  addBot(name = null, char = '', diff = 'medium') {
-    return this.game.addBot(name, char, diff);
+  addBot(name = null, char = '', diff = 'medium', look = '') {
+    return this.game.addBot(name, char, diff, look);
   }
   removeBot(id = null) {
     return this.game.removeBot(id);
   }
   link() { const n = this.net.peers.size; return { mode: 'host', text: n ? `Hosting · ${n} direct link${n > 1 ? 's' : ''}` : 'Hosting · waiting for players' }; }
   async start() {
-    this.game.addPlayer(this.id, this.name, this.char);
+    this.game.addPlayer(this.id, this.name, this.char, null, this.look);
     this.code = await this.net.start();
     this.stopTicker = startTicker(() => this.step());
     return this.code;
@@ -270,6 +282,7 @@ export class HostSession {
     if (!m || typeof m.t !== 'string') return;
     if (m.t === 'i') this.game.queueInput(id, m.in);
     else if (m.t === 'ping' && peer) this.net.send(peer, { t: 'pong', c: m.c });
+    else if (m.t === 'look') this.game.setLook(id, m.lk);
     else if (m.t === 'bye' && peer) this.net.drop(peer, 'left');
   }
   async stop() { this.stopTicker?.(); await this.net.stop(); }
@@ -277,8 +290,9 @@ export class HostSession {
 
 /* Guest: predicted local player, everything else from the host. */
 export class GuestSession {
-  constructor({ lobby, world, id, name, char, map = 'forest', seed = 0, mode = 'ffa', view, hud, audio, RTC, onExit, NetGuestClass = NetGuest, signaling }) {
-    Object.assign(this, { onExit, map, seed, mode, ping: null });
+  constructor({ lobby, world, id, name, char, look = '', map = 'forest', seed = 0, mode = 'ffa', view, hud, audio, RTC, onExit, NetGuestClass = NetGuest, signaling }) {
+    Object.assign(this, { onExit, map, seed, mode, look, ping: null });
+    this.initReceived = new Promise(res => { this._resolveInit = res; });
     this.client = new Client({ world, id, view, hud, audio, send: m => this.net.send(m, m.t === 'i') });
     this.net = new NetGuestClass({
       lobby, signaling, RTC, id, name, char,
@@ -286,6 +300,9 @@ export class GuestSession {
         if (m.t === 's') this.client.onSnapshot(m);
         else if (m.t === 'init') {
           if (m.mode) this.mode = m.mode;
+          if (typeof m.map === 'string') this.map = m.map;
+          if (Number.isFinite(m.seed)) this.seed = m.seed;
+          this._resolveInit?.(m);
         }
         else if (m.t === 'pong') this.ping = Math.round(performance.now() - m.c);
         else if (m.t === 'bye') this.end('The host closed the room.');
@@ -299,12 +316,17 @@ export class GuestSession {
   async join(room, onStatus) {
     this.room = room;
     await this.net.connect(room, { onStatus });
+    if (this.look) this.net.send({ t: 'look', lk: this.look });
     let pingAt = 0;
     this.stopTicker = startTicker(() => {
       this.client.tick();
       const t = performance.now();
       if (t - pingAt > 1000) { pingAt = t; this.net.send({ t: 'ping', c: t }); }
     });
+  }
+  /* Resolves once the host's init (map, seed, mode) arrived; the world must not be built before. */
+  waitForInit(ms = 10000) {
+    return Promise.race([this.initReceived, new Promise((_, rej) => setTimeout(() => rej(new Error('The host did not send the match settings in time.')), ms))]);
   }
   end(msg) { if (this.ended) return; this.ended = true; this.stop(); this.onExit?.(msg); }
   stop() { this.stopTicker?.(); this.net.send({ t: 'bye' }); setTimeout(() => this.net.close(), 100); }

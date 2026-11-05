@@ -3,13 +3,16 @@
    PBR materials, dynamic shadows, weapon viewmodels, and cinematic effects. */
 
 import * as BABYLON from '@babylonjs/core';
-import { WEAPONS, DT, H_STAND, H_CROUCH, EYE_STAND, EYE_CROUCH } from '../sim.js';
+import { WEAPONS, DT, H_STAND, H_CROUCH, EYE_STAND, EYE_CROUCH, GRENADE, stepGrenadeBody } from '../sim.js';
 import { createBabylonEngine } from './engine_factory.js';
 import { getPBRMaterial, hexToColor3 } from './materials.js';
 import { buildProceduralWorld } from './procedural_world.js';
+import { buildPlanetWorld } from './planet_world.js';
+import { ShotFX } from './shot_fx.js';
+import { WeatherFX } from './weather_fx.js';
 import { loadBabylonMap, configureArenaLighting } from './map_loader.js';
 import { BabylonAvatar } from './character_loader.js';
-import { buildBabylonWeaponModel } from './weapon_viewmodel.js';
+import { buildBabylonWeaponModel, preloadWeaponModels } from './weapon_viewmodel.js';
 import { createRenderingPipeline, applyGraphicsPreset } from './postprocess.js';
 
 export class BabylonView {
@@ -95,12 +98,20 @@ export class BabylonView {
     flash.renderingGroupId = 1;
     flash.isVisible = false;
     flash.isPickable = false;
+    // Reused muzzle light: always present (intensity 0 between shots) so firing never recompiles shaders
+    const ml = this.muzzleLight = new BABYLON.PointLight('muzzleLight', BABYLON.Vector3.Zero(), scene);
+    ml.parent = flash; ml.diffuse = hexToColor3('#ffd27a'); ml.specular = BABYLON.Color3.Black(); ml.range = 7; ml.intensity = 0;
+    this.shotFx = new ShotFX(scene, this.activePreset);
+    this.weatherFx = new WeatherFX(scene, cam, { quality: this.activePreset });
 
     // Build map visuals
     await this.buildVisuals(this.world);
+    this.weatherFx.captureBase();
 
-    // Default weapon
+    // Default weapon (authored GLBs when bundled, procedural otherwise)
+    await preloadWeaponModels(scene, this.assets);
     this.setWeaponModel(0);
+    this.warmupFx();
 
     // Resize listener
     this._resizeHandler = () => this.resize();
@@ -121,19 +132,37 @@ export class BabylonView {
 
     configureArenaLighting(scene, mapId, world.theme);
 
-    if (world.gltf || this.assets?.maps?.[mapId]) {
+    if (world.theme === 'orbit') {
+      const { root, barrelMeshes } = buildPlanetWorld(scene, world, this.shadowGenerator);
+      this.worldRoot = root;
+      this.barrelMeshes = barrelMeshes;
+    } else if (world.gltf || this.assets?.maps?.[mapId]) {
       const { root } = await loadBabylonMap(scene, mapId, this.assets, this.shadowGenerator);
       this.worldRoot = root;
     } else {
       const { root, barrelMeshes } = buildProceduralWorld(scene, world, this.shadowGenerator);
       this.worldRoot = root;
       this.barrelMeshes = barrelMeshes;
+      if (world.theme === 'custom') this.applyCustomSky(world);
     }
+  }
+
+  /* Editor maps choose Day / Dusk / Night: sky, fog and light follow that choice. */
+  applyCustomSky(world) {
+    const s = this.scene, sky = world.custom?.sky || 'day';
+    s.clearColor = hexToColor3(world.sky || '#8cc8f5').toColor4(1);
+    s.fogColor = hexToColor3(world.fog || '#a7d4f5');
+    s.fogStart = 45; s.fogEnd = Math.max(160, (world.custom?.size || 56) * 3);
+    const sun = s.getLightByName('sun'), hemi = s.getLightByName('hemi');
+    const look = { day: ['#fff3df', 2.4, '#eaf4ff', 1.5], dusk: ['#ffb675', 2.6, '#c7a6d8', 1.1], night: ['#9fb4ff', 0.5, '#4a5a8a', 0.6] }[sky];
+    if (sun) { sun.diffuse = hexToColor3(look[0]); sun.intensity = look[1]; }
+    if (hemi) { hemi.diffuse = hexToColor3(look[2]); hemi.intensity = look[3]; }
   }
 
   async setWorld(world) {
     this.world = world;
     await this.buildVisuals(world);
+    this.weatherFx?.captureBase();
   }
 
   setWeaponModel(wIndex) {
@@ -162,47 +191,79 @@ export class BabylonView {
     return this.flashMesh.getAbsolutePosition();
   }
 
-  shot(from, to, own, wepId = 'ak47') {
+  shot(from, to, own, wepId = 'ak47', shooterId = null) {
     if (!this.scene) return;
-    const start = own ? this.muzzlePosition() : new BABYLON.Vector3(from[0], from[1] - 0.35, from[2]);
     const end = new BABYLON.Vector3(...to);
+    let start;
+    if (own) start = this.muzzlePosition();
+    else start = this.remoteMuzzle(shooterId) || new BABYLON.Vector3(from[0], from[1] - 0.35, from[2]);
+    const tracerColor = wepId === 'sniper' ? '#9be8ff' : (wepId === 'shotgun' ? '#ffd066' : (wepId === 'smg' ? '#f5a6ff' : '#fff2b0'));
+    const mat = this.fxMaterial(tracerColor);
+    const sparkSize = wepId === 'sniper' ? 0.16 : (wepId === 'shotgun' ? 0.06 : 0.09);
 
-    const tracerColor = wepId === 'sniper' ? '#d0f8ff' : (wepId === 'shotgun' ? '#ffd066' : (wepId === 'smg' ? '#fffa80' : '#fff2b0'));
+    // Glowing bullet travels to the impact (shotgun pellets glow but do not take lights)
+    const job = { mat, sparkSize };
+    if (this.shotFx) this.shotFx.bullet(start, end, wepId, { lit: wepId !== 'shotgun' || Math.random() < 0.2, onArrive: head => this.impact(head, job) });
+    else this.impact(end, job);
 
-    // Bullet Tracer
-    const line = BABYLON.MeshBuilder.CreateLines('tracer', {
-      points: [start, end],
-      updatable: false,
-    }, this.scene);
-    line.color = hexToColor3(tracerColor);
-    line.isPickable = false;
-
-    // Impact Spark
-    const sparkSize = wepId === 'sniper' ? 0.16 : (wepId === 'shotgun' ? 0.05 : 0.08);
-    const spark = BABYLON.MeshBuilder.CreatePolyhedron('spark', { type: 1, size: sparkSize }, this.scene);
-    spark.position.copyFrom(end);
-    const sparkMat = new BABYLON.StandardMaterial('sparkMat', this.scene);
-    sparkMat.emissiveColor = hexToColor3(tracerColor);
-    sparkMat.disableLighting = true;
-    spark.material = sparkMat;
-    spark.isPickable = false;
-
-    this.fx.push({
-      meshes: [line, spark],
-      life: 0.12,
-      max: 0.12,
-      update(dt) {
-        this.life -= dt;
-        return this.life <= 0;
-      },
-    });
-
+    // Muzzle flash: own one rides the viewmodel, remote ones sit at the shooter's weapon
+    const dir = end.subtract(start).normalize();
     if (own) {
-      if (this.flashMesh) this.flashMesh.isVisible = true;
+      if (this.flashMesh) this.shotFx?.muzzleFlash(null, null, wepId, this.flashMesh);
       this.flashLife = 0.05;
+      if (this.muzzleLight) this.muzzleLight.intensity = wepId === 'shotgun' || wepId === 'sniper' ? 3 : 1.8;
       const kickMap = { ak47: 1.0, shotgun: 1.6, sniper: 1.9, smg: 0.55, lmg: 1.3 };
       this.kick = kickMap[wepId] || 1.0;
+    } else if (!this.lastRemoteFlash || this.lastRemoteFlash !== `${shooterId}:${this.frameNo}`) {
+      this.lastRemoteFlash = `${shooterId}:${this.frameNo}`;   // one flash per shooter per frame (pellets)
+      this.shotFx?.muzzleFlash(start, dir, wepId);
     }
+  }
+
+  /* Muzzle of the weapon a remote avatar is holding, in world space. */
+  remoteMuzzle(id) {
+    const gun = id && this.avatars.get(id)?.heldWeapon;
+    if (!gun || !gun.isEnabled()) return null;
+    gun.computeWorldMatrix(true);
+    const m = gun.metadata?.muzzle || (gun.metadata = { muzzle: gun.getDescendants(false).find(n => /^muzzle/.test(n.name)) }).muzzle;
+    if (!m) return null;
+    m.computeWorldMatrix(true);
+    return m.getAbsolutePosition().clone();
+  }
+
+  /* Renders one microscopic shot in front of the camera while the map loads, so the shader
+     variants used by flashes, bullets, impacts and the lit muzzle compile during loading
+     instead of hitching the first real shot. */
+  warmupFx() {
+    if (!this.scene || !this.camera || !this.shotFx) return;
+    const c = this.camera, f = c.getForwardRay(1).direction;
+    const at = c.position.add(f.scale(3)), to = at.add(f.scale(0.6));
+    const before = new Set(this.scene.meshes);
+    this.shotFx.bullet(at, to, 'ak47', { lit: true, onArrive: h => this.impact(h, { mat: this.fxMaterial('#fff2b0'), sparkSize: 0.001 }) });
+    this.shotFx.muzzleFlash(at, f, 'ak47');
+    if (this.flashMesh) this.shotFx.muzzleFlash(null, null, 'ak47', this.flashMesh);
+    if (this.muzzleLight) this.muzzleLight.intensity = 0.01;
+    for (const m of this.scene.meshes) if (!before.has(m)) m.scaling.scaleInPlace(0.001);
+  }
+
+  /* Impact pop when a bullet arrives. */
+  impact(head, job) {
+    const spark = BABYLON.MeshBuilder.CreatePolyhedron('spark', { type: 1, size: job.sparkSize }, this.scene);
+    spark.position.copyFrom(head);
+    spark.material = job.mat; spark.isPickable = false;
+    this.fx.push({ meshes: [spark], life: 0.14, max: 0.14, update(dt) { this.life -= dt; const k = Math.max(0, this.life / this.max); spark.visibility = k; spark.scaling.setAll(1 + (1 - k) * 1.8); return this.life <= 0; } });
+  }
+
+  /* Cached unlit materials for transient effects (never created per shot). */
+  fxMaterial(hex) {
+    this.fxMats ||= new Map();
+    let m = this.fxMats.get(hex);
+    if (!m) {
+      m = new BABYLON.StandardMaterial(`fx_${hex}`, this.scene);
+      m.emissiveColor = hexToColor3(hex); m.diffuseColor = BABYLON.Color3.Black(); m.disableLighting = true;
+      this.fxMats.set(hex, m);
+    }
+    return m;
   }
 
   meleeSlash(isQuick = false) {
@@ -232,23 +293,36 @@ export class BabylonView {
 
   spawnGrenade(id, x, y, z, vx, vy, vz) {
     if (!this.scene) return;
+    if (!this.grenadeMats) {
+      const body = new BABYLON.PBRMaterial('grenadeMat', this.scene);
+      body.albedoColor = hexToColor3('#3f5232'); body.roughness = 0.55; body.metallic = 0.35;
+      const band = new BABYLON.StandardMaterial('grenadeBandMat', this.scene);
+      band.emissiveColor = hexToColor3('#ffb020'); band.disableLighting = true;
+      this.grenadeMats = { body, band };
+    }
     const gRoot = new BABYLON.TransformNode(`grenade_${id}`, this.scene);
     gRoot.position.set(x, y, z);
+    const body = BABYLON.MeshBuilder.CreateSphere('grenadeBody', { diameter: 0.2, segments: 6 }, this.scene);
+    body.scaling.y = 1.2; body.material = this.grenadeMats.body; body.parent = gRoot; body.isPickable = false;
+    const band = BABYLON.MeshBuilder.CreateTorus('grenadeBand', { diameter: 0.2, thickness: 0.035, tessellation: 12 }, this.scene);
+    band.material = this.grenadeMats.band; band.parent = gRoot; band.isPickable = false;
+    // Same body state the host simulates; advanced in fixed steps by updateGrenades().
+    this.grenades.set(id, { root: gRoot, x, y, z, vx, vy, vz, life: GRENADE.fuse + 0.6, acc: 0 });
+  }
 
-    const bodyMat = new BABYLON.PBRMaterial('grenadeMat', this.scene);
-    bodyMat.albedoColor = hexToColor3('#4d5c3b');
-    bodyMat.roughness = 0.6;
-    bodyMat.metallic = 0.5;
-
-    const body = BABYLON.MeshBuilder.CreateCylinder('grenadeBody', { height: 0.22, diameter: 0.2, tessellation: 8 }, this.scene);
-    body.material = bodyMat;
-    body.parent = gRoot;
-
-    this.grenades.set(id, {
-      root: gRoot,
-      x, y, z, vx, vy, vz,
-      life: 3.5,
-    });
+  /* Visual grenade flight: replays the host's physics (stepGrenadeBody) against this world's
+     boxes at the simulation rate, so what players see is where the grenade really is. */
+  updateGrenades(dt) {
+    const boxes = this.world?.boxes || [];
+    for (const [id, g] of this.grenades) {
+      g.acc += dt;
+      while (g.acc >= DT) { stepGrenadeBody(g, boxes, DT); g.acc -= DT; }
+      g.life -= dt;
+      g.root.position.set(g.x, g.y, g.z);
+      const spin = Math.hypot(g.vx, g.vz) * dt * 2.2;
+      g.root.rotation.x += spin; g.root.rotation.z += spin * 0.6;
+      if (g.life <= 0) { g.root.dispose(); this.grenades.delete(id); }
+    }
   }
 
   explode(x, y, z, r = 6, kind = 'grenade') {
@@ -288,10 +362,7 @@ export class BabylonView {
     for (let i = 0; i < count; i++) {
       const sp = BABYLON.MeshBuilder.CreatePolyhedron('expSpark', { type: 1, size: 0.15 }, this.scene);
       sp.position.set(x, y, z);
-      const spMat = new BABYLON.StandardMaterial('expSparkMat', this.scene);
-      spMat.emissiveColor = hexToColor3(Math.random() > 0.4 ? '#ff6f00' : '#ffa000');
-      spMat.disableLighting = true;
-      sp.material = spMat;
+      sp.material = this.fxMaterial(Math.random() > 0.4 ? '#ff6f00' : '#ffa000');
       sp.isPickable = false;
 
       sparkMeshes.push({
@@ -325,8 +396,8 @@ export class BabylonView {
         }
 
         if (this.life <= 0) {
-          this.fb.dispose();
-          this.ring.dispose();
+          this.fb.dispose(false, true);     // fireball/ring own their fading materials
+          this.ring.dispose(false, true);
           for (const s of this.sparkMeshes) s.mesh.dispose();
           return true;
         }
@@ -424,6 +495,7 @@ export class BabylonView {
     }
     this.weaponRoot.rotation.x = -kickPitch;
 
+    if (this.muzzleLight && this.muzzleLight.intensity > 0) this.muzzleLight.intensity = Math.max(0, this.muzzleLight.intensity - dt * 40);
     // Muzzle flash visibility timer
     if (this.flashLife > 0) {
       this.flashLife -= dt;
@@ -438,7 +510,7 @@ export class BabylonView {
       seenPids.add(p.id);
       let av = this.avatars.get(p.id);
       if (!av) {
-        av = new BabylonAvatar(this.scene, this.assets, p.id, p.name, p.slot || 0, p.char || 'abdulkarim', p.team || 'none');
+        av = new BabylonAvatar(this.scene, this.assets, p.id, p.name, p.slot || 0, p.char || 'abdulkarim', p.team || 'none', p.lk || '');
         this.avatars.set(p.id, av);
       }
       av.update(p, dt);
@@ -452,12 +524,19 @@ export class BabylonView {
       }
     }
 
+    this.updateObjectiveVisual(dt);
+    this.updateGrenades(dt);
+    this.frameNo = (this.frameNo || 0) + 1;
+    this.shotFx?.update(dt);
+    if (this.weatherFx) { if (audio && !this.weatherFx.audio) this.weatherFx.audio = audio; this.weatherFx.update(dt, this.weather); }
+
     // Update active visual effects
     for (let i = this.fx.length - 1; i >= 0; i--) {
       const effect = this.fx[i];
       if (effect.update(dt)) {
         if (effect.meshes) {
-          for (const m of effect.meshes) m.dispose();
+          // dispose per-effect materials too; cached fx_* materials are shared and kept
+          for (const m of effect.meshes) m.dispose(false, !!m.material && !m.material.name.startsWith('fx_'));
         }
         this.fx.splice(i, 1);
       }
@@ -467,8 +546,67 @@ export class BabylonView {
     this.scene.render();
   }
 
+  /* Control zone: a ground ring + soft column tinted by owner (amber when contested).
+     Purely visual and non-pickable; gameplay uses the host's objective state. */
+  updateObjectiveVisual(dt) {
+    const o = this.objective;
+    this.updateFlagVisuals(o);
+    if (!o || o.k !== 'control') { if (this.zoneRoot) this.zoneRoot.setEnabled(false); return; }
+    if (!this.zoneRoot) {
+      const root = this.zoneRoot = new BABYLON.TransformNode('controlZone', this.scene);
+      const ring = BABYLON.MeshBuilder.CreateTorus('zoneRing', { diameter: o.r * 2, thickness: 0.12, tessellation: 64 }, this.scene);
+      const col = BABYLON.MeshBuilder.CreateCylinder('zoneColumn', { diameter: o.r * 2, height: 3, tessellation: 48, cap: BABYLON.Mesh.NO_CAP }, this.scene);
+      col.position.y = 1.5;
+      const ringMat = this.zoneRingMat = new BABYLON.StandardMaterial('zoneRingMat', this.scene);
+      ringMat.disableLighting = true;
+      const colMat = this.zoneColMat = new BABYLON.StandardMaterial('zoneColMat', this.scene);
+      colMat.disableLighting = true; colMat.alpha = 0.12; colMat.backFaceCulling = false;
+      ring.material = ringMat; col.material = colMat;
+      for (const m of [ring, col]) { m.parent = root; m.isPickable = false; }
+      this.zonePulse = 0;
+    }
+    this.zoneRoot.setEnabled(true);
+    this.zoneRoot.position.set(o.x, o.y + 0.05, o.z);
+    const still = typeof document !== 'undefined' && document.documentElement.classList.contains('reduce-motion');
+    this.zonePulse += dt;
+    const hex = o.con ? '#fbbf24' : o.own === 'red' ? '#ef4444' : o.own === 'blue' ? '#3b82f6' : (o.ct === 'red' ? '#fca5a5' : o.ct === 'blue' ? '#93c5fd' : '#e2e8f0');
+    const c = BABYLON.Color3.FromHexString(hex);
+    this.zoneRingMat.emissiveColor = c;
+    this.zoneColMat.emissiveColor = c;
+    this.zoneColMat.alpha = o.con && !still ? 0.1 + 0.06 * Math.abs(Math.sin(this.zonePulse * 4)) : 0.12;
+  }
+
+  /* CTF: base ring at each home and a pole + cloth that follows the host's flag position. */
+  updateFlagVisuals(o) {
+    if (!o || o.k !== 'ctf') { for (const f of Object.values(this.flagViz || {})) { f.flag.setEnabled(false); f.base.setEnabled(false); } return; }
+    this.flagViz ||= {};
+    for (const team of ['red', 'blue']) {
+      let v = this.flagViz[team];
+      const c = BABYLON.Color3.FromHexString(team === 'red' ? '#ef4444' : '#3b82f6');
+      if (!v) {
+        const mat = new BABYLON.StandardMaterial(`flagMat_${team}`, this.scene); mat.emissiveColor = c; mat.disableLighting = true;
+        const flag = new BABYLON.TransformNode(`flag_${team}`, this.scene);
+        const pole = BABYLON.MeshBuilder.CreateCylinder(`flagPole_${team}`, { height: 2.2, diameter: 0.06 }, this.scene); pole.position.y = 1.1;
+        const cloth = BABYLON.MeshBuilder.CreateBox(`flagCloth_${team}`, { width: 0.7, height: 0.45, depth: 0.03 }, this.scene); cloth.position.set(0.36, 1.95, 0);
+        const poleMat = new BABYLON.StandardMaterial(`flagPoleMat_${team}`, this.scene); poleMat.diffuseColor = new BABYLON.Color3(0.85, 0.87, 0.9);
+        pole.material = poleMat; cloth.material = mat;
+        const base = BABYLON.MeshBuilder.CreateTorus(`flagBase_${team}`, { diameter: 4, thickness: 0.1, tessellation: 48 }, this.scene); base.material = mat;
+        for (const m of [pole, cloth]) { m.parent = flag; m.isPickable = false; }
+        base.isPickable = false;
+        v = this.flagViz[team] = { flag, base, cloth };
+      }
+      const f = o[team];
+      v.flag.setEnabled(true); v.base.setEnabled(true);
+      v.base.position.set(f.hx, f.hy + 0.05, f.hz);
+      v.flag.position.set(f.x, f.y + (f.st === 'carried' ? 0.4 : 0), f.z);
+      v.cloth.scaling.y = f.st === 'dropped' ? 0.6 : 1;
+    }
+  }
+
   applyGraphicsSettings(presetKey) {
     this.activePreset = presetKey;
+    this.shotFx?.setPreset(presetKey);
+    this.weatherFx?.setQuality(presetKey);
     applyGraphicsPreset(this.engine, this.scene, this.pipeline, this.shadowGenerator, presetKey);
   }
 
@@ -480,6 +618,8 @@ export class BabylonView {
     window.removeEventListener('resize', this._resizeHandler);
     for (const [, av] of this.avatars) av.dispose();
     this.avatars.clear();
+    this.shotFx?.dispose();
+    this.weatherFx?.dispose();
     if (this.scene) this.scene.dispose();
     if (this.engine) this.engine.dispose();
     this.ready = false;
