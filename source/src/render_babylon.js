@@ -24,6 +24,7 @@ export async function loadAssets() {
     maps: embedded.maps || {},
     arena: embedded.arena || null,
     weapon: embedded.weapon || null,
+    weapons: embedded.weapons || null,
   };
   return out;
 }

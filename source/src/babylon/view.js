@@ -10,7 +10,7 @@ import { buildProceduralWorld } from './procedural_world.js';
 import { buildPlanetWorld } from './planet_world.js';
 import { loadBabylonMap, configureArenaLighting } from './map_loader.js';
 import { BabylonAvatar } from './character_loader.js';
-import { buildBabylonWeaponModel } from './weapon_viewmodel.js';
+import { buildBabylonWeaponModel, preloadWeaponModels } from './weapon_viewmodel.js';
 import { createRenderingPipeline, applyGraphicsPreset } from './postprocess.js';
 
 export class BabylonView {
@@ -96,11 +96,15 @@ export class BabylonView {
     flash.renderingGroupId = 1;
     flash.isVisible = false;
     flash.isPickable = false;
+    // Reused muzzle light: always present (intensity 0 between shots) so firing never recompiles shaders
+    const ml = this.muzzleLight = new BABYLON.PointLight('muzzleLight', BABYLON.Vector3.Zero(), scene);
+    ml.parent = flash; ml.diffuse = hexToColor3('#ffd27a'); ml.specular = BABYLON.Color3.Black(); ml.range = 7; ml.intensity = 0;
 
     // Build map visuals
     await this.buildVisuals(this.world);
 
-    // Default weapon
+    // Default weapon (authored GLBs when bundled, procedural otherwise)
+    await preloadWeaponModels(scene, this.assets);
     this.setWeaponModel(0);
 
     // Resize listener
@@ -172,42 +176,65 @@ export class BabylonView {
     const start = own ? this.muzzlePosition() : new BABYLON.Vector3(from[0], from[1] - 0.35, from[2]);
     const end = new BABYLON.Vector3(...to);
 
-    const tracerColor = wepId === 'sniper' ? '#d0f8ff' : (wepId === 'shotgun' ? '#ffd066' : (wepId === 'smg' ? '#fffa80' : '#fff2b0'));
+    const tracerColor = wepId === 'sniper' ? '#9be8ff' : (wepId === 'shotgun' ? '#ffd066' : (wepId === 'smg' ? '#f5a6ff' : '#fff2b0'));
+    const mat = this.fxMaterial(tracerColor);
 
-    // Bullet Tracer
-    const line = BABYLON.MeshBuilder.CreateLines('tracer', {
-      points: [start, end],
-      updatable: false,
-    }, this.scene);
-    line.color = hexToColor3(tracerColor);
-    line.isPickable = false;
+    // Tracer: a thin glowing beam from muzzle to impact that thins and fades (shared material,
+    // per-mesh visibility, so nothing is allocated per shot except the short-lived meshes)
+    const dir = end.subtract(start), len = dir.length();
+    let beam = null;
+    if (len > 0.3) {
+      beam = BABYLON.MeshBuilder.CreateCylinder('tracer', { height: 1, diameter: wepId === 'sniper' ? 0.05 : 0.022, tessellation: 4 }, this.scene);
+      beam.scaling.y = len;
+      beam.position.copyFrom(start.add(dir.scale(0.5)));
+      const axis = BABYLON.Vector3.Cross(BABYLON.Vector3.Up(), dir.normalize());
+      const ang = Math.acos(Math.max(-1, Math.min(1, BABYLON.Vector3.Dot(BABYLON.Vector3.Up(), dir.normalize()))));
+      beam.rotationQuaternion = axis.lengthSquared() > 1e-8 ? BABYLON.Quaternion.RotationAxis(axis.normalize(), ang) : BABYLON.Quaternion.Identity();
+      beam.material = mat; beam.isPickable = false;
+    }
 
-    // Impact Spark
-    const sparkSize = wepId === 'sniper' ? 0.16 : (wepId === 'shotgun' ? 0.05 : 0.08);
+    // Impact pop
+    const sparkSize = wepId === 'sniper' ? 0.16 : (wepId === 'shotgun' ? 0.06 : 0.09);
     const spark = BABYLON.MeshBuilder.CreatePolyhedron('spark', { type: 1, size: sparkSize }, this.scene);
     spark.position.copyFrom(end);
-    const sparkMat = new BABYLON.StandardMaterial('sparkMat', this.scene);
-    sparkMat.emissiveColor = hexToColor3(tracerColor);
-    sparkMat.disableLighting = true;
-    spark.material = sparkMat;
-    spark.isPickable = false;
+    spark.material = mat; spark.isPickable = false;
 
+    const life = wepId === 'sniper' ? 0.22 : 0.12;
     this.fx.push({
-      meshes: [line, spark],
-      life: 0.12,
-      max: 0.12,
+      meshes: beam ? [beam, spark] : [spark],
+      life, max: life,
       update(dt) {
         this.life -= dt;
+        const k = Math.max(0, this.life / this.max);
+        if (beam) { beam.visibility = k; beam.scaling.x = beam.scaling.z = 0.4 + 0.6 * k; }
+        spark.visibility = k; spark.scaling.setAll(1 + (1 - k) * 1.6);
         return this.life <= 0;
       },
     });
 
     if (own) {
-      if (this.flashMesh) this.flashMesh.isVisible = true;
+      if (this.flashMesh) {
+        this.flashMesh.isVisible = true;
+        this.flashMesh.rotation.z = Math.random() * Math.PI * 2;
+        this.flashMesh.scaling.setAll(wepId === 'shotgun' ? 1.9 : wepId === 'sniper' ? 1.7 : wepId === 'smg' ? 1.1 : 1.4);
+      }
       this.flashLife = 0.05;
+      if (this.muzzleLight) this.muzzleLight.intensity = wepId === 'shotgun' || wepId === 'sniper' ? 3 : 1.8;
       const kickMap = { ak47: 1.0, shotgun: 1.6, sniper: 1.9, smg: 0.55, lmg: 1.3 };
       this.kick = kickMap[wepId] || 1.0;
     }
+  }
+
+  /* Cached unlit materials for transient effects (never created per shot). */
+  fxMaterial(hex) {
+    this.fxMats ||= new Map();
+    let m = this.fxMats.get(hex);
+    if (!m) {
+      m = new BABYLON.StandardMaterial(`fx_${hex}`, this.scene);
+      m.emissiveColor = hexToColor3(hex); m.diffuseColor = BABYLON.Color3.Black(); m.disableLighting = true;
+      this.fxMats.set(hex, m);
+    }
+    return m;
   }
 
   meleeSlash(isQuick = false) {
@@ -306,10 +333,7 @@ export class BabylonView {
     for (let i = 0; i < count; i++) {
       const sp = BABYLON.MeshBuilder.CreatePolyhedron('expSpark', { type: 1, size: 0.15 }, this.scene);
       sp.position.set(x, y, z);
-      const spMat = new BABYLON.StandardMaterial('expSparkMat', this.scene);
-      spMat.emissiveColor = hexToColor3(Math.random() > 0.4 ? '#ff6f00' : '#ffa000');
-      spMat.disableLighting = true;
-      sp.material = spMat;
+      sp.material = this.fxMaterial(Math.random() > 0.4 ? '#ff6f00' : '#ffa000');
       sp.isPickable = false;
 
       sparkMeshes.push({
@@ -343,8 +367,8 @@ export class BabylonView {
         }
 
         if (this.life <= 0) {
-          this.fb.dispose();
-          this.ring.dispose();
+          this.fb.dispose(false, true);     // fireball/ring own their fading materials
+          this.ring.dispose(false, true);
           for (const s of this.sparkMeshes) s.mesh.dispose();
           return true;
         }
@@ -442,6 +466,7 @@ export class BabylonView {
     }
     this.weaponRoot.rotation.x = -kickPitch;
 
+    if (this.muzzleLight && this.muzzleLight.intensity > 0) this.muzzleLight.intensity = Math.max(0, this.muzzleLight.intensity - dt * 40);
     // Muzzle flash visibility timer
     if (this.flashLife > 0) {
       this.flashLife -= dt;
@@ -478,7 +503,8 @@ export class BabylonView {
       const effect = this.fx[i];
       if (effect.update(dt)) {
         if (effect.meshes) {
-          for (const m of effect.meshes) m.dispose();
+          // dispose per-effect materials too; cached fx_* materials are shared and kept
+          for (const m of effect.meshes) m.dispose(false, !!m.material && !m.material.name.startsWith('fx_'));
         }
         this.fx.splice(i, 1);
       }

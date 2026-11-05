@@ -61,6 +61,16 @@ if (fs.existsSync(charDir)) {
     }));
 }
 
+// Authored first-person weapons: assets/weapons/<id>.glb (tools/blender/build_weapons.py)
+const wepDir = path.join(root, 'assets', 'weapons');
+if (fs.existsSync(wepDir)) {
+  assets.weapons = {};
+  for (const f of fs.readdirSync(wepDir).filter(f => /\.glb$/i.test(f)).sort()) {
+    assets.weapons[f.replace(/\.glb$/i, '')] = fs.readFileSync(path.join(wepDir, f)).toString('base64');
+    console.log(`  + assets/weapons/${f}`);
+  }
+}
+
 // Processed maps: assets/maps/processed/<id>.glb
 const mapsDir = path.join(root, 'assets', 'maps', 'processed');
 if (fs.existsSync(mapsDir)) {

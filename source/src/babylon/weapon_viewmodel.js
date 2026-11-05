@@ -4,7 +4,44 @@ import * as BABYLON from '@babylonjs/core';
 import { WEAPONS } from '../sim.js';
 import { hexToColor3 } from './materials.js';
 
+/* Authored weapon models (tools/blender/build_weapons.py → assets/weapons/*.glb), decoded once
+   per scene. Instances share geometry and materials; disposing an instance keeps the cache. */
+const weaponCache = new WeakMap();
+const VIEWMODEL_SCALE = 0.85;
+
+export async function preloadWeaponModels(scene, assets) {
+  const src = assets?.weapons;
+  if (!src) return 0;
+  const map = new Map();
+  weaponCache.set(scene, map);
+  await Promise.all(Object.entries(src).map(async ([id, b64]) => {
+    try {
+      const bin = atob(b64), bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      map.set(id, await BABYLON.LoadAssetContainerAsync(bytes, scene, { pluginExtension: '.glb', name: `${id}.glb` }));
+    } catch (e) { console.warn(`[weapons] ${id}.glb failed to load; using the procedural model`, e); }
+  }));
+  return map.size;
+}
+
+function instantiateWeapon(scene, container, id) {
+  const root = new BABYLON.TransformNode(`wep_${id}`, scene);
+  const inst = container.instantiateModelsToScene(n => `${n}_vm`, false);
+  for (const n of inst.rootNodes) n.parent = root;
+  root.scaling.setAll(VIEWMODEL_SCALE);
+  for (const m of root.getChildMeshes()) { m.renderingGroupId = 1; m.isPickable = false; }
+  // muzzle offset in the viewmodel root's space (root has no parent yet, so world = local)
+  const muzzle = root.getDescendants(false).find(n => /^muzzle/.test(n.name));
+  root.computeWorldMatrix(true);
+  if (muzzle) { muzzle.computeWorldMatrix(true); root.muzzleOffset = muzzle.getAbsolutePosition().clone(); }
+  else root.muzzleOffset = new BABYLON.Vector3(0, 0.015, -0.55);
+  root.authored = true;
+  return root;
+}
+
 export function buildBabylonWeaponModel(scene, id = 'ak47') {
+  const cached = weaponCache.get(scene)?.get(id);
+  if (cached) return instantiateWeapon(scene, cached, id);
   const root = new BABYLON.TransformNode(`wep_${id}`, scene);
 
   const dark = new BABYLON.PBRMaterial(`mat_dark_${id}`, scene);
