@@ -9,6 +9,9 @@ import { OnlineHud } from './hud_online.js';
 import { publicModes, MODE_CATALOG, modeSupportsMap } from './modes.js';
 import { PLANET_GENERATOR_VERSION } from './planet_map.js';
 import { WEATHER_OPTIONS, WEATHER_LABELS, weatherAllowed } from './weather.js';
+import { MapEditor, getActiveCustomMap, setActiveCustomMap } from './editor_online.js';
+import { validateCustomMap, CUSTOM_MAP_ID } from './custom_map.js';
+import { openMapPreview } from './babylon/editor_preview.js';
 import { B } from './sim.js';
 import { initPalette } from './palette.js';
 import { HERO_ROSTER, getHeroData as legacyHeroData, SKIN_OF, baseHeroId } from './heroes.js';
@@ -46,8 +49,9 @@ function populateModeSelect() {
   const prev = sel.value;
   const map = $('map-select')?.value;
   if ($('map-select') && !$('map-select').dataset.modeSync) { $('map-select').dataset.modeSync = '1'; $('map-select').addEventListener('change', populateModeSelect); }
-  sel.replaceChildren(...publicModes().filter(m => !map || modeSupportsMap(m.id, map)).map(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = `${m.name} (${m.short})`; o.title = m.brief; return o; }));
-  if (MODE_CATALOG[prev]?.ready && modeSupportsMap(prev, map)) sel.value = prev;
+  const customModes = map === CUSTOM_MAP_ID ? (validateCustomMap(getActiveCustomMap()).modes || []) : null;
+  sel.replaceChildren(...publicModes().filter(m => customModes ? customModes.includes(m.id) : (!map || modeSupportsMap(m.id, map))).map(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = `${m.name} (${m.short})`; o.title = m.brief; return o; }));
+  if (MODE_CATALOG[prev]?.ready && [...sel.options].some(o => o.value === prev)) sel.value = prev;
   const note = $('mode-brief');
   const sync = () => { if (note) note.textContent = MODE_CATALOG[sel.value]?.brief || ''; };
   sel.onchange = sync; sync();
@@ -70,6 +74,7 @@ const chosenWeather = map => (weatherAllowed(map) ? ($('weather-select')?.value 
 
 /* ---- Map Briefings & Presentation Data ---- */
 const MAPS = {
+  custom: ['Custom Map', 'A map built in the Map Editor and sent to every player when they join.'],
   orbit: ['Orbit Crown', 'A seeded tiny-planet arena: a terraced crown district on top of a little world. Plaza, ring road, covered flanks and two team stations.'],
   foundry: ['Foundry Core', 'Molten industrial casting pit. Elevated catwalks. Fast CQB encounters.'],
   glowplant: ['Reactor Complex', 'Sub-orbital nuclear facility with pulsating blue plasma cores and dual jump pads.'],
@@ -150,8 +155,42 @@ const PAGE_NAMES = {
   operative: 'OPERATIVE',
   loadout: 'LOADOUT',
   maps: 'BATTLEFIELDS',
+  editor: 'MAP EDITOR',
   settings: 'SETTINGS',
 };
+
+/* ---- Map editor & custom maps ---- */
+let mapEditor = null;
+function openEditor() {
+  if (!mapEditor && $('editor-root')) {
+    mapEditor = new MapEditor($('editor-root'), {
+      toast,
+      createPreview: world => openMapPreview(world),
+      onPlay: () => { refreshCustomMapOption(); const sel = $('map-select'); sel.value = CUSTOM_MAP_ID; populateModeSelect(); startPracticeMatch(); },
+      onHost: () => { refreshCustomMapOption(); go('play'); const sel = $('map-select'); sel.value = CUSTOM_MAP_ID; populateModeSelect(); openDrawer('host'); },
+    });
+  }
+  requestAnimationFrame(() => mapEditor?.draw());
+}
+
+/* Keeps a "Custom" entry in the map picker for the editor's active map. */
+function refreshCustomMapOption() {
+  const sel = $('map-select');
+  if (!sel) return;
+  const m = getActiveCustomMap();
+  let opt = sel.querySelector(`option[value="${CUSTOM_MAP_ID}"]`);
+  if (!m) { opt?.remove(); return; }
+  if (!opt) { opt = document.createElement('option'); opt.value = CUSTOM_MAP_ID; sel.prepend(opt); }
+  opt.textContent = `Custom · ${m.name} (${m.size} m)`;
+}
+
+/* World for the host's chosen map; custom maps must pass validation first. */
+function hostWorld(map, seed) {
+  if (map !== CUSTOM_MAP_ID) return buildWorld(assets, map, seed);
+  const v = validateCustomMap(getActiveCustomMap());
+  if (!v.ok) throw new Error('Your custom map is not playable yet: ' + (v.errors[0] || 'open the Map Editor to fix it.'));
+  return buildWorld(assets, CUSTOM_MAP_ID, 0, getActiveCustomMap());
+}
 let activePage = 'play';
 
 function go(page) {
@@ -177,6 +216,7 @@ function go(page) {
   if (page === 'settings') {
     syncSettingsUI();
   }
+  if (page === 'editor') openEditor();
   if (page === 'maps') {
     renderMapsCatalog();
   }
@@ -885,7 +925,7 @@ async function startPracticeMatch() {
 
   toast('Deploying offline practice match with bots...');
   try {
-    world = buildWorld(assets, map, seed);
+    world = hostWorld(map, seed);
     await prepareView(world);
 
     session = new HostSession({
@@ -945,7 +985,7 @@ async function hostOnlineMatch() {
 
   toast('Creating match on online server...');
   try {
-    world = buildWorld(assets, map, seed);
+    world = hostWorld(map, seed);
     await prepareView(world);
 
     session = new HostSession({
@@ -1010,8 +1050,8 @@ async function joinOnlineMatch(code) {
     const init = await s.waitForInit();
     if (init?.gen && init.gen !== PLANET_GENERATOR_VERSION) throw new Error(`This room uses Orbit Crown generator v${init.gen}; your build has v${PLANET_GENERATOR_VERSION}. Update the game to join.`);
 
-    world = buildWorld(assets, s.map, s.seed);
-    if (init?.hash && world.layoutHash !== init.hash) throw new Error('Map mismatch: your generated Orbit Crown layout differs from the host\'s, so the match would play on different collision. Update both games to the same version.');
+    world = buildWorld(assets, s.map, s.seed, s.map === CUSTOM_MAP_ID ? init?.custom : null);
+    if (init?.hash && world.layoutHash !== init.hash) throw new Error('Map mismatch: your copy of this map differs from the host\'s, so the match would play on different collision. Update both games to the same version.');
     await prepareView(world);
     s.client.world = world;
     s.client.view = view;   // the view may not have existed when the session was created
@@ -1290,6 +1330,7 @@ function setupInputHandlers() {
 /* ---- Client Bootstrap ---- */
 async function bootstrap() {
   initPalette([['orbit', 'Orbit']], 'orbit');
+  refreshCustomMapOption();
   populateModeSelect();
   const serverInput = $('opt-server');
   if (serverInput) {

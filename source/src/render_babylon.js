@@ -3,6 +3,7 @@
 
 import { getMap } from './arena.js';
 import { generatePlanet, ORBIT_MAP_ID } from './planet_map.js';
+import { compileCustomMap, CUSTOM_MAP_ID } from './custom_map.js';
 import { PLAYER_COLORS, makeBabylonCharacter, BabylonAvatar } from './babylon/character_loader.js';
 import { BabylonCharacterPreview, BabylonHeroViewer } from './babylon/preview.js';
 import { buildBabylonWeaponModel } from './babylon/weapon_viewmodel.js';
@@ -29,9 +30,12 @@ export async function loadAssets() {
   return out;
 }
 
-export function buildWorld(assets, mapType = 'foundry', mapSeed = 0) {
-  // Orbit Crown is online-only and generated from the seed; other maps come from the shared registry.
-  const base = mapType === ORBIT_MAP_ID ? generatePlanet({ seed: mapSeed }) : getMap(mapType, mapSeed);
+export function buildWorld(assets, mapType = 'foundry', mapSeed = 0, custom = null) {
+  // Orbit Crown is generated from the seed, custom maps from the editor's JSON (validated);
+  // other maps come from the shared registry.
+  const base = mapType === ORBIT_MAP_ID ? generatePlanet({ seed: mapSeed })
+    : mapType === CUSTOM_MAP_ID ? compileCustomMap(custom)
+    : getMap(mapType, mapSeed);
   const m = assets?.maps?.[mapType];
   return {
     ...base,

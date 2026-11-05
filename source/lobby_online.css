@@ -118,3 +118,27 @@
 @media (prefers-reduced-motion: reduce) {
   :root[data-palette="orbit"] #lobby :is(.choice, .room-card, .map-card, .roster-hero-item, .primary-action):hover { transform: none; }
 }
+
+/* ---- Map editor (layout applies in every palette) ---- */
+#editor-root { margin-top: 14px; }
+.ed-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+.ed-main { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ed-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.ed-tools .anim-btn { padding: 6px 10px; font-size: 12px; }
+.ed-canvas { width: 100%; height: min(70vh, 720px); min-height: 380px; border-radius: 14px; border: 1px solid var(--line, rgba(148,178,230,.2)); background: #141a2a; cursor: crosshair; touch-action: none; }
+.ed-canvas:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+.ed-side { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 14px; border: 1px solid var(--line, rgba(148,178,230,.2)); background: var(--panel, rgba(148,178,230,.07)); max-height: calc(70vh + 60px); overflow: auto; }
+.ed-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.ed-row > div { flex: 1; min-width: 0; }
+.ed-row .field { width: 100%; }
+.ed-actions .small-btn, .ed-actions .btn { flex: 1; }
+.ed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ed-num { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--sub, #a9b6d3); }
+.ed-num .field { padding: 5px 8px; }
+.ed-sel-title { font-weight: 700; }
+.ed-issues { margin: 6px 0; padding-left: 18px; font-size: 12px; }
+.ed-issues .err { color: #fca5a5; }
+.ed-issues .warn { color: #fcd34d; }
+.ed-preview { position: fixed; inset: 0; z-index: 90; background: rgba(4, 8, 20, 0.86); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; }
+.ed-preview canvas { width: min(1200px, 100%); height: min(70vh, 700px); border-radius: 14px; border: 1px solid rgba(148,178,230,.25); }
+@media (max-width: 1100px) { .ed-layout { grid-template-columns: 1fr; } .ed-side { max-height: none; } }

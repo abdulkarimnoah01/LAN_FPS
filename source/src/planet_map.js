@@ -177,13 +177,13 @@ function buildLayout(seed) {
    Each 0.5 m cell keeps up to 4 standable heights (box tops with 2.2 m headroom, where only
    obstacles taller than a step count as blocking). Moves step up ≤ 0.55 m or drop ≤ 2 m. */
 const CELL = 0.5, LEVELS = 4;
-export function buildWalkGrid(boxes) {
-  const n = Math.round((HALF * 2) / CELL), surf = new Float32Array(n * n * LEVELS).fill(NaN);
+export function buildWalkGrid(boxes, half = HALF) {
+  const n = Math.round((half * 2) / CELL), surf = new Float32Array(n * n * LEVELS).fill(NaN);
   for (let ix = 0; ix < n; ix++) {
-    const x = -HALF + (ix + 0.5) * CELL;
+    const x = -half + (ix + 0.5) * CELL;
     const colBoxes = boxes.filter(b => x + R > b[0] && x - R < b[3]);
     for (let iz = 0; iz < n; iz++) {
-      const z = -HALF + (iz + 0.5) * CELL;
+      const z = -half + (iz + 0.5) * CELL;
       const near = colBoxes.filter(b => z + R > b[2] && z - R < b[5]);
       const tops = [];
       for (const b of near) if (x >= b[0] - R * 0.5 && x <= b[3] + R * 0.5 && z >= b[2] - R * 0.5 && z <= b[5] + R * 0.5) tops.push(b[4]);
@@ -197,7 +197,7 @@ export function buildWalkGrid(boxes) {
       }
     }
   }
-  return { n, surf, cell: CELL, half: HALF };
+  return { n, surf, cell: CELL, half };
 }
 
 const cellOf = (g, x, z) => {
@@ -231,7 +231,7 @@ export function walkDistances(g, from) {
 }
 
 /* Nearest reachable cell within `r` metres of p (for anchors that sit on a landmark). */
-function distNear(g, dist, p, r = 3) {
+export function distNear(g, dist, p, r = 3) {
   let best = Infinity;
   for (let dx = -r; dx <= r; dx += g.cell) for (let dz = -r; dz <= r; dz += g.cell) {
     if (dx * dx + dz * dz > r * r) continue;
@@ -240,7 +240,7 @@ function distNear(g, dist, p, r = 3) {
   return best;
 }
 
-function distTo(g, dist, p) {
+export function distTo(g, dist, p) {
   const c = cellOf(g, p.x, p.z);
   if (c < 0) return Infinity;
   let best = Infinity;

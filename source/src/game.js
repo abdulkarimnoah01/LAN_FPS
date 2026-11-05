@@ -246,7 +246,7 @@ export class HostSession {
       onPeer: p => {
         try {
           this.game.addPlayer(p.id, p.name, p.char);
-          this.net.send(p, { t: 'init', map: this.map, seed: this.seed, mode: this.mode, ...(this.world?.layoutHash ? { gen: this.world.planet?.generatorVersion, hash: this.world.layoutHash } : {}) });
+          this.net.send(p, { t: 'init', map: this.map, seed: this.seed, mode: this.mode, ...(this.world?.layoutHash ? { gen: this.world.planet?.generatorVersion, hash: this.world.layoutHash } : {}), ...(this.world?.custom ? { custom: this.world.custom } : {}) });
         } catch (e) {
           this.net.send(p, { t: 'refused', msg: e.message });
           setTimeout(() => this.net.drop(p, 'full'), 500);

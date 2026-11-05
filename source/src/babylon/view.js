@@ -143,7 +143,20 @@ export class BabylonView {
       const { root, barrelMeshes } = buildProceduralWorld(scene, world, this.shadowGenerator);
       this.worldRoot = root;
       this.barrelMeshes = barrelMeshes;
+      if (world.theme === 'custom') this.applyCustomSky(world);
     }
+  }
+
+  /* Editor maps choose Day / Dusk / Night: sky, fog and light follow that choice. */
+  applyCustomSky(world) {
+    const s = this.scene, sky = world.custom?.sky || 'day';
+    s.clearColor = hexToColor3(world.sky || '#8cc8f5').toColor4(1);
+    s.fogColor = hexToColor3(world.fog || '#a7d4f5');
+    s.fogStart = 45; s.fogEnd = Math.max(160, (world.custom?.size || 56) * 3);
+    const sun = s.getLightByName('sun'), hemi = s.getLightByName('hemi');
+    const look = { day: ['#fff3df', 2.4, '#eaf4ff', 1.5], dusk: ['#ffb675', 2.6, '#c7a6d8', 1.1], night: ['#9fb4ff', 0.5, '#4a5a8a', 0.6] }[sky];
+    if (sun) { sun.diffuse = hexToColor3(look[0]); sun.intensity = look[1]; }
+    if (hemi) { hemi.diffuse = hexToColor3(look[2]); hemi.intensity = look[3]; }
   }
 
   async setWorld(world) {
