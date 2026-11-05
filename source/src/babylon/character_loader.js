@@ -5,6 +5,8 @@ import '@babylonjs/loaders/glTF/index.js';
 import { hexToColor3, hexToColor4 } from './materials.js';
 import { applyAppearance, disposeAppearance, glbBytes } from './appearance_materials.js';
 import { decodeLook } from '../appearance.js';
+import { instantiateWorldWeapon } from './weapon_viewmodel.js';
+import { WEAPONS } from '../sim.js';
 
 export const PLAYER_COLORS = ['#38bdf8', '#fb7185', '#34d399', '#facc15', '#a78bfa', '#fb923c'];
 
@@ -195,7 +197,40 @@ export class BabylonAvatar {
 
     this.nameTag = createNameTagMesh(this.scene, this.name, this.colorHex);
     this.nameTag.parent = this.root;
+    this.setupHeldWeapon();
     this.loaded = true;
+  }
+
+  /* Next Gen bodies (identity rest pose) hold their current weapon: an aim pose is layered on
+     the arms after the animation system runs, so legs keep walking/running underneath. */
+  setupHeldWeapon() {
+    if (!this.model?.charData?.ng) return;
+    const nodes = new Map();
+    for (const n of this.root.getDescendants(false)) nodes.set(n.name.split('__i')[0], n);
+    this.arms = { ua: nodes.get('UpperArm.R'), fa: nodes.get('Forearm.R'), hand: nodes.get('Hand.R'), ual: nodes.get('UpperArm.L'), fal: nodes.get('Forearm.L'), chest: nodes.get('Chest') };
+    if (!this.arms.ua || !this.arms.hand) { this.arms = null; return; }
+    const Q = (x, y, z) => BABYLON.Quaternion.FromEulerAngles(x * Math.PI / 180, y * Math.PI / 180, z * Math.PI / 180);
+    this.aimPose = { ua: Q(-82, 0, 14), fa: Q(-12, 0, 0), ual: Q(-70, 0, -38), fal: Q(-48, 0, 0) };
+    this.poseObs = this.scene.onAfterAnimationsObservable.add(() => {
+      if (!this.arms || !this.alive || this.disposed) return;
+      const a = this.arms, P = this.aimPose;
+      a.ua.rotationQuaternion = P.ua; a.fa && (a.fa.rotationQuaternion = P.fa);
+      a.ual && (a.ual.rotationQuaternion = P.ual); a.fal && (a.fal.rotationQuaternion = P.fal);
+    });
+  }
+
+  setHeldWeapon(w) {
+    if (!this.arms || w === this.heldW) return;
+    this.heldW = w;
+    this.heldWeapon?.dispose();
+    const id = (WEAPONS[w] || WEAPONS[0]).id;
+    const gun = this.heldWeapon = instantiateWorldWeapon(this.scene, id);
+    if (!gun) return;
+    gun.parent = this.arms.hand;
+    // hand space: −Y runs down the arm (forward once raised), +Z faces the body front
+    gun.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(Math.PI / 2, Math.PI, 0);
+    gun.position.set(0, -0.1, 0.02);
+    gun.scaling.setAll(1.05);
   }
 
   /* Snapshot-driven: called every frame with the host's canonical look code. */
@@ -213,6 +248,8 @@ export class BabylonAvatar {
   update(p, dt) {
     if (p && p.lk !== undefined) this.setLook(p.lk);
     if (!this.loaded || !this.root) return;
+    this.alive = !!p.alive;
+    if (this.arms) { this.setHeldWeapon(p.w | 0); if (this.heldWeapon) this.heldWeapon.setEnabled(this.alive); }
 
     this.root.position.set(p.x, p.y, p.z);
     this.root.rotation.y = p.yaw + Math.PI;
@@ -255,6 +292,8 @@ export class BabylonAvatar {
 
   dispose() {
     this.disposed = true;
+    if (this.poseObs) this.scene.onAfterAnimationsObservable.remove(this.poseObs);
+    this.heldWeapon?.dispose();
     if (this.nameTag) this.nameTag.dispose();
     if (this.model) disposeCharacter(this.model);
     else if (this.root) this.root.dispose();

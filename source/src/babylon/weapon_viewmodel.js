@@ -24,6 +24,18 @@ export async function preloadWeaponModels(scene, assets) {
   return map.size;
 }
 
+/* Third-person copy for avatars (world render group, casts no special priority). Null when
+   no authored model is loaded. */
+export function instantiateWorldWeapon(scene, id) {
+  const container = weaponCache.get(scene)?.get(id);
+  if (!container) return null;
+  const root = new BABYLON.TransformNode(`tpw_${id}`, scene);
+  const inst = container.instantiateModelsToScene(n => `${n}_tp`, false);
+  for (const n of inst.rootNodes) n.parent = root;
+  for (const m of root.getChildMeshes()) m.isPickable = false;
+  return root;
+}
+
 function instantiateWeapon(scene, container, id) {
   const root = new BABYLON.TransformNode(`wep_${id}`, scene);
   const inst = container.instantiateModelsToScene(n => `${n}_vm`, false);
