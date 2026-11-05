@@ -4,7 +4,9 @@
 import { OnlineSignalingClient, OnlineNetHost, LocalNetHost, OnlineNetGuest, LinkError } from './net_online.js';
 import { HostSession, GuestSession } from './game.js';
 import { View, CharacterPreview, HeroViewer, loadAssets, buildWorld } from './render_babylon.js';
-import { Hud, Sound } from './hud.js';
+import { Sound } from './hud.js';
+import { OnlineHud } from './hud_online.js';
+import { publicModes, MODE_CATALOG } from './modes.js';
 import { B } from './sim.js';
 import { initPalette } from './palette.js';
 import { HERO_ROSTER, getHeroData as legacyHeroData, SKIN_OF, baseHeroId } from './heroes.js';
@@ -33,7 +35,19 @@ function cleanName(s, max = 20, fallback = 'Operative') {
 
 const myId = randomHex(8);
 let signaling = null, session = null, view = null, world = null, assets = null;
-const hud = new Hud(), sound = new Sound();
+const hud = new OnlineHud(), sound = new Sound();
+
+/* Public mode selector comes from the catalog, so only finished modes are offered. */
+function populateModeSelect() {
+  const sel = $('mode-select');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.replaceChildren(...publicModes().map(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = `${m.name} (${m.short})`; o.title = m.brief; return o; }));
+  if (MODE_CATALOG[prev]?.ready) sel.value = prev;
+  const note = $('mode-brief');
+  const sync = () => { if (note) note.textContent = MODE_CATALOG[sel.value]?.brief || ''; };
+  sel.onchange = sync; sync();
+}
 
 /* ---- Map Briefings & Presentation Data ---- */
 const MAPS = {
@@ -1248,6 +1262,7 @@ function setupInputHandlers() {
 /* ---- Client Bootstrap ---- */
 async function bootstrap() {
   initPalette();
+  populateModeSelect();
   const serverInput = $('opt-server');
   if (serverInput) {
     serverInput.value = store.get('serverUrl', '');

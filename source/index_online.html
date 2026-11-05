@@ -544,6 +544,7 @@
             <option value="ffa">Free For All (FFA)</option>
             <option value="tdm">Team Deathmatch (TDM)</option>
           </select>
+          <p class="muted-note" id="mode-brief" style="margin-top:6px;"></p>
         </div>
         <div class="field-row">
           <div class="form-group">
@@ -624,7 +625,10 @@
   <div id="elim-feed"></div>
   <ul id="feed"></ul>
 
-  <!-- Top Center: Match Status -->
+  <!-- Top Center: Mode / score / objective (filled by hud_online.js) -->
+  <div id="objective" role="status" aria-live="off" hidden></div>
+
+  <!-- Top Right: link + match controls -->
   <div id="topbar">
     <span id="link"></span>
     <span id="tdm-score" class="tdm-score-banner" hidden></span>

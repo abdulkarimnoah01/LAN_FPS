@@ -181,8 +181,13 @@ export class Client {
         break;
       case 'join': hud?.feed(`${e.name} joined`); break;
       case 'leave': hud?.feed(`${this.name(e.id)} left`); break;
+      case 'zone':
+        hud?.feed(e.owner ? `${e.owner.toUpperCase()} captured the zone` : `${(e.by || '').toUpperCase()} neutralised the zone`);
+        break;
       case 'end':
-        if (e.isTeam) {
+        if (e.draw) {
+          hud?.feed('DRAW — scores level at the time limit', true);
+        } else if (e.isTeam) {
           const teamLabel = e.winner === 'red' ? 'RED TEAM' : 'BLUE TEAM';
           hud?.feed(`${teamLabel} WINS THE MATCH!`, true);
         } else {
@@ -215,7 +220,7 @@ export class Client {
     const o = this.offset, k = Math.exp(-dt * 15);
     o.x *= k; o.y *= k; o.z *= k;
     const me = this.me, shown = { ...me, x: me.x + o.x, y: me.y + o.y, z: me.z + o.z };
-    if (this.view) this.view.scopeZoom = this.scopeZoom;
+    if (this.view) { this.view.scopeZoom = this.scopeZoom; this.view.objective = this.state?.obj || null; }
     this.view?.render(dt, shown, this.others(), this.look, this.aiming, this.audio, this.me.w || 0);
     this.hud?.update(this);
   }

@@ -1,5 +1,7 @@
 /* Authoritative match state. Only the host runs this: it applies every player's
    inputs, resolves shots, and owns health, kills, respawns, bots, barrels, grenades, and the round. */
+import { isTeamMode } from './modes.js';
+import { newControlState, stepControl, controlSnapshot } from './objectives.js';
 import { canonicalLook, makeLookLimiter, MAX_LOOK_BYTES } from './appearance.js';
 import { GUN_ORDER, gunGameWeapon, DT, RULES, WEAPONS, newPlayer, stepPlayer, castShot, PREDICTED, aim, rayBox, supported, B } from './sim.js';
 
@@ -27,7 +29,8 @@ export class HostGame {
   constructor(world, { random = Math.random, mode = 'ffa' } = {}) {
     this.world = world;
     this.random = random;
-    this.mode = mode; // 'ffa', 'tdm' or 'gungame'
+    this.mode = mode; // 'ffa', 'tdm', 'gungame' or 'control' (see modes.js)
+    this.team = isTeamMode(mode);
     this.players = new Map();
     this.queues = new Map();
     this.credit = new Map();
@@ -42,6 +45,7 @@ export class HostGame {
     this.endAt = 0;
     this.events = [];
     this.teams = { red: { kills: 0 }, blue: { kills: 0 } };
+    this.objective = mode === 'control' ? newControlState(world) : null;
   }
 
   addPlayer(id, name, char = '', team = null, look = '') {
@@ -53,7 +57,7 @@ export class HostGame {
     p.char = String(char || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').slice(0, 32);
     p.look = canonicalLook(look);
 
-    if (this.mode === 'tdm') {
+    if (this.team) {
       const redCount = [...this.players.values()].filter(x => x.team === 'red').length;
       const blueCount = [...this.players.values()].filter(x => x.team === 'blue').length;
       p.team = team || (redCount <= blueCount ? 'red' : 'blue');
@@ -153,6 +157,14 @@ export class HostGame {
 
     // Step Active Grenades
     this.stepGrenades();
+
+    // Objective modes (host ticks, resolved once per round)
+    if (this.objective && this.phase === 'play') {
+      const { state, events, result } = stepControl(this.objective, this.players.values());
+      this.objective = state;
+      for (const e of events) this.events.push(e);
+      if (result) this.endRound(result.winner, true);
+    }
 
     // End Phase Check
     if (this.phase === 'ended' && this.time >= this.endAt) this.restart();
@@ -268,7 +280,7 @@ export class HostGame {
     // Damage Players
     for (const p of this.players.values()) {
       if (!p.alive) continue;
-      if (this.mode === 'tdm' && attacker && p.team === attacker.team && p !== attacker) continue;
+      if (this.team && attacker && p.team === attacker.team && p !== attacker) continue;
       const dist = Math.hypot(p.x - x, (p.y + 0.9) - y, p.z - z);
       if (dist <= maxRadius) {
         if (!hasLOS(this.world, [x, y, z], [p.x, p.y + 0.9, p.z])) continue;
@@ -331,7 +343,7 @@ export class HostGame {
         } else if (h.id) {
           const victim = this.players.get(h.id);
           if (victim && victim.alive) {
-            if (this.mode === 'tdm' && victim.team === p.team && victim !== p) continue; // No friendly fire
+            if (this.team && victim.team === p.team && victim !== p) continue; // No friendly fire
             this.damage(victim, p, h.head, wep, h.backstab);
           }
         }
@@ -354,7 +366,7 @@ export class HostGame {
     if (killer && killer !== victim && !(gg && killer.k >= GUN_ORDER.length - 1 && wepId !== 'knife')) {
       killer.k++;
       if (gg && killer.ammos) killer.ammos[gunGameWeapon(killer.k)] = WEAPONS[gunGameWeapon(killer.k)].mag;
-      if (this.mode === 'tdm' && killer.team && killer.team !== 'none') {
+      if (this.team && killer.team && killer.team !== 'none') {
         this.teams[killer.team].kills++;
       }
     }
@@ -373,7 +385,7 @@ export class HostGame {
     });
 
     // Check Win Condition
-    if (this.phase === 'play') {
+    if (this.phase === 'play' && !this.objective) {
       if (this.mode === 'tdm') {
         const winKills = RULES.winKillsTDM || 25;
         if (killer && this.teams[killer.team]?.kills >= winKills) {
@@ -393,8 +405,18 @@ export class HostGame {
     }
   }
 
+  /* Ends the round once; `winner` is a team, a player id or 'draw'. */
+  endRound(winner, isTeam) {
+    if (this.phase !== 'play') return;
+    this.phase = 'ended';
+    this.winner = winner;
+    this.endAt = this.time + RULES.endPause;
+    this.events.push({ t: 'end', winner, isTeam, draw: winner === 'draw' });
+  }
+
   restart() {
     this.phase = 'play';
+    if (this.objective) this.objective = newControlState(this.world);
     this.winner = null;
     this.teams.red.kills = 0;
     this.teams.blue.kills = 0;
@@ -409,9 +431,9 @@ export class HostGame {
   // Spawn at the point farthest from living opponents (floors count, so a spawn
   // directly above or below an enemy is no safer than one in the same room).
   spawn(p) {
-    const others = [...this.players.values()].filter(o => o !== p && o.alive && (this.mode !== 'tdm' || o.team !== p.team));
+    const others = [...this.players.values()].filter(o => o !== p && o.alive && (!this.team || o.team !== p.team));
     let pool = this.world.spawns;
-    if (this.mode === 'tdm') {
+    if (this.team) {
       const mine = pool.filter(s => s.team === p.team);
       if (mine.length >= 2) pool = mine;
     }
@@ -443,7 +465,7 @@ export class HostGame {
       }
 
       // Find best target
-      const enemies = [...this.players.values()].filter(o => o !== bot && o.alive && (this.mode !== 'tdm' || o.team !== bot.team));
+      const enemies = [...this.players.values()].filter(o => o !== bot && o.alive && (!this.team || o.team !== bot.team));
       let bestTarget = null, bestDist = Infinity;
       for (const e of enemies) {
         const d = Math.hypot(e.x - bot.x, e.z - bot.z);
@@ -569,6 +591,7 @@ export class HostGame {
       teams: this.teams,
       winner: this.winner,
       endIn: this.phase === 'ended' ? round(this.endAt - this.time) : 0,
+      ...(this.objective ? { obj: controlSnapshot(this.objective) } : {}),
       players,
     };
   }

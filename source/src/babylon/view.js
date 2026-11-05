@@ -452,6 +452,8 @@ export class BabylonView {
       }
     }
 
+    this.updateObjectiveVisual(dt);
+
     // Update active visual effects
     for (let i = this.fx.length - 1; i >= 0; i--) {
       const effect = this.fx[i];
@@ -465,6 +467,35 @@ export class BabylonView {
 
     // Render frame
     this.scene.render();
+  }
+
+  /* Control zone: a ground ring + soft column tinted by owner (amber when contested).
+     Purely visual and non-pickable; gameplay uses the host's objective state. */
+  updateObjectiveVisual(dt) {
+    const o = this.objective;
+    if (!o || o.k !== 'control') { if (this.zoneRoot) this.zoneRoot.setEnabled(false); return; }
+    if (!this.zoneRoot) {
+      const root = this.zoneRoot = new BABYLON.TransformNode('controlZone', this.scene);
+      const ring = BABYLON.MeshBuilder.CreateTorus('zoneRing', { diameter: o.r * 2, thickness: 0.12, tessellation: 64 }, this.scene);
+      const col = BABYLON.MeshBuilder.CreateCylinder('zoneColumn', { diameter: o.r * 2, height: 3, tessellation: 48, cap: BABYLON.Mesh.NO_CAP }, this.scene);
+      col.position.y = 1.5;
+      const ringMat = this.zoneRingMat = new BABYLON.StandardMaterial('zoneRingMat', this.scene);
+      ringMat.disableLighting = true;
+      const colMat = this.zoneColMat = new BABYLON.StandardMaterial('zoneColMat', this.scene);
+      colMat.disableLighting = true; colMat.alpha = 0.12; colMat.backFaceCulling = false;
+      ring.material = ringMat; col.material = colMat;
+      for (const m of [ring, col]) { m.parent = root; m.isPickable = false; }
+      this.zonePulse = 0;
+    }
+    this.zoneRoot.setEnabled(true);
+    this.zoneRoot.position.set(o.x, o.y + 0.05, o.z);
+    const still = typeof document !== 'undefined' && document.documentElement.classList.contains('reduce-motion');
+    this.zonePulse += dt;
+    const hex = o.con ? '#fbbf24' : o.own === 'red' ? '#ef4444' : o.own === 'blue' ? '#3b82f6' : (o.ct === 'red' ? '#fca5a5' : o.ct === 'blue' ? '#93c5fd' : '#e2e8f0');
+    const c = BABYLON.Color3.FromHexString(hex);
+    this.zoneRingMat.emissiveColor = c;
+    this.zoneColMat.emissiveColor = c;
+    this.zoneColMat.alpha = o.con && !still ? 0.1 + 0.06 * Math.abs(Math.sin(this.zonePulse * 4)) : 0.12;
   }
 
   applyGraphicsSettings(presetKey) {
