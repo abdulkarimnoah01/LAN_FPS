@@ -9,6 +9,7 @@ import { getPBRMaterial, hexToColor3 } from './materials.js';
 import { buildProceduralWorld } from './procedural_world.js';
 import { buildPlanetWorld } from './planet_world.js';
 import { ShotFX } from './shot_fx.js';
+import { WeatherFX } from './weather_fx.js';
 import { loadBabylonMap, configureArenaLighting } from './map_loader.js';
 import { BabylonAvatar } from './character_loader.js';
 import { buildBabylonWeaponModel, preloadWeaponModels } from './weapon_viewmodel.js';
@@ -101,9 +102,11 @@ export class BabylonView {
     const ml = this.muzzleLight = new BABYLON.PointLight('muzzleLight', BABYLON.Vector3.Zero(), scene);
     ml.parent = flash; ml.diffuse = hexToColor3('#ffd27a'); ml.specular = BABYLON.Color3.Black(); ml.range = 7; ml.intensity = 0;
     this.shotFx = new ShotFX(scene, this.activePreset);
+    this.weatherFx = new WeatherFX(scene, cam, { quality: this.activePreset });
 
     // Build map visuals
     await this.buildVisuals(this.world);
+    this.weatherFx.captureBase();
 
     // Default weapon (authored GLBs when bundled, procedural otherwise)
     await preloadWeaponModels(scene, this.assets);
@@ -146,6 +149,7 @@ export class BabylonView {
   async setWorld(world) {
     this.world = world;
     await this.buildVisuals(world);
+    this.weatherFx?.captureBase();
   }
 
   setWeaponModel(wIndex) {
@@ -511,6 +515,7 @@ export class BabylonView {
     this.updateGrenades(dt);
     this.frameNo = (this.frameNo || 0) + 1;
     this.shotFx?.update(dt);
+    if (this.weatherFx) { if (audio && !this.weatherFx.audio) this.weatherFx.audio = audio; this.weatherFx.update(dt, this.weather); }
 
     // Update active visual effects
     for (let i = this.fx.length - 1; i >= 0; i--) {
@@ -588,6 +593,7 @@ export class BabylonView {
   applyGraphicsSettings(presetKey) {
     this.activePreset = presetKey;
     this.shotFx?.setPreset(presetKey);
+    this.weatherFx?.setQuality(presetKey);
     applyGraphicsPreset(this.engine, this.scene, this.pipeline, this.shadowGenerator, presetKey);
   }
 
@@ -600,6 +606,7 @@ export class BabylonView {
     for (const [, av] of this.avatars) av.dispose();
     this.avatars.clear();
     this.shotFx?.dispose();
+    this.weatherFx?.dispose();
     if (this.scene) this.scene.dispose();
     if (this.engine) this.engine.dispose();
     this.ready = false;

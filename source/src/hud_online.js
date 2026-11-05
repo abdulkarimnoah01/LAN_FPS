@@ -5,6 +5,7 @@
 import { Hud } from './hud.js';
 import { MODE_CATALOG } from './modes.js';
 import { GUN_ORDER, gunGameWeapon, WEAPONS, RULES } from './sim.js';
+import { decodeWeather, WEATHER_LABELS } from './weather.js';
 
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
 const setText = (e, v) => { if (e && e.textContent !== v) e.textContent = v; };
@@ -45,6 +46,12 @@ export class OnlineHud extends Hud {
   update(client) {
     super.update(client);
     const s = client.state, me = client.me;
+    if (this.session && this.link) {
+      const w = decodeWeather(s?.wx);
+      const label = !w ? '' : w.from === w.to || w.k >= 1 ? WEATHER_LABELS[w.to] : `${WEATHER_LABELS[w.from]} → ${WEATHER_LABELS[w.to]}`;
+      const text = this.session.link().text + (label ? ` · ${label}` : '');
+      if (this.link.textContent !== text) this.link.textContent = text;
+    }
     if (!this.objEl) return;
     if (!s) { this.objEl.hidden = true; return; }
     this.objEl.hidden = false;

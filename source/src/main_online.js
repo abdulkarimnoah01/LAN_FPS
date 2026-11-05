@@ -8,6 +8,7 @@ import { Sound } from './hud.js';
 import { OnlineHud } from './hud_online.js';
 import { publicModes, MODE_CATALOG, modeSupportsMap } from './modes.js';
 import { PLANET_GENERATOR_VERSION } from './planet_map.js';
+import { WEATHER_OPTIONS, WEATHER_LABELS, weatherAllowed } from './weather.js';
 import { B } from './sim.js';
 import { initPalette } from './palette.js';
 import { HERO_ROSTER, getHeroData as legacyHeroData, SKIN_OF, baseHeroId } from './heroes.js';
@@ -50,7 +51,22 @@ function populateModeSelect() {
   const note = $('mode-brief');
   const sync = () => { if (note) note.textContent = MODE_CATALOG[sel.value]?.brief || ''; };
   sel.onchange = sync; sync();
+  populateWeatherSelect();
 }
+
+/* Weather choice for the host; indoor/space maps have none. */
+function populateWeatherSelect() {
+  const sel = $('weather-select');
+  if (!sel) return;
+  const map = $('map-select')?.value, allowed = weatherAllowed(map);
+  const prev = sel.value || store.get('weather', 'dynamic');
+  sel.replaceChildren(...(allowed ? WEATHER_OPTIONS : ['off']).map(id => { const o = document.createElement('option'); o.value = id; o.textContent = id === 'off' && !allowed ? 'None (indoor arena)' : WEATHER_LABELS[id]; return o; }));
+  sel.value = allowed && WEATHER_OPTIONS.includes(prev) ? prev : (allowed ? 'dynamic' : 'off');
+  sel.disabled = !allowed;
+  sel.onchange = () => store.set('weather', sel.value);
+  if ($('weather-note')) $('weather-note').textContent = allowed ? 'Dynamic cycles sunny, cloudy, fog and rain every few minutes. Cosmetic only.' : 'This arena is indoors or in orbit, so it has no weather.';
+}
+const chosenWeather = map => (weatherAllowed(map) ? ($('weather-select')?.value || 'dynamic') : 'off');
 
 /* ---- Map Briefings & Presentation Data ---- */
 const MAPS = {
@@ -884,6 +900,7 @@ async function startPracticeMatch() {
       map,
       seed,
       mode,
+      weather: chosenWeather(map),
       view,
       hud,
       audio: sound,
@@ -943,6 +960,7 @@ async function hostOnlineMatch() {
       map,
       seed,
       mode,
+      weather: chosenWeather(map),
       view,
       hud,
       audio: sound,

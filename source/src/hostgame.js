@@ -1,6 +1,7 @@
 /* Authoritative match state. Only the host runs this: it applies every player's
    inputs, resolves shots, and owns health, kills, respawns, bots, barrels, grenades, and the round. */
 import { isTeamMode } from './modes.js';
+import { weatherAt, encodeWeather, normalizeWeatherOption } from './weather.js';
 import { newObjective, stepObjective, objectiveSnapshot } from './objectives.js';
 import { canonicalLook, makeLookLimiter, MAX_LOOK_BYTES } from './appearance.js';
 import { GRENADE, stepGrenadeBody } from './sim.js';
@@ -27,8 +28,10 @@ export function hasLOS(world, from, to) {
 }
 
 export class HostGame {
-  constructor(world, { random = Math.random, mode = 'ffa' } = {}) {
+  constructor(world, { random = Math.random, mode = 'ffa', weather = 'off', weatherSeed = 0 } = {}) {
     this.world = world;
+    this.weather = normalizeWeatherOption(weather);
+    this.weatherSeed = weatherSeed | 0;
     this.random = random;
     this.mode = mode; // 'ffa', 'tdm', 'gungame', 'control' or 'ctf' (see modes.js)
     this.team = isTeamMode(mode);
@@ -556,6 +559,7 @@ export class HostGame {
       winner: this.winner,
       endIn: this.phase === 'ended' ? round(this.endAt - this.time) : 0,
       ...(this.objective ? { obj: objectiveSnapshot(this.objective) } : {}),
+      ...(this.weather !== 'off' ? { wx: encodeWeather(weatherAt(this.weather, this.weatherSeed, this.time)) } : {}),
       players,
     };
   }

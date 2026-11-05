@@ -227,7 +227,7 @@ export class Client {
     const o = this.offset, k = Math.exp(-dt * 15);
     o.x *= k; o.y *= k; o.z *= k;
     const me = this.me, shown = { ...me, x: me.x + o.x, y: me.y + o.y, z: me.z + o.z };
-    if (this.view) { this.view.scopeZoom = this.scopeZoom; this.view.objective = this.state?.obj || null; }
+    if (this.view) { this.view.scopeZoom = this.scopeZoom; this.view.objective = this.state?.obj || null; this.view.weather = this.state?.wx || null; }
     this.view?.render(dt, shown, this.others(), this.look, this.aiming, this.audio, this.me.w || 0);
     this.hud?.update(this);
   }
@@ -235,9 +235,9 @@ export class Client {
 
 /* Host: authoritative game + local client + direct links to every guest. */
 export class HostSession {
-  constructor({ lobby, world, id, name, char, look = '', roomName, map = 'forest', seed = 0, mode = 'ffa', view, hud, audio, RTC, onExit, NetHostClass = NetHost, signaling }) {
-    Object.assign(this, { lobby, world, id, name, char, look, roomName, map, seed, mode, onExit });
-    this.game = new HostGame(world, { mode });
+  constructor({ lobby, world, id, name, char, look = '', roomName, map = 'forest', seed = 0, mode = 'ffa', weather = 'off', view, hud, audio, RTC, onExit, NetHostClass = NetHost, signaling }) {
+    Object.assign(this, { lobby, world, id, name, char, look, roomName, map, seed, mode, weather, onExit });
+    this.game = new HostGame(world, { mode, weather, weatherSeed: (seed ^ 0x2545f491) + Math.floor(Math.random() * 1e6) });
     this.client = new Client({ world, id, view, hud, audio, send: m => this.handle(id, m) });
     this.net = new NetHostClass({
       lobby, signaling, RTC, id, name, roomName, map, seed, mode,
