@@ -35,6 +35,44 @@ This upgrade covers the Babylon.js online edition only (`Spectre_Orbit_Light.htm
 4. **Play Control or Capture the Flag**, alongside FFA, TDM and Gun Game, with a new combat HUD that shows mode, score and objective at the top centre.
    ![Control held](next_gen/control_hud_held.jpg) ![Control contested](next_gen/control_contested.jpg) ![CTF flag taken](next_gen/ctf_flag_taken.jpg)
 
+5. **Play Orbit Crown**, a new tiny-planet map with a fresh layout seed for every room. It's listed first in the map picker and supports all five modes.
+   ![Orbit Crown overview](next_gen/orbit_overview.jpg) ![Orbit Crown plaza](next_gen/orbit_plaza.jpg)
+
+6. **Use the new weapons.** All six are authored, stylised low-poly models. Shots now leave glowing tracers, with a muzzle light and impact pops, and other players hold their current weapon.
+   ![Weapons](next_gen/weapons.jpg) ![Held weapons](next_gen/held_weapons.jpg)
+
+7. **Throw grenades that visibly fly.** Grenades used to hang in front of the thrower until they exploded.
+
+## Orbit Crown (tiny-planet map)
+- **Generator:** `source/src/planet_map.js`, at `generatorVersion` 1. It uses only an integer-seeded PRNG and outputs world data compatible with `getMap`. The layout is a 72 × 72 m terraced crown, point-symmetric so both teams get the same structure:
+  - a central plaza with the beacon landmark, reached by 0.4 m steps;
+  - a ring-road loop with seeded parked cars and crates as cover;
+  - covered colonnades on both flanks;
+  - two team stations, each with three exits;
+  - park and market districts;
+  - landmark towers;
+  - explosive barrels.
+- **Validator:** builds a 0.5 m walk grid (2.2 m headroom, 0.55 m step-ups, drops up to 2 m) and flood-fills it. It checks that:
+  - all spawns, the Control zone and both flags are reachable;
+  - each team station has at least 2 exits;
+  - spawn-to-zone routes are within 10% of each other;
+  - no spawn is within 15 m of the enemy base.
+
+  A seed gets up to 8 attempts, then the known-good fallback seed 1 is used and the reason is logged.
+- **Measured:** 100 of 100 seeds pass on the first try, with 100 distinct layout hashes, in about 10 ms each. Spawn to zone is 33 m vs 32.5 m; base to base is 61 m (9.4 s at run speed). The brief's 30–60 s CTF route target doesn't fit a 72 m footprint, so it isn't met.
+- **Hash handshake:** the host's `init` message carries `gen` and `hash` (an FNV hash of the cm-quantised boxes, spawns, barrels and anchors). The guest regenerates the planet from the seed and refuses to join, with a readable message, if either differs. A failed join now disconnects cleanly instead of leaving a ghost player.
+- **Renderer:** `source/src/babylon/planet_world.js`. The deck goes through the standard builder. Everything else is non-colliding decoration: the faceted displaced planet and ocean, the terraced foundation, instanced houses and trees on the curve, clouds, a ringed satellite and a moon, and the deck dressing. It uses PBR materials, freezes static matrices, and stops its animation under reduced motion.
+- **Limitation (stated in the briefing):** the crown plays on flat Y-up ground. The planet is scenery; you can't walk around it. Radial gravity wasn't attempted.
+- **Lobby thumbnail:** `node source/tools/capture_orbit_preview.mjs` writes `source/assets/ui/map-orbit.jpg`.
+
+## Weapons
+- **Source:** `source/tools/blender/build_weapons.py` builds the six models in headless Blender 5.2: `blender -b --factory-startup --python-exit-code 1 -P source/tools/blender/build_weapons.py`.
+- **Output:** `source/assets/weapons/<id>.glb`, 444–1,552 triangles each, about 500 KB in total. Each has an empty named `muzzle`.
+- **QA:** all six pass the `blender-asset-qa` gate (profile `game`). It found two floating parts, which were fixed. Accepted warnings: flat cylinder-cap n-gons, flush-mounted parts, and the asset not resting on a ground plane, none of which matter for a held weapon.
+- **In game:** models are preloaded once per scene and instanced per switch; the procedural models remain as a fallback. Next Gen avatars hold the matching third-person instance, with an aim pose layered over their animations.
+- **Grenades:** `stepGrenadeBody` in `sim.js` is shared by the host and the renderer, so the arc you see is the arc the host simulates. `test/weapons_test.mjs` checks travel distance, a visual-replay error under 25 cm, and wall bounces.
+- **Effect leaks fixed:** shots and explosions used to create materials that were never disposed. In the built game the material count now stays flat (76 → 82 → 78) across 600 shots and 20 explosions.
+
 ## Characters and the creator
 
 ### Rig and topology
@@ -109,7 +147,7 @@ The objective panel's DOM is built once per mode; per-frame updates only change 
 | Command | Result |
 | --- | --- |
 | `npm --prefix source ci` / `npm --prefix server ci` | ok |
-| `npm --prefix source run test:all` | pass: 44 shared, networking, Babylon, session, **13 appearance**, **17 modes** |
+| `npm --prefix source run test:all` | pass: 44 shared, networking, Babylon, session, **13 appearance**, **17 modes**, **9 planet**, **3 weapon** |
 | `npm --prefix server test` | pass (4) |
 | `npm --prefix source run build:online` | ok, 44.15 MB (baseline 42.76 MB; +1.4 MB for the four GLBs) |
 | `npm --prefix source run build` + `test:ui` (Classic) | ok; Classic output restored, not committed |
@@ -119,8 +157,7 @@ The objective panel's DOM is built once per mode; per-frame updates only change 
 Both browser scripts write screenshots to `dist/test-shots/`. They take Playwright from the local or global npm install, and accept `CHROMIUM_PATH` and `OUT_DIR`.
 
 ## Not done / unverified
-- **Orbit Crown tiny-planet map:** not implemented.
-- **Radial-gravity planet traversal:** not attempted.
+- **Radial-gravity planet traversal:** not attempted. Orbit Crown is a flat crown on a decorative planet.
 - **Objective AI for bots:** bots only fight.
 - **Real GPU / WebGPU rendering:** the cloud only had software WebGL. Check the creator and the Neon Rim look on real hardware.
 - **Two machines on a LAN, internet/TURN, adverse-network (100 ms / 2 % loss) and six-player runs:** not run.
