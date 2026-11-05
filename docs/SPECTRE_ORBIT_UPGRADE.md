@@ -43,6 +43,54 @@ This upgrade covers the Babylon.js online edition only (`Spectre_Orbit_Light.htm
 
 7. **Throw grenades that visibly fly.** Grenades used to hang in front of the thrower until they exploded.
 
+8. **Build their own maps** in the new **Map Editor** page, then play-test or host them; guests receive the map when they join.
+   ![Map editor](next_gen/map_editor.jpg) ![3D preview and a guest playing the hosted map](next_gen/map_editor_preview_and_match.jpg)
+
+9. **Play in changing weather**: sunny, cloudy, fog or rain, either cycling (Dynamic) or locked by the host.
+   ![Sunny, cloudy, fog, rain](next_gen/weather.jpg)
+
+10. **See real muzzle flashes and glowing bullets.** Shots flash a starburst at the muzzle, and each bullet travels to its target while lighting its path.
+   ![Muzzle flashes](next_gen/muzzle_flash.jpg) ![Bullets in flight](next_gen/bullets_in_flight.jpg)
+
+11. **Use the new Orbit menu theme** across all lobby pages.
+   ![Menus](next_gen/menus.jpg)
+
+## Map editor and custom maps
+- **Format:** `source/src/custom_map.js` defines `CustomMapV1`, `{ v, name, size (40–120 m), sky (day/dusk/night), items }`. Item types are block, stairs, barrel, tree, spawn (red, blue or FFA), Control zone and flag base.
+- **Trust boundary:** every map passes through `normalizeCustomMap`, whether it comes from the editor, an imported file or the network. It drops unknown types and keys, clamps and rounds numbers, allows palette colours only, and caps a map at 600 items and 96 KB.
+- **Compiler:** `compileCustomMap` builds the same world data the built-in maps use, adding the floor and boundary walls; spawns placed on a block stand on top of it.
+- **Validator:** `validateCustomMap` reuses the Orbit walk-grid flood fill. It reports blocked spawns and unreachable objectives as errors, missing team spawns and flags as warnings, and lists the modes the map supports. CTF needs both flag bases.
+- **Editor (Map Editor page):**
+  - tools for every item type;
+  - a top-down grid canvas: click to place, drag to move, arrows to nudge, R to rotate stairs or spawns, Delete to remove, wheel to zoom, right-drag to pan, Undo;
+  - a properties panel with colours;
+  - a live playability report;
+  - saved slots in browser storage, `.spectre-map.json` export and import;
+  - a 3D preview, Play test (a practice match with bots), and Host this map.
+- **Hosting:** the host's `init` message carries the normalised map and its layout hash. Guests compile the map and refuse a mismatch with a readable error.
+- **Test:** `node source/test/online_editor_browser.mjs` places a block through the UI, opens the preview, hosts, and checks that a second browser joins the identical map in CTF.
+
+## Weather
+- **Rules:** `source/src/weather.js` is pure and host-owned. Dynamic weather starts sunny and runs 90–180 s spells with no back-to-back repeats; the host can also lock one state. Every snapshot carries `wx = [from, to, blend]`, so all players and late joiners see the same sky.
+- **Where:** Foundry, Reactor and Zenith have no weather (indoor and space arenas). It's cosmetic only.
+- **Renderer:** `source/src/babylon/weather_fx.js` blends:
+  - sun and sky light;
+  - absolute fog distances (46 m in fog, 105 m in rain) and the fog and clear colours;
+  - an overcast layer over the sky;
+  - camera-following rain streaks, sized by graphics preset;
+  - a soft rain sound.
+- **Fix found along the way:** the game renders from its own frame loop, so Babylon's animation ratio is unreliable. Rain particles are stepped by the real frame time instead.
+
+## Shot effects
+- **Module:** `source/src/babylon/shot_fx.js`.
+- **Muzzle flash:** additive starbursts on the viewmodel and at remote shooters' held weapons.
+- **Bullets:** each shot is a glowing bolt with a halo that travels to the impact at a per-weapon speed. It borrows a light from a pool sized by preset (4 on High/Ultra, 2 on Medium, 0 on Low).
+- **No first-shot hitch:** shaders are compiled up front and a warm-up shot runs at load. Firing then compiled no new shader effects in testing, and the material count stays flat.
+- Hits stay instant and host-authoritative; the bolt is purely visual.
+
+## Menus
+`source/lobby_online.css` is loaded last by the online build only. It adds the **Orbit** palette, the default for players who never chose one: a nebula backdrop, glass cards, gradient titles and buttons, pill navigation, and restyled drawers. The original palettes are still selectable, and Classic is unchanged.
+
 ## Orbit Crown (tiny-planet map)
 - **Generator:** `source/src/planet_map.js`, at `generatorVersion` 1. It uses only an integer-seeded PRNG and outputs world data compatible with `getMap`. The layout is a 72 × 72 m terraced crown, point-symmetric so both teams get the same structure:
   - a central plaza with the beacon landmark, reached by 0.4 m steps;
@@ -147,7 +195,7 @@ The objective panel's DOM is built once per mode; per-frame updates only change 
 | Command | Result |
 | --- | --- |
 | `npm --prefix source ci` / `npm --prefix server ci` | ok |
-| `npm --prefix source run test:all` | pass: 44 shared, networking, Babylon, session, **13 appearance**, **17 modes**, **9 planet**, **3 weapon** |
+| `npm --prefix source run test:all` | pass: 44 shared, networking, Babylon, session, **13 appearance**, **17 modes**, **9 planet**, **3 weapon**, **6 weather**, **5 custom map** |
 | `npm --prefix server test` | pass (4) |
 | `npm --prefix source run build:online` | ok, 44.15 MB (baseline 42.76 MB; +1.4 MB for the four GLBs) |
 | `npm --prefix source run build` + `test:ui` (Classic) | ok; Classic output restored, not committed |

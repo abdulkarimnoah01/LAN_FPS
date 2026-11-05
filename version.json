@@ -2,5 +2,5 @@
   "version": "1.8.0",
   "name": "LAN_FPS",
   "date": "2026-11-05",
-  "notes": "Next Gen online update: Orbit Crown, a seeded tiny-planet arena; four new low-poly operatives (Rico, Dante, Lucia, Nina) on one shared rig, holding their weapons in third person; appearance creator (outfits, skin tones, Matte/Neon Rim shaders, accents) that every player sees; new authored stylised weapon models with glowing tracers and muzzle light; Control and Capture the Flag modes; modern combat HUD. Fixes: grenades now visibly fly, guests render and load the host map, remote avatars animate, effect memory leaks."
+  "notes": "Next Gen online update: Map Editor (build, check, preview, play-test and host your own arenas; guests receive the map); Orbit Crown, a seeded tiny-planet arena; dynamic weather (sunny, cloudy, fog, rain); new Orbit menu theme; four new low-poly operatives (Rico, Dante, Lucia, Nina) holding their weapons in third person; appearance creator every player sees; authored stylised weapons with starburst muzzle flashes and glowing bullets that light their path; Control and Capture the Flag modes; modern combat HUD. Fixes: grenades visibly fly, guests render and load the host map, remote avatars animate, effect memory leaks."
 }
