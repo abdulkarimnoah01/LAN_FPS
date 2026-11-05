@@ -79,7 +79,7 @@ if (fs.existsSync(mapsDir)) {
       assets.maps[id].preview = 'data:image/jpeg;base64,' + fs.readFileSync(imgFile).toString('base64');
     }
   }
-  for (const id of ['aftermath', 'river', 'forest', 'sandbox', 'arena']) {
+  for (const id of ['orbit', 'aftermath', 'river', 'forest', 'sandbox', 'arena']) {
     const imgFile = path.join(root, 'assets', 'ui', `map-${id}.jpg`);
     if (!assets.maps[id]) assets.maps[id] = {};
     if (fs.existsSync(imgFile)) {

@@ -3,6 +3,7 @@
 import { isTeamMode } from './modes.js';
 import { newObjective, stepObjective, objectiveSnapshot } from './objectives.js';
 import { canonicalLook, makeLookLimiter, MAX_LOOK_BYTES } from './appearance.js';
+import { GRENADE, stepGrenadeBody } from './sim.js';
 import { GUN_ORDER, gunGameWeapon, DT, RULES, WEAPONS, newPlayer, stepPlayer, castShot, PREDICTED, aim, rayBox, supported, B } from './sim.js';
 
 const MAX_CREDIT = 10;   // inputs a player may bank (absorbs network bursts, stops speed-ups)
@@ -194,10 +195,10 @@ export class HostGame {
       x: p.x + d[0] * 0.45,
       y: p.y + eyeH,
       z: p.z + d[2] * 0.45,
-      vx: d[0] * 19 + p.vx * 0.35,
-      vy: d[1] * 19 + 4.2,
-      vz: d[2] * 19 + p.vz * 0.35,
-      fuse: 2.2,
+      vx: d[0] * GRENADE.speed + p.vx * 0.35,
+      vy: d[1] * GRENADE.speed + GRENADE.lift,
+      vz: d[2] * GRENADE.speed + p.vz * 0.35,
+      fuse: GRENADE.fuse,
       owner: p.id,
       alive: true,
     };
@@ -217,45 +218,7 @@ export class HostGame {
 
   stepGrenades() {
     for (const g of this.grenades) {
-      g.vy -= 18 * DT;
-      g.x += g.vx * DT;
-      g.y += g.vy * DT;
-      g.z += g.vz * DT;
-
-      // Box bounce collision
-      for (const b of this.world.boxes) {
-        if (g.x > b[0] - 0.15 && g.x < b[3] + 0.15 && g.y > b[1] - 0.15 && g.y < b[4] + 0.15 && g.z > b[2] - 0.15 && g.z < b[5] + 0.15) {
-          const dTop = Math.abs(g.y - (b[4] + 0.15));
-          const dBot = Math.abs(g.y - (b[1] - 0.15));
-          const dMinX = Math.abs(g.x - (b[0] - 0.15));
-          const dMaxX = Math.abs(g.x - (b[3] + 0.15));
-          const dMinZ = Math.abs(g.z - (b[2] - 0.15));
-          const dMaxZ = Math.abs(g.z - (b[5] + 0.15));
-
-          const minD = Math.min(dTop, dBot, dMinX, dMaxX, dMinZ, dMaxZ);
-          if (minD === dTop) {
-            g.y = b[4] + 0.15;
-            g.vy = Math.abs(g.vy) * 0.45;
-            if (Math.abs(g.vy) < 0.8) g.vy = 0;
-            g.vx *= 0.65; g.vz *= 0.65;
-          } else if (minD === dBot) {
-            g.y = b[1] - 0.15;
-            g.vy = -Math.abs(g.vy) * 0.45;
-          } else if (minD === dMinX || minD === dMaxX) {
-            g.vx = -g.vx * 0.55;
-            g.x = minD === dMinX ? b[0] - 0.15 : b[3] + 0.15;
-          } else {
-            g.vz = -g.vz * 0.55;
-            g.z = minD === dMinZ ? b[2] - 0.15 : b[5] + 0.15;
-          }
-        }
-      }
-
-      // Rolling friction when rolling on the ground
-      if (Math.abs(g.vy) < 0.8) {
-        g.vx *= 0.95;
-        g.vz *= 0.95;
-      }
+      stepGrenadeBody(g, this.world.boxes, DT);
 
       g.fuse -= DT;
       if (g.fuse <= 0 && g.alive) {

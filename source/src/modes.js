@@ -12,7 +12,7 @@ export const MODE_CATALOG = {
     maps: null,
     brief: 'Hold the central zone. Capture takes 5 s uncontested; an owned zone scores 1 point/s while your team holds it alone. 100 points or the higher score after 5 minutes wins. Bots fight but do not play the objective.' },
   ctf: { id: 'ctf', name: 'Capture the Flag', short: 'CTF', team: true, ready: true, target: 3, unit: 'captures', timeLimit: 300,
-    maps: ['zenith', 'railyard', 'school'],
+    maps: ['orbit', 'zenith', 'railyard', 'school'],
     brief: 'Take the enemy flag from their base and bring it to yours while your own flag is home. 3 captures or the most after 5 minutes wins. Dropped flags return after 15 s or when a teammate touches them. Bots fight but do not run flags.' },
 };
 

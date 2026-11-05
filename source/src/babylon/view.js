@@ -3,10 +3,11 @@
    PBR materials, dynamic shadows, weapon viewmodels, and cinematic effects. */
 
 import * as BABYLON from '@babylonjs/core';
-import { WEAPONS, DT, H_STAND, H_CROUCH, EYE_STAND, EYE_CROUCH } from '../sim.js';
+import { WEAPONS, DT, H_STAND, H_CROUCH, EYE_STAND, EYE_CROUCH, GRENADE, stepGrenadeBody } from '../sim.js';
 import { createBabylonEngine } from './engine_factory.js';
 import { getPBRMaterial, hexToColor3 } from './materials.js';
 import { buildProceduralWorld } from './procedural_world.js';
+import { buildPlanetWorld } from './planet_world.js';
 import { loadBabylonMap, configureArenaLighting } from './map_loader.js';
 import { BabylonAvatar } from './character_loader.js';
 import { buildBabylonWeaponModel } from './weapon_viewmodel.js';
@@ -121,7 +122,11 @@ export class BabylonView {
 
     configureArenaLighting(scene, mapId, world.theme);
 
-    if (world.gltf || this.assets?.maps?.[mapId]) {
+    if (world.theme === 'orbit') {
+      const { root, barrelMeshes } = buildPlanetWorld(scene, world, this.shadowGenerator);
+      this.worldRoot = root;
+      this.barrelMeshes = barrelMeshes;
+    } else if (world.gltf || this.assets?.maps?.[mapId]) {
       const { root } = await loadBabylonMap(scene, mapId, this.assets, this.shadowGenerator);
       this.worldRoot = root;
     } else {
@@ -232,23 +237,36 @@ export class BabylonView {
 
   spawnGrenade(id, x, y, z, vx, vy, vz) {
     if (!this.scene) return;
+    if (!this.grenadeMats) {
+      const body = new BABYLON.PBRMaterial('grenadeMat', this.scene);
+      body.albedoColor = hexToColor3('#3f5232'); body.roughness = 0.55; body.metallic = 0.35;
+      const band = new BABYLON.StandardMaterial('grenadeBandMat', this.scene);
+      band.emissiveColor = hexToColor3('#ffb020'); band.disableLighting = true;
+      this.grenadeMats = { body, band };
+    }
     const gRoot = new BABYLON.TransformNode(`grenade_${id}`, this.scene);
     gRoot.position.set(x, y, z);
+    const body = BABYLON.MeshBuilder.CreateSphere('grenadeBody', { diameter: 0.2, segments: 6 }, this.scene);
+    body.scaling.y = 1.2; body.material = this.grenadeMats.body; body.parent = gRoot; body.isPickable = false;
+    const band = BABYLON.MeshBuilder.CreateTorus('grenadeBand', { diameter: 0.2, thickness: 0.035, tessellation: 12 }, this.scene);
+    band.material = this.grenadeMats.band; band.parent = gRoot; band.isPickable = false;
+    // Same body state the host simulates; advanced in fixed steps by updateGrenades().
+    this.grenades.set(id, { root: gRoot, x, y, z, vx, vy, vz, life: GRENADE.fuse + 0.6, acc: 0 });
+  }
 
-    const bodyMat = new BABYLON.PBRMaterial('grenadeMat', this.scene);
-    bodyMat.albedoColor = hexToColor3('#4d5c3b');
-    bodyMat.roughness = 0.6;
-    bodyMat.metallic = 0.5;
-
-    const body = BABYLON.MeshBuilder.CreateCylinder('grenadeBody', { height: 0.22, diameter: 0.2, tessellation: 8 }, this.scene);
-    body.material = bodyMat;
-    body.parent = gRoot;
-
-    this.grenades.set(id, {
-      root: gRoot,
-      x, y, z, vx, vy, vz,
-      life: 3.5,
-    });
+  /* Visual grenade flight: replays the host's physics (stepGrenadeBody) against this world's
+     boxes at the simulation rate, so what players see is where the grenade really is. */
+  updateGrenades(dt) {
+    const boxes = this.world?.boxes || [];
+    for (const [id, g] of this.grenades) {
+      g.acc += dt;
+      while (g.acc >= DT) { stepGrenadeBody(g, boxes, DT); g.acc -= DT; }
+      g.life -= dt;
+      g.root.position.set(g.x, g.y, g.z);
+      const spin = Math.hypot(g.vx, g.vz) * dt * 2.2;
+      g.root.rotation.x += spin; g.root.rotation.z += spin * 0.6;
+      if (g.life <= 0) { g.root.dispose(); this.grenades.delete(id); }
+    }
   }
 
   explode(x, y, z, r = 6, kind = 'grenade') {
@@ -453,6 +471,7 @@ export class BabylonView {
     }
 
     this.updateObjectiveVisual(dt);
+    this.updateGrenades(dt);
 
     // Update active visual effects
     for (let i = this.fx.length - 1; i >= 0; i--) {

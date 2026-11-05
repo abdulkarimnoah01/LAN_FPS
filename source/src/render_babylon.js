@@ -2,6 +2,7 @@
    Implements identical export interface as render.js for the Online Edition. */
 
 import { getMap } from './arena.js';
+import { generatePlanet, ORBIT_MAP_ID } from './planet_map.js';
 import { PLAYER_COLORS, makeBabylonCharacter, BabylonAvatar } from './babylon/character_loader.js';
 import { BabylonCharacterPreview, BabylonHeroViewer } from './babylon/preview.js';
 import { buildBabylonWeaponModel } from './babylon/weapon_viewmodel.js';
@@ -28,7 +29,8 @@ export async function loadAssets() {
 }
 
 export function buildWorld(assets, mapType = 'foundry', mapSeed = 0) {
-  const base = getMap(mapType, mapSeed);
+  // Orbit Crown is online-only and generated from the seed; other maps come from the shared registry.
+  const base = mapType === ORBIT_MAP_ID ? generatePlanet({ seed: mapSeed }) : getMap(mapType, mapSeed);
   const m = assets?.maps?.[mapType];
   return {
     ...base,

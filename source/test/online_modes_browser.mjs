@@ -34,8 +34,8 @@ try {
     return page;
   };
   const host = await mk('host'), guest = await mk('guest');
-  const options = await host.evaluate(() => [...document.querySelectorAll('#mode-select option')].map(o => o.value));
-  assert.deepEqual(options, ['ffa', 'tdm', 'gungame', 'control'], 'default map: CTF hidden (no team bases)');
+  const options = await host.evaluate(() => { const m = document.getElementById('map-select'); m.value = 'foundry'; m.dispatchEvent(new Event('change')); return [...document.querySelectorAll('#mode-select option')].map(o => o.value); });
+  assert.deepEqual(options, ['ffa', 'tdm', 'gungame', 'control'], 'foundry: CTF hidden (no team bases)');
   const schoolModes = await host.evaluate(() => { const m = document.getElementById('map-select'); m.value = 'school'; m.dispatchEvent(new Event('change')); return [...document.querySelectorAll('#mode-select option')].map(o => o.value); });
   assert.deepEqual(schoolModes, ['ffa', 'tdm', 'gungame', 'control', 'ctf'], 'school: CTF offered');
   await host.evaluate(() => {   // the host drawer is closed; set the same controls it would
@@ -84,16 +84,19 @@ try {
   await host.evaluate(() => clearInterval(window.__pin));
   await until(guest, () => { const s = window.LANFPS_ONLINE.session.client.state; return s.phase === 'play' && s.obj.sr === 0 && s.obj.sb === 0 && s.obj.own === null; }, null, 'guest sees clean restart', 20000);
   assert.equal(await host.evaluate(() => window.LANFPS_ONLINE.session.game.phase), 'play');
-  // ---- Capture the Flag on the school map: fresh pages, same flow ----
+  // ---- Capture the Flag on Orbit Crown (seeded planet): fresh pages, same flow ----
   await host.context().close(); await guest.context().close();   // free memory before two more pages
   const host2 = await mk('ctf-host'), guest2 = await mk('ctf-guest');
-  await host2.evaluate(() => { const m = document.getElementById('map-select'); m.value = 'school'; m.dispatchEvent(new Event('change')); document.getElementById('mode-select').value = 'ctf'; });
+  await host2.evaluate(() => { const m = document.getElementById('map-select'); m.value = 'orbit'; m.dispatchEvent(new Event('change')); document.getElementById('mode-select').value = 'ctf'; });
   await host2.evaluate(() => window.LANFPS_ONLINE.hostOnlineMatch());
   await until(host2, () => window.LANFPS_ONLINE.session?.code, null, 'ctf room code', 120000);
   const code2 = await host2.evaluate(() => window.LANFPS_ONLINE.session.code);
   await guest2.evaluate(c => window.LANFPS_ONLINE.joinOnlineMatch(c), code2);
   await until(guest2, () => window.LANFPS_ONLINE.session?.client?.state?.obj?.k === 'ctf', null, 'guest receives flags', 120000);
-  assert.equal(await guest2.evaluate(() => window.LANFPS_ONLINE.session.map), 'school', 'guest built the host map');
+  assert.equal(await guest2.evaluate(() => window.LANFPS_ONLINE.session.map), 'orbit', 'guest built the host map');
+  const [hHash, gHash, hSeed] = [await host2.evaluate(() => window.LANFPS_ONLINE.session.game.world.layoutHash), await guest2.evaluate(() => window.LANFPS_ONLINE.session.client.world.layoutHash), await host2.evaluate(() => window.LANFPS_ONLINE.session.seed)];
+  assert.equal(gHash, hHash, 'guest generated the identical planet layout');
+  console.log('orbit seed', hSeed, 'layout hash', hHash, '(host = guest)');
   const t2 = await host2.evaluate(() => { const g = window.LANFPS_ONLINE.session.game; return g.players.get(window.LANFPS_ONLINE.session.id).team; });
   const enemy = t2 === 'red' ? 'blue' : 'red';
   // host walks onto the enemy flag, then home
@@ -113,7 +116,7 @@ try {
   await host2.screenshot({ path: path.join(outDir, '09_ctf_after_capture.png') });
 
   assert.deepEqual(errors, []);
-  console.log('CTF browser test passed (selector by map, take, HUD, single capture, flags home).');
+  console.log('CTF on Orbit Crown browser test passed (seeded layout hash match, take, HUD, single capture, flags home).');
   console.log('Control mode browser test passed (capture, contested freeze, end, restart). Screenshots:', outDir);
 } finally {
   await browser.close(); await close?.(); server.close();

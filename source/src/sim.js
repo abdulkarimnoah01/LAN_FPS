@@ -41,6 +41,34 @@ export function newPlayer(id, name, slot) {
 // The parts of a player that prediction owns and the host corrects.
 export const PREDICTED = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'g', 'cr', 'w', 'ammo', 'cd', 'rl', 'grenades'];
 
+/* Grenade body: one fixed step of flight, box bounces and rolling friction. Shared by the
+   host (authoritative fuse/explosion) and the renderer (visual flight), so both trace the
+   same arc against the same collision boxes. Mutates and returns g {x,y,z,vx,vy,vz}. */
+export const GRENADE = Object.freeze({ speed: 19, lift: 4.2, gravity: 18, radius: 0.15, fuse: 2.2 });
+export function stepGrenadeBody(g, boxes, dt = DT) {
+  const R = GRENADE.radius;
+  g.vy -= GRENADE.gravity * dt;
+  g.x += g.vx * dt; g.y += g.vy * dt; g.z += g.vz * dt;
+  for (const b of boxes || []) {
+    if (g.x > b[0] - R && g.x < b[3] + R && g.y > b[1] - R && g.y < b[4] + R && g.z > b[2] - R && g.z < b[5] + R) {
+      const dTop = Math.abs(g.y - (b[4] + R)), dBot = Math.abs(g.y - (b[1] - R));
+      const dMinX = Math.abs(g.x - (b[0] - R)), dMaxX = Math.abs(g.x - (b[3] + R));
+      const dMinZ = Math.abs(g.z - (b[2] - R)), dMaxZ = Math.abs(g.z - (b[5] + R));
+      const minD = Math.min(dTop, dBot, dMinX, dMaxX, dMinZ, dMaxZ);
+      if (minD === dTop) {
+        g.y = b[4] + R;
+        g.vy = Math.abs(g.vy) * 0.45;
+        if (Math.abs(g.vy) < 0.8) g.vy = 0;
+        g.vx *= 0.65; g.vz *= 0.65;
+      } else if (minD === dBot) { g.y = b[1] - R; g.vy = -Math.abs(g.vy) * 0.45; }
+      else if (minD === dMinX || minD === dMaxX) { g.vx = -g.vx * 0.55; g.x = minD === dMinX ? b[0] - R : b[3] + R; }
+      else { g.vz = -g.vz * 0.55; g.z = minD === dMinZ ? b[2] - R : b[5] + R; }
+    }
+  }
+  if (Math.abs(g.vy) < 0.8) { g.vx *= 0.95; g.vz *= 0.95; }
+  return g;
+}
+
 export function aim(yaw, pitch) {
   const c = Math.cos(pitch);
   return [-Math.sin(yaw) * c, Math.sin(pitch), -Math.cos(yaw) * c];

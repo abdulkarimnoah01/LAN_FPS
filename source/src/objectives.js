@@ -7,6 +7,7 @@ export const CONTROL = Object.freeze({ radius: 6, captureTicks: 5 * TICK_HZ, sco
 
 /* Central zone anchor: the spawn closest to the centroid of all spawns (always walkable). */
 export function controlAnchor(world) {
+  if (world?.objectiveAnchors?.control) return { ...world.objectiveAnchors.control };
   const sp = world?.spawns || [];
   if (!sp.length) return { x: 0, y: 0, z: 0 };
   const cx = sp.reduce((s, p) => s + p.x, 0) / sp.length, cz = sp.reduce((s, p) => s + p.z, 0) / sp.length;
@@ -91,6 +92,7 @@ export function controlSnapshot(s) {
 export const CTF = Object.freeze({ touch: 1.5, capture: 2, returnTicks: 15 * TICK_HZ, target: 3, timeLimitTicks: 300 * TICK_HZ, height: 2.5 });
 
 function teamAnchor(world, team) {
+  if (world?.objectiveAnchors?.ctf?.[team]) return { ...world.objectiveAnchors.ctf[team] };
   const sp = (world?.spawns || []).filter(s => s.team === team);
   if (!sp.length) return null;
   const cx = sp.reduce((s, p) => s + p.x, 0) / sp.length, cz = sp.reduce((s, p) => s + p.z, 0) / sp.length;
