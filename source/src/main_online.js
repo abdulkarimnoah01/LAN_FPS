@@ -1,6 +1,7 @@
 /* Spectre Orbit Online — Main Client Entry Point
    Babylon.js 9 (WebGPU / WebGL 2) Engine with Netrunner Command Hub & 3D Operative Turntable */
 
+import { FolderSignalingClient, pickFolder, rememberedFolder } from './net_folder.js';
 import { OnlineSignalingClient, OnlineNetHost, LocalNetHost, OnlineNetGuest, LinkError } from './net_online.js';
 import { HostSession, GuestSession } from './game.js';
 import { View, CharacterPreview, HeroViewer, loadAssets, buildWorld } from './render_babylon.js';
@@ -1328,6 +1329,53 @@ function setupInputHandlers() {
 }
 
 /* ---- Client Bootstrap ---- */
+let wsSignaling = null, folderSignaling = null, folderTimer = 0;
+
+/* Shared-folder transport: rooms and WebRTC offers travel through a folder both PCs can open. */
+async function useFolder(interactive) {
+  if (session) { toast('Leave the current match first'); return false; }
+  try {
+    const dir = (await rememberedFolder(interactive)) || (interactive ? await pickFolder() : null);
+    if (!dir) return false;
+    const f = new FolderSignalingClient(dir);
+    f.on('room_list', msg => { if (signaling === f) renderRoomList(msg.rooms || []); });
+    f.on('error', msg => toast(msg.message || 'Shared folder error'));
+    await f.connect();
+    if (folderSignaling && folderSignaling !== f) folderSignaling.close();
+    wsSignaling?.close();
+    folderSignaling = signaling = f;
+    store.set('transport', 'folder');
+    updateServerStatus(`Local folder · ${dir.name}`, true);
+    $('btn-use-folder')?.classList.add('on'); $('btn-use-server')?.classList.remove('on');
+    refreshRoomList();
+    clearInterval(folderTimer);
+    folderTimer = setInterval(refreshRoomList, 3000);
+    toast(`Using shared folder "${dir.name}". Everyone on this LAN picks the same folder.`);
+    return true;
+  } catch (e) {
+    if (e?.name !== 'AbortError') toast(e?.message || 'Could not open the folder');
+    return false;
+  }
+}
+
+async function useServer() {
+  if (session) { toast('Leave the current match first'); return; }
+  clearInterval(folderTimer);
+  folderSignaling?.close();
+  folderSignaling = null;
+  signaling = wsSignaling;
+  store.set('transport', 'server');
+  $('btn-use-server')?.classList.add('on'); $('btn-use-folder')?.classList.remove('on');
+  updateServerStatus('Connecting to matchmaking server...', false);
+  try {
+    await signaling.connect();
+    updateServerStatus('Online · Connected to Matchmaking', true);
+    refreshRoomList();
+  } catch {
+    updateServerStatus('Offline (Port 8080) · Practice Mode available', false);
+  }
+}
+
 async function bootstrap() {
   initPalette([['orbit', 'Orbit']], 'orbit');
   refreshCustomMapOption();
@@ -1438,14 +1486,21 @@ async function bootstrap() {
   });
 
   // Matchmaking server connection
-  signaling = new OnlineSignalingClient(serverUrl);
+  const ws = wsSignaling = signaling = new OnlineSignalingClient(serverUrl);
 
-  signaling.on('status', text => updateServerStatus(text, true));
-  signaling.on('room_list', msg => renderRoomList(msg.rooms || []));
-  signaling.on('close', () => updateServerStatus('Disconnected from server. Reconnecting...', false));
-  signaling.on('error', err => updateServerStatus('Server offline (Port 8080)', false));
+  // Ignore events from the server link while the shared folder is the active transport.
+  ws.on('status', text => { if (signaling === ws) updateServerStatus(text, true); });
+  ws.on('room_list', msg => { if (signaling === ws) renderRoomList(msg.rooms || []); });
+  ws.on('close', () => { if (signaling === ws) updateServerStatus('Disconnected from server. Reconnecting...', false); });
+  ws.on('error', err => { if (signaling === ws) updateServerStatus('Server offline (Port 8080)', false); });
+
+  $('btn-use-folder')?.addEventListener('click', () => useFolder(true));
+  $('btn-use-server')?.addEventListener('click', useServer);
 
   updateServerStatus('Connecting to matchmaking server...', false);
+
+  // Last session used the shared folder and its permission is still valid: go straight back to it.
+  if (store.get('transport', '') === 'folder' && await useFolder(false)) return finishBootstrap();
 
   try {
     await signaling.connect();
@@ -1457,6 +1512,10 @@ async function bootstrap() {
     console.warn('[Spectre Orbit] Matchmaking connect failed:', err);
   }
 
+  finishBootstrap();
+}
+
+function finishBootstrap() {
   // Auto-join if ?join=CODE in URL
   const urlParams = new URLSearchParams(window.location.search);
   const autoJoinCode = urlParams.get('join') || window.location.hash.replace('#join=', '');
