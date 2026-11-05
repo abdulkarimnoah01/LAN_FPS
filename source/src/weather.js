@@ -8,7 +8,7 @@ export const WEATHER_OPTIONS = ['dynamic', ...WEATHER_STATES, 'off'];
 export const WEATHER_LABELS = { dynamic: 'Dynamic', sunny: 'Sunny', cloudy: 'Cloudy', fog: 'Fog', rain: 'Rain', off: 'Off' };
 
 // Indoor / space arenas never get weather (no rain under a roof or in orbit).
-export const NO_WEATHER_MAPS = new Set(['foundry', 'glowplant', 'zenith']);
+export const NO_WEATHER_MAPS = new Set(['foundry', 'glowplant', 'zenith', 'microverse']);
 export const weatherAllowed = map => !NO_WEATHER_MAPS.has(map);
 
 /* Look parameters per state; the renderer multiplies light into the map's own lighting.

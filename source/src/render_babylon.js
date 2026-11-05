@@ -3,6 +3,7 @@
 
 import { getMap } from './arena.js';
 import { generatePlanet, ORBIT_MAP_ID } from './planet_map.js';
+import { generateMicroPlanet, MICRO_MAP_ID } from './micro_planet.js';
 import { compileCustomMap, CUSTOM_MAP_ID } from './custom_map.js';
 import { PLAYER_COLORS, makeBabylonCharacter, BabylonAvatar } from './babylon/character_loader.js';
 import { BabylonCharacterPreview, BabylonHeroViewer } from './babylon/preview.js';
@@ -33,7 +34,8 @@ export async function loadAssets() {
 export function buildWorld(assets, mapType = 'foundry', mapSeed = 0, custom = null) {
   // Orbit Crown is generated from the seed, custom maps from the editor's JSON (validated);
   // other maps come from the shared registry.
-  const base = mapType === ORBIT_MAP_ID ? generatePlanet({ seed: mapSeed })
+  const base = mapType === MICRO_MAP_ID ? generateMicroPlanet({ seed: mapSeed, ...(globalThis.LANFPS_MICRO_CFG || {}) })
+    : mapType === ORBIT_MAP_ID ? generatePlanet({ seed: mapSeed })
     : mapType === CUSTOM_MAP_ID ? compileCustomMap(custom)
     : getMap(mapType, mapSeed);
   const m = assets?.maps?.[mapType];

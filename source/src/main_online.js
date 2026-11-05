@@ -2,6 +2,7 @@
    Babylon.js 9 (WebGPU / WebGL 2) Engine with Netrunner Command Hub & 3D Operative Turntable */
 
 import { initUpdater } from './updater.js';
+import { attachMicroSandbox } from './micro_sandbox.js';
 import { FolderSignalingClient, pickFolder, rememberedFolder, forgetFolderHandle } from './net_folder.js';
 import { OnlineSignalingClient, OnlineNetHost, LocalNetHost, OnlineNetGuest, LinkError } from './net_online.js';
 import { HostSession, GuestSession } from './game.js';
@@ -10,6 +11,7 @@ import { Sound } from './hud.js';
 import { OnlineHud } from './hud_online.js';
 import { publicModes, MODE_CATALOG, modeSupportsMap } from './modes.js';
 import { PLANET_GENERATOR_VERSION } from './planet_map.js';
+import { MICRO_MAP_ID, MICRO_GENERATOR_VERSION } from './micro_planet.js';
 import { WEATHER_OPTIONS, WEATHER_LABELS, weatherAllowed } from './weather.js';
 import { MapEditor, getActiveCustomMap, setActiveCustomMap } from './editor_online.js';
 import { validateCustomMap, CUSTOM_MAP_ID } from './custom_map.js';
@@ -77,6 +79,7 @@ const chosenWeather = map => (weatherAllowed(map) ? ($('weather-select')?.value 
 /* ---- Map Briefings & Presentation Data ---- */
 const MAPS = {
   custom: ['Custom Map', 'A map built in the Map Editor and sent to every player when they join.'],
+  microverse: ['Microverse', 'The whole planet is the arena. Walk the globe, fight on every side, and use the curve: ring road, neon city, industrial ridge, forest belt, outpost and two spires.'],
   orbit: ['Orbit Crown', 'A seeded tiny-planet arena: a terraced crown district on top of a little world. Plaza, ring road, covered flanks and two team stations.'],
   foundry: ['Foundry Core', 'Molten industrial casting pit. Elevated catwalks. Fast CQB encounters.'],
   glowplant: ['Reactor Complex', 'Sub-orbital nuclear facility with pulsating blue plasma cores and dual jump pads.'],
@@ -91,7 +94,8 @@ const MAPS = {
 };
 
 const MAP_CATALOG = [
-  { id: 'orbit', sector: '00', cqb: 'Planet arena. Central plaza with a beacon, a ring road loop, covered colonnades and team stations. A new layout seed for every room; the crown plays on flat ground (not walk-around gravity).' },
+  { id: 'microverse', sector: '00', cqb: 'A true micro planet: radial gravity, a ring road around the globe, five districts, two spires on opposite poles. Walk all the way round, fight on the underside. Seeded per room.' },
+  { id: 'orbit', sector: '0A', cqb: 'Planet arena. Central plaza with a beacon, a ring road loop, covered colonnades and team stations. A new layout seed for every room; the crown plays on flat ground (not walk-around gravity).' },
   { id: 'foundry', sector: '01', cqb: 'Molten industrial casting pit. Elevated catwalks. Fast CQB encounters.' },
   { id: 'glowplant', sector: '02', cqb: 'Sub-orbital nuclear facility with pulsating blue plasma cores and dual jump pads.' },
   { id: 'zenith', sector: '03', cqb: 'High-altitude vertical multi-tier sky arena with velocity jump pads and vertigo sightlines.' },
@@ -921,7 +925,7 @@ async function startPracticeMatch() {
   const roomName = cleanName($('room-name')?.value, 32, playerName() + "'s Arena");
   const map = $('map-select')?.value || 'foundry';
   const mode = $('mode-select')?.value || 'ffa';
-  const seed = map === 'sandbox' || map === 'orbit' ? Math.floor(Math.random() * 900000 + 100000) : 0;
+  const seed = map === 'sandbox' || map === 'orbit' || map === MICRO_MAP_ID ? Math.floor(Math.random() * 900000 + 100000) : 0;
   const char = equippedChar();
   const look = equippedLookCode();
 
@@ -970,7 +974,7 @@ async function hostOnlineMatch() {
   const mode = $('mode-select')?.value || 'ffa';
   const maxPlayers = parseInt($('max-players-select')?.value || '6', 10);
   const isPrivate = $('is-private-checkbox')?.checked || false;
-  const seed = map === 'sandbox' || map === 'orbit' ? Math.floor(Math.random() * 900000 + 100000) : 0;
+  const seed = map === 'sandbox' || map === 'orbit' || map === MICRO_MAP_ID ? Math.floor(Math.random() * 900000 + 100000) : 0;
   const char = equippedChar();
   const look = equippedLookCode();
 
@@ -1050,7 +1054,8 @@ async function joinOnlineMatch(code) {
 
     await s.join({ code: cleanCode }, statusText => toast(statusText));
     const init = await s.waitForInit();
-    if (init?.gen && init.gen !== PLANET_GENERATOR_VERSION) throw new Error(`This room uses Orbit Crown generator v${init.gen}; your build has v${PLANET_GENERATOR_VERSION}. Update the game to join.`);
+    const expectGen = s.map === MICRO_MAP_ID ? MICRO_GENERATOR_VERSION : PLANET_GENERATOR_VERSION;
+    if (init?.gen && init.gen !== expectGen) throw new Error(`This room uses planet generator v${init.gen}; your build has v${expectGen}. Update the game to join.`);
 
     world = buildWorld(assets, s.map, s.seed, s.map === CUSTOM_MAP_ID ? init?.custom : null);
     if (init?.hash && world.layoutHash !== init.hash) throw new Error('Map mismatch: your copy of this map differs from the host\'s, so the match would play on different collision. Update both games to the same version.');
@@ -1529,6 +1534,13 @@ async function bootstrap() {
 
 function finishBootstrap() {
   initUpdater();
+  // Developer tool: open the page with ?sandbox=1 for the Planet Sandbox panel.
+  if (new URLSearchParams(location.search).has('sandbox')) {
+    attachMicroSandbox({
+      getView: () => view, getSession: () => session, leaveMatch,
+      startMatch: async () => { const sel = $('map-select'); if (sel) sel.value = MICRO_MAP_ID; await startPracticeMatch(); },
+    });
+  }
   // Auto-join if ?join=CODE in URL
   const urlParams = new URLSearchParams(window.location.search);
   const autoJoinCode = urlParams.get('join') || window.location.hash.replace('#join=', '');

@@ -2,6 +2,8 @@
    client (prediction), so a client's replayed inputs land where the host put it.
    No DOM, no three.js: the Node tests import this file directly. */
 
+import { stepMoveSphere, sphereStandFree, castShotSphere, stepGrenadeSphere } from './sphere_sim.js';
+
 export const DT = 1 / 60;            // one input = one fixed simulation step
 export const R = 0.35;
 const PELLET_PAD = 0.3;               // player half-width (m)
@@ -32,14 +34,21 @@ export const RULES = {
 // Input button bits.
 export const B = { FWD: 1, BACK: 2, LEFT: 4, RIGHT: 8, JUMP: 16, FIRE: 32, RELOAD: 64, CROUCH: 128, MELEE: 256, GRENADE: 512 };
 
+// Constants handed to the spherical-world code so there is one source of truth for the player box.
+const SPHERE_K = {
+  FWD: B.FWD, BACK: B.BACK, LEFT: B.LEFT, RIGHT: B.RIGHT, JUMP: B.JUMP, DT, ACCEL, AIR_ACCEL, JUMP_V: JUMP, GRAVITY, STEP, R,
+  H_STAND, H_CROUCH, HEAD_STAND, HEAD_CROUCH, EYE_STAND, EYE_CROUCH, PELLET_PAD,
+};
+
 export function newPlayer(id, name, slot) {
   return { id, name, slot, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0, pitch: 0, g: false, cr: false,
+    hx: 0, hy: 0, hz: -1, ly: 0,
     hp: RULES.hp, w: 0, ammos: WEAPONS.map(w => w.mag), ammo: WEAPONS[0].mag, cd: 0, rl: 0, alive: true, k: 0, d: 0, seq: 0, sp: 0,
     grenades: 2, grenadeCd: 0, team: 'none', isBot: false };
 }
 
 // The parts of a player that prediction owns and the host corrects.
-export const PREDICTED = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'g', 'cr', 'w', 'ammo', 'cd', 'rl', 'grenades'];
+export const PREDICTED = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'g', 'cr', 'w', 'ammo', 'cd', 'rl', 'grenades', 'hx', 'hy', 'hz', 'ly'];
 
 /* Grenade body: one fixed step of flight, box bounces and rolling friction. Shared by the
    host (authoritative fuse/explosion) and the renderer (visual flight), so both trace the
@@ -67,6 +76,12 @@ export function stepGrenadeBody(g, boxes, dt = DT) {
   }
   if (Math.abs(g.vy) < 0.8) { g.vx *= 0.95; g.vz *= 0.95; }
   return g;
+}
+
+/* One grenade step in whichever world is loaded (flat boxes or a sphere). */
+export function stepGrenade(g, world, dt = DT) {
+  if (world.sphere) return stepGrenadeSphere(g, world, { gravity: GRENADE.gravity, radius: GRENADE.radius, dt });
+  return stepGrenadeBody(g, world.boxes, dt);
 }
 
 export function aim(yaw, pitch) {
@@ -156,7 +171,7 @@ export function stepPlayer(p, inp, world) {
     p.cr = true;
   } else if (p.cr) {
     // Only stand up if head clearance is free
-    if (free(world, p.x, p.y, p.z, H_STAND)) {
+    if (world.sphere ? sphereStandFree(world, p, SPHERE_K) : free(world, p.x, p.y, p.z, H_STAND)) {
       p.cr = false;
     }
   } else {
@@ -230,6 +245,10 @@ export function stepPlayer(p, inp, world) {
   // Movement.
   const fwd = ((b & B.FWD) ? 1 : 0) - ((b & B.BACK) ? 1 : 0);
   const side = ((b & B.RIGHT) ? 1 : 0) - ((b & B.LEFT) ? 1 : 0);
+  if (world.sphere) {
+    stepMoveSphere(p, inp, world, SPHERE_K, curH, maxSpeed);
+    return fired;
+  }
   const s = Math.sin(p.yaw), c = Math.cos(p.yaw);
   let wx = -s * fwd + c * side, wz = -c * fwd - s * side;
   const len = Math.hypot(wx, wz);
@@ -299,6 +318,7 @@ export function hitboxes(p) {
 /* Hitscan from the shooter's eye. Walls stop the shot. Supports multi-pellet spread. */
 export function castShot(world, players, shooter, wepInfo = null, rand = Math.random) {
   const wep = wepInfo || (WEAPONS[shooter.w || 0] || WEAPONS[0]);
+  if (world.sphere) return castShotSphere(world, players, shooter, wep, rand, SPHERE_K);
   const pellets = wep.pellets || 1;
   const spread = (wep.spread || 0) * (shooter.cr ? 0.7 : 1.0);
   const eyeH = shooter.cr ? EYE_CROUCH : EYE_STAND;

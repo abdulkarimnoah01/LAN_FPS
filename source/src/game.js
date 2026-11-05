@@ -218,7 +218,9 @@ export class Client {
       const pa = a.players.get(id);
       if (!pa || pa.sp !== pb.sp || !pa.alive) { out.push(pb); continue; }
       let dy = pb.yaw - pa.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
-      out.push({ ...pb, x: pa.x + (pb.x - pa.x) * f, y: pa.y + (pb.y - pa.y) * f, z: pa.z + (pb.z - pa.z) * f, yaw: pa.yaw + dy * f });
+      const o = { ...pb, x: pa.x + (pb.x - pa.x) * f, y: pa.y + (pb.y - pa.y) * f, z: pa.z + (pb.z - pa.z) * f, yaw: pa.yaw + dy * f };
+      if (this.world.sphere && pa.hx !== undefined) { o.hx = pa.hx + (pb.hx - pa.hx) * f; o.hy = pa.hy + (pb.hy - pa.hy) * f; o.hz = pa.hz + (pb.hz - pa.hz) * f; }
+      out.push(o);
     }
     return out;
   }

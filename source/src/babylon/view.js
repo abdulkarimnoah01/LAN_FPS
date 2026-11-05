@@ -3,7 +3,9 @@
    PBR materials, dynamic shadows, weapon viewmodels, and cinematic effects. */
 
 import * as BABYLON from '@babylonjs/core';
-import { WEAPONS, DT, H_STAND, H_CROUCH, EYE_STAND, EYE_CROUCH, GRENADE, stepGrenadeBody } from '../sim.js';
+import { WEAPONS, DT, H_STAND, H_CROUCH, EYE_STAND, EYE_CROUCH, GRENADE, stepGrenadeBody, stepGrenade } from '../sim.js';
+import { V as SV, frameOf, tangentSpeed } from '../sphere_sim.js';
+import { buildMicroWorld, buildCollisionDebug, buildGravityDebug, buildMarkerDebug } from './micro_world.js';
 import { createBabylonEngine } from './engine_factory.js';
 import { getPBRMaterial, hexToColor3 } from './materials.js';
 import { buildProceduralWorld } from './procedural_world.js';
@@ -120,11 +122,40 @@ export class BabylonView {
     this.ready = true;
   }
 
+  /* Sandbox helpers (Microverse). */
+  setOrbitCamera(opts) { this.orbit = opts ? { yaw: 0.6, pitch: 0.4, dist: 170, ...opts } : null; }
+
+  setDebugOverlay(kind, on) {
+    this.debugNodes ||= {};
+    const make = { collision: buildCollisionDebug, gravity: buildGravityDebug, markers: buildMarkerDebug }[kind];
+    if (!make || !this.world?.sphere) return;
+    if (on && !this.debugNodes[kind]) this.debugNodes[kind] = make(this.scene, this.world);
+    if (!on && this.debugNodes[kind]) { this.debugNodes[kind].dispose(); this.debugNodes[kind] = null; }
+  }
+
+  getRenderStats() {
+    const sc = this.scene, eng = this.engine;
+    if (!sc || !eng) return null;
+    this._inst ||= (() => { const i = new BABYLON.SceneInstrumentation(sc); i.captureFrameTime = true; i.captureRenderTime = true; return i; })();
+    let visibleInstances = 0;
+    for (const m of sc.getActiveMeshes().data.slice(0, sc.getActiveMeshes().length)) visibleInstances += m.thinInstanceCount || 1;
+    return {
+      fps: Math.round(eng.getFps()), frameMs: +this._inst.frameTimeCounter.average.toFixed(2), renderMs: +this._inst.renderTimeCounter.average.toFixed(2),
+      drawCalls: this._inst.drawCallsCounter.current, activeMeshes: sc.getActiveMeshes().length, visibleInstances,
+      triangles: Math.round(sc.getActiveIndices() / 3), totalMeshes: sc.meshes.length, materials: sc.materials.length, textures: sc.textures.length,
+      heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null,
+    };
+  }
+
   async buildVisuals(world) {
     if (this.worldRoot) {
+      this.worldRoot.metadata?.dispose?.();
       this.worldRoot.dispose();
       this.worldRoot = null;
+      this.shadowGenerator?.getShadowMap()?.renderList?.splice(0);
     }
+    for (const k of Object.keys(this.debugNodes || {})) { this.debugNodes[k]?.dispose(); }
+    this.debugNodes = {};
     this.barrelMeshes.clear();
 
     const scene = this.scene;
@@ -132,7 +163,11 @@ export class BabylonView {
 
     configureArenaLighting(scene, mapId, world.theme);
 
-    if (world.theme === 'orbit') {
+    if (world.theme === 'micro') {
+      const { root, stats } = buildMicroWorld(scene, world, this.shadowGenerator, this.activePreset);
+      this.worldRoot = root;
+      this.microStats = stats;
+    } else if (world.theme === 'orbit') {
       const { root, barrelMeshes } = buildPlanetWorld(scene, world, this.shadowGenerator);
       this.worldRoot = root;
       this.barrelMeshes = barrelMeshes;
@@ -161,6 +196,7 @@ export class BabylonView {
 
   async setWorld(world) {
     this.world = world;
+    this.orbit = null;
     await this.buildVisuals(world);
     this.weatherFx?.captureBase();
   }
@@ -316,10 +352,10 @@ export class BabylonView {
     const boxes = this.world?.boxes || [];
     for (const [id, g] of this.grenades) {
       g.acc += dt;
-      while (g.acc >= DT) { stepGrenadeBody(g, boxes, DT); g.acc -= DT; }
+      while (g.acc >= DT) { stepGrenade(g, this.world, DT); g.acc -= DT; }
       g.life -= dt;
       g.root.position.set(g.x, g.y, g.z);
-      const spin = Math.hypot(g.vx, g.vz) * dt * 2.2;
+      const spin = Math.hypot(g.vx, g.vy, g.vz) * dt * 1.6;
       g.root.rotation.x += spin; g.root.rotation.z += spin * 0.6;
       if (g.life <= 0) { g.root.dispose(); this.grenades.delete(id); }
     }
@@ -444,12 +480,37 @@ export class BabylonView {
 
     const cam = this.camera;
     const eyeH = me.cr ? EYE_CROUCH : EYE_STAND;
-    cam.position.set(me.x, me.y + eyeH, me.z);
+    const sphere = this.world?.sphere;
+    if (sphere) {
+      // Planet: the camera frame comes from the player's local up and heading, never from Euler angles.
+      const fr = frameOf(sphere, me), cp = Math.cos(look.pitch), sp = Math.sin(look.pitch);
+      const fwd = SV.norm(SV.add(SV.mul(fr.fwd, cp), SV.mul(fr.up, sp))), upC = SV.norm(SV.sub(SV.mul(fr.up, cp), SV.mul(fr.fwd, sp)));
+      const rightC = SV.cross(fwd, upC), back = SV.mul(fwd, -1);
+      if (!this._tmpM) { this._tmpM = new BABYLON.Matrix(); this._tmpQ = new BABYLON.Quaternion(); }
+      BABYLON.Matrix.FromXYZAxesToRef(new BABYLON.Vector3(...rightC), new BABYLON.Vector3(...upC), new BABYLON.Vector3(...back), this._tmpM);
+      BABYLON.Quaternion.FromRotationMatrixToRef(this._tmpM, this._tmpQ);
+      cam.rotationQuaternion = this._tmpQ;
+      cam.position.set(me.x + fr.up[0] * eyeH, me.y + fr.up[1] * eyeH, me.z + fr.up[2] * eyeH);
+    } else {
+      if (cam.rotationQuaternion) cam.rotationQuaternion = null;
+      cam.position.set(me.x, me.y + eyeH, me.z);
+      // Rotation: yaw around Y, pitch around X
+      cam.rotation.y = look.yaw;
+      cam.rotation.x = look.pitch;
+      cam.rotation.z = 0;
+    }
 
-    // Rotation: yaw around Y, pitch around X
-    cam.rotation.y = look.yaw;
-    cam.rotation.x = look.pitch;
-    cam.rotation.z = 0;
+    if (this.orbit) {   // sandbox: free orbit camera around the planet, viewmodel hidden
+      const o = this.orbit, cp = Math.cos(o.pitch);
+      const pos = [Math.sin(o.yaw) * cp * o.dist, Math.sin(o.pitch) * o.dist, Math.cos(o.yaw) * cp * o.dist];
+      const back = SV.norm(pos), fwdO = SV.mul(back, -1), rightO = SV.norm(SV.cross(fwdO, [0, 1, 0])), upO = SV.cross(rightO, fwdO);
+      if (!this._tmpM) { this._tmpM = new BABYLON.Matrix(); this._tmpQ = new BABYLON.Quaternion(); }
+      BABYLON.Matrix.FromXYZAxesToRef(new BABYLON.Vector3(...rightO), new BABYLON.Vector3(...upO), new BABYLON.Vector3(...back), this._tmpM);
+      BABYLON.Quaternion.FromRotationMatrixToRef(this._tmpM, this._tmpQ);
+      cam.rotationQuaternion = this._tmpQ; cam.position.set(pos[0], pos[1], pos[2]);
+      cam.fov = 0.9; cam.maxZ = 2000;
+    }
+    this.weaponRoot?.setEnabled(!this.orbit);
 
     // Active weapon model sync
     const curW = typeof currentW === 'number' ? currentW : (me.w || 0);
@@ -459,10 +520,10 @@ export class BabylonView {
     // FOV handling (ADS Zoom)
     const targetFov = isAiming ? (wep.fov || 50) : 75;
     const targetRad = targetFov * (Math.PI / 180);
-    cam.fov = BABYLON.Scalar.Lerp(cam.fov, targetRad, Math.min(1, dt * 18));
+    if (!this.orbit) cam.fov = BABYLON.Scalar.Lerp(cam.fov, targetRad, Math.min(1, dt * 18));
 
     // Weapon sway, bob, and recoil
-    const speed = Math.hypot(me.vx || 0, me.vz || 0);
+    const speed = sphere ? tangentSpeed(sphere, me) : Math.hypot(me.vx || 0, me.vz || 0);
     if (me.g && speed > 0.5) {
       this.bob += dt * (speed > 4.5 ? 14 : 9);
     } else {
@@ -513,6 +574,7 @@ export class BabylonView {
         av = new BabylonAvatar(this.scene, this.assets, p.id, p.name, p.slot || 0, p.char || 'abdulkarim', p.team || 'none', p.lk || '');
         this.avatars.set(p.id, av);
       }
+      if (sphere) { p.__fr = frameOf(sphere, p); p.__speed = tangentSpeed(sphere, p); }
       av.update(p, dt);
     }
 
@@ -528,7 +590,7 @@ export class BabylonView {
     this.updateGrenades(dt);
     this.frameNo = (this.frameNo || 0) + 1;
     this.shotFx?.update(dt);
-    if (this.weatherFx) { if (audio && !this.weatherFx.audio) this.weatherFx.audio = audio; this.weatherFx.update(dt, this.weather); }
+    if (this.weatherFx && !sphere) { if (audio && !this.weatherFx.audio) this.weatherFx.audio = audio; this.weatherFx.update(dt, this.weather); }
 
     // Update active visual effects
     for (let i = this.fx.length - 1; i >= 0; i--) {
@@ -567,6 +629,10 @@ export class BabylonView {
     }
     this.zoneRoot.setEnabled(true);
     this.zoneRoot.position.set(o.x, o.y + 0.05, o.z);
+    if (o.s) {   // zone on a globe: stand the ring and column on the local up
+      const up = new BABYLON.Vector3(o.x, o.y, o.z).normalize();
+      this.zoneRoot.rotationQuaternion = BABYLON.Quaternion.FromUnitVectorsToRef(BABYLON.Vector3.Up(), up, this._zoneQ ||= new BABYLON.Quaternion());
+    }
     const still = typeof document !== 'undefined' && document.documentElement.classList.contains('reduce-motion');
     this.zonePulse += dt;
     const hex = o.con ? '#fbbf24' : o.own === 'red' ? '#ef4444' : o.own === 'blue' ? '#3b82f6' : (o.ct === 'red' ? '#fca5a5' : o.ct === 'blue' ? '#93c5fd' : '#e2e8f0');

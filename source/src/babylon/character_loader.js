@@ -252,10 +252,18 @@ export class BabylonAvatar {
     if (this.arms) { this.setHeldWeapon(p.w | 0); if (this.heldWeapon) this.heldWeapon.setEnabled(this.alive); }
 
     this.root.position.set(p.x, p.y, p.z);
-    this.root.rotation.y = p.yaw + Math.PI;
+    if (p.__fr) {
+      // On a planet the model stands on the local up and faces the transported heading.
+      const f = p.__fr, m = this._fm ||= new BABYLON.Matrix();
+      BABYLON.Matrix.FromXYZAxesToRef(new BABYLON.Vector3(-f.right[0], -f.right[1], -f.right[2]), new BABYLON.Vector3(...f.up), new BABYLON.Vector3(...f.fwd), m);
+      this.root.rotationQuaternion = BABYLON.Quaternion.FromRotationMatrix(m);
+    } else {
+      if (this.root.rotationQuaternion) this.root.rotationQuaternion = null;
+      this.root.rotation.y = p.yaw + Math.PI;
+    }
 
     // Animation state blending
-    const speed = Math.hypot(p.vx || 0, p.vz || 0);
+    const speed = p.__speed ?? Math.hypot(p.vx || 0, p.vz || 0);
 
     // Rigless models (e.g. Noura) have no clips: fake locomotion with a step bob and a death tip-over
     if (!Object.keys(this.animGroups).length) {
@@ -294,7 +302,7 @@ export class BabylonAvatar {
     this.disposed = true;
     if (this.poseObs) this.scene.onAfterAnimationsObservable.remove(this.poseObs);
     this.heldWeapon?.dispose();
-    if (this.nameTag) this.nameTag.dispose();
+    if (this.nameTag) this.nameTag.dispose(false, true);   // the tag owns its material and canvas texture
     if (this.model) disposeCharacter(this.model);
     else if (this.root) this.root.dispose();
     this.model = null;

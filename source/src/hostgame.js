@@ -4,7 +4,8 @@ import { isTeamMode } from './modes.js';
 import { weatherAt, encodeWeather, normalizeWeatherOption } from './weather.js';
 import { newObjective, stepObjective, objectiveSnapshot } from './objectives.js';
 import { canonicalLook, makeLookLimiter, MAX_LOOK_BYTES } from './appearance.js';
-import { GRENADE, stepGrenadeBody } from './sim.js';
+import { GRENADE, stepGrenadeBody, stepGrenade } from './sim.js';
+import { V, upOf, lookDir, frameOf, belowCrust, sphereLOS } from './sphere_sim.js';
 import { GUN_ORDER, gunGameWeapon, DT, RULES, WEAPONS, newPlayer, stepPlayer, castShot, PREDICTED, aim, rayBox, supported, B } from './sim.js';
 
 const MAX_CREDIT = 10;   // inputs a player may bank (absorbs network bursts, stops speed-ups)
@@ -16,6 +17,7 @@ const CHAR_ROSTER = ['abdulkarim', 'mina', 'abdulkarim-blue'];
 function round(v) { return Math.round(v * 1000) / 1000; }
 
 export function hasLOS(world, from, to) {
+  if (world.sphere) return sphereLOS(world, from, to);
   const dx = to[0] - from[0], dy = to[1] - from[1], dz = to[2] - from[2];
   const dist = Math.hypot(dx, dy, dz);
   if (dist < 0.1) return true;
@@ -49,6 +51,7 @@ export class HostGame {
     this.endAt = 0;
     this.events = [];
     this.teams = { red: { kills: 0 }, blue: { kills: 0 } };
+    if (world.sphere && mode === 'ctf') throw Error('Capture the Flag is not available on the planet map');
     this.objective = newObjective(mode, world);
     if ((mode === 'control' || mode === 'ctf') && !this.objective) throw Error(`${mode.toUpperCase()} is not available on this map`);
   }
@@ -187,12 +190,13 @@ export class HostGame {
       p.threwGrenade = false;
       this.spawnGrenade(p);
     }
-    if (p.alive && (p.hp <= 0 || p.y < (this.world.killY ?? -30))) this.kill(p, null, false);
+    if (p.alive && (p.hp <= 0 || (this.world.sphere ? belowCrust(this.world, p) : p.y < (this.world.killY ?? -30)))) this.kill(p, null, false);
   }
 
   spawnGrenade(p) {
-    const d = aim(p.yaw, p.pitch);
     const eyeH = p.cr ? 1.05 : 1.6;
+    if (this.world.sphere) return this.spawnSphereGrenade(p, eyeH);
+    const d = aim(p.yaw, p.pitch);
     const g = {
       id: 'g_' + (++this.grenadeSeq),
       x: p.x + d[0] * 0.45,
@@ -219,9 +223,19 @@ export class HostGame {
     });
   }
 
+  /* Grenade on a sphere world: thrown along the look direction, lifted along the local up. */
+  spawnSphereGrenade(p, eyeH) {
+    const sph = this.world.sphere, up = upOf(sph, [p.x, p.y, p.z]), d = lookDir(sph, p);
+    const o = V.add([p.x, p.y, p.z], V.mul(up, eyeH));
+    const v = V.add(V.add(V.mul(d, GRENADE.speed), V.mul(up, GRENADE.lift)), V.mul([p.vx, p.vy, p.vz], 0.35));
+    const g = { id: 'g_' + (++this.grenadeSeq), x: o[0] + d[0] * 0.45, y: o[1] + d[1] * 0.45, z: o[2] + d[2] * 0.45, vx: v[0], vy: v[1], vz: v[2], fuse: GRENADE.fuse, owner: p.id, alive: true };
+    this.grenades.push(g);
+    this.events.push({ t: 'grenade_spawn', id: g.id, x: round(g.x), y: round(g.y), z: round(g.z), vx: round(g.vx), vy: round(g.vy), vz: round(g.vz), owner: p.id });
+  }
+
   stepGrenades() {
     for (const g of this.grenades) {
-      stepGrenadeBody(g, this.world.boxes, DT);
+      stepGrenade(g, this.world, DT);
 
       g.fuse -= DT;
       if (g.fuse <= 0 && g.alive) {
@@ -248,17 +262,20 @@ export class HostGame {
     for (const p of this.players.values()) {
       if (!p.alive) continue;
       if (this.team && attacker && p.team === attacker.team && p !== attacker) continue;
-      const dist = Math.hypot(p.x - x, (p.y + 0.9) - y, p.z - z);
+      const sph = this.world.sphere;
+      const up = sph ? upOf(sph, [p.x, p.y, p.z]) : [0, 1, 0];
+      const bc = [p.x + up[0] * 0.9, p.y + up[1] * 0.9, p.z + up[2] * 0.9];
+      const dist = Math.hypot(bc[0] - x, bc[1] - y, bc[2] - z);
       if (dist <= maxRadius) {
-        if (!hasLOS(this.world, [x, y, z], [p.x, p.y + 0.9, p.z])) continue;
+        if (!hasLOS(this.world, [x, y, z], bc)) continue;
         const factor = 1 - dist / maxRadius;
         const dmg = Math.round(maxDamage * factor);
         if (dmg > 0) {
           p.hp -= dmg;
-          const push = factor * 14;
-          p.vx += (p.x - x) / Math.max(0.1, dist) * push;
-          p.vy += 7 * factor;
-          p.vz += (p.z - z) / Math.max(0.1, dist) * push;
+          const push = factor * 14, dd = Math.max(0.1, dist);
+          p.vx += (bc[0] - x) / dd * push + up[0] * 7 * factor * (sph ? 1 : 0);
+          p.vy += sph ? (bc[1] - y) / dd * 0 + up[1] * 7 * factor + (bc[1] - y) / dd * push : 7 * factor;
+          p.vz += (bc[2] - z) / dd * push + up[2] * 7 * factor * (sph ? 1 : 0);
           p.g = false;
           if (p.hp <= 0) {
             this.kill(p, attacker, false, wepId);
@@ -419,12 +436,14 @@ export class HostGame {
     p.grenadeCd = 0;
     const curWep = WEAPONS[p.w] || WEAPONS[0];
     Object.assign(p, { x: best.x, y: best.y, z: best.z, vx: 0, vy: 0, vz: 0, g: false, hp: RULES.hp, ammo: curWep.mag, cd: 0, rl: 0, alive: true });
-    p.yaw = best.yaw ?? Math.atan2(best.x, best.z);
+    p.yaw = this.world.sphere ? 0 : (best.yaw ?? Math.atan2(best.x, best.z));
+    if (this.world.sphere) { const h = best.h || [0, 0, -1]; Object.assign(p, { hx: h[0], hy: h[1], hz: h[2], ly: 0 }); }
     p.pitch = 0;
     p.sp++;
   }
 
   stepBots() {
+    if (this.world.sphere) return this.stepSphereBots();
     for (const bot of this.bots.values()) {
       if (!bot.alive) {
         if (this.phase === 'play' && this.time >= bot.respawnAt) this.spawn(bot);
@@ -521,6 +540,52 @@ export class HostGame {
         }
       }
 
+      this.apply(bot, { seq: ++bot.seq, b: buttons, yaw: bot.yaw, pitch: bot.pitch, w: bot.w });
+    }
+  }
+
+  /* Bots on a globe: head for the nearest enemy along the surface and shoot when the line is clear.
+     Deliberately simple: no navigation mesh, a stuck bot jumps and turns instead. */
+  stepSphereBots() {
+    const sph = this.world.sphere;
+    for (const bot of this.bots.values()) {
+      if (!bot.alive) {
+        if (this.phase === 'play' && this.time >= bot.respawnAt) this.spawn(bot);
+        continue;
+      }
+      const enemies = [...this.players.values()].filter(o => o !== bot && o.alive && (!this.team || o.team !== bot.team));
+      let target = null, best = Infinity;
+      for (const e of enemies) { const d = Math.hypot(e.x - bot.x, e.y - bot.y, e.z - bot.z); if (d < best) { best = d; target = e; } }
+      const f = frameOf(sph, bot);
+      let buttons = 0;
+      if (target) {
+        const eye = V.add([bot.x, bot.y, bot.z], V.mul(f.up, 1.6));
+        const tc = V.add([target.x, target.y, target.z], V.mul(upOf(sph, [target.x, target.y, target.z]), target.cr ? 1.0 : 1.4));
+        const dir = V.norm(V.sub(tc, eye));
+        const tan = V.sub(dir, V.mul(f.up, V.dot(dir, f.up)));
+        let dyaw = V.len(tan) > 0.02 ? -Math.atan2(V.dot(tan, f.right), V.dot(tan, f.fwd)) : 0;
+        bot.yaw += Math.max(-0.16, Math.min(0.16, dyaw));
+        bot.pitch += Math.max(-0.1, Math.min(0.1, Math.asin(Math.max(-1, Math.min(1, V.dot(dir, f.up)))) - bot.pitch));
+        const visible = hasLOS(this.world, eye, tc);
+        if (visible) {
+          if (best < 2.6 && !bot.cd) buttons |= B.MELEE;
+          else if (Math.abs(dyaw) < 0.22 && bot.ammo > 0 && !bot.cd && !bot.rl) buttons |= B.FIRE;
+          else if (bot.ammo === 0 && !bot.rl) buttons |= B.RELOAD;
+          if (best > 7.5 && best < 22 && bot.grenades > 0 && !bot.grenadeCd && Math.random() < 0.015) buttons |= B.GRENADE;
+          if (best > 12) buttons |= B.FWD; else if (best < 4) buttons |= B.BACK;
+          bot.botStrafeTime = (bot.botStrafeTime || 0) + DT;
+          if (bot.botStrafeTime > 1.2 + Math.random() * 0.8) { bot.botStrafeTime = 0; bot.botStrafeDir = -(bot.botStrafeDir || 1); }
+          buttons |= ((bot.botStrafeDir || 1) > 0 ? B.RIGHT : B.LEFT);
+        } else {
+          buttons |= B.FWD;
+        }
+      } else buttons |= B.FWD;
+      // Stuck against a wall: hop and swing round.
+      const vt = V.len(V.sub([bot.vx, bot.vy, bot.vz], V.mul(f.up, V.dot([bot.vx, bot.vy, bot.vz], f.up))));
+      if ((buttons & B.FWD) && bot.g && vt < 0.5) {
+        bot.stuck = (bot.stuck || 0) + 1;
+        if (bot.stuck > 12) { buttons |= B.JUMP; if (bot.stuck > 30) { bot.yaw += (Math.random() - 0.5) * 2.4; bot.stuck = 0; } }
+      } else bot.stuck = 0;
       this.apply(bot, { seq: ++bot.seq, b: buttons, yaw: bot.yaw, pitch: bot.pitch, w: bot.w });
     }
   }

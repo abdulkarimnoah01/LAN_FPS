@@ -27,7 +27,8 @@ export function zoneOccupants(state, players) {
   const z = state.zone, occ = { red: 0, blue: 0 };
   for (const p of players) {
     if (!p.alive || (p.team !== 'red' && p.team !== 'blue')) continue;
-    if (Math.hypot(p.x - z.x, p.z - z.z) <= z.r && Math.abs(p.y - z.y) <= CONTROL.height) occ[p.team]++;
+    // On a globe the zone is a ball around its anchor; on flat maps it is a disc with a height band.
+    if (z.s ? Math.hypot(p.x - z.x, p.y - z.y, p.z - z.z) <= z.r + 1.2 : Math.hypot(p.x - z.x, p.z - z.z) <= z.r && Math.abs(p.y - z.y) <= CONTROL.height) occ[p.team]++;
   }
   return occ;
 }
@@ -80,7 +81,7 @@ export function stepControl(prev, players) {
 
 /* Snapshot form (small, plain numbers). */
 export function controlSnapshot(s) {
-  return { k: 'control', x: s.zone.x, y: s.zone.y, z: s.zone.z, r: s.zone.r, own: s.owner, ct: s.capTeam, cp: +(s.capTicks / CONTROL.captureTicks).toFixed(3),
+  return { k: 'control', ...(s.zone.s ? { s: 1 } : {}), x: s.zone.x, y: s.zone.y, z: s.zone.z, r: s.zone.r, own: s.owner, ct: s.capTeam, cp: +(s.capTicks / CONTROL.captureTicks).toFixed(3),
     con: s.contested, sr: s.score.red, sb: s.score.blue, tl: Math.max(0, Math.ceil((CONTROL.timeLimitTicks - s.elapsed) / TICK_HZ)), tgt: CONTROL.target };
 }
 
