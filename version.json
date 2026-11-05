@@ -1,6 +1,6 @@
 {
-  "version": "1.10.1",
+  "version": "1.11.0",
   "name": "LAN_FPS",
   "date": "2026-11-05",
-  "notes": "Shared-folder play in Spectre Orbit Light: signals are batched and joins wait up to 45 s on slow network shares."
+  "notes": "Spectre Orbit Light gets a live auto-updater with download progress; shared-folder join fixes."
 }
