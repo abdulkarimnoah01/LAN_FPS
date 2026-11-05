@@ -130,9 +130,9 @@ export class Client {
             this.audio?.melee(false, false, pan);
           } else {
             if (e.tracers && e.tracers.length > 1) {
-              for (const tr of e.tracers) this.view?.shot(tr.from, tr.to, false, wepId);
+              for (const tr of e.tracers) this.view?.shot(tr.from, tr.to, false, wepId, e.id);
             } else {
-              this.view?.shot(e.from, e.to, false, wepId);
+              this.view?.shot(e.from, e.to, false, wepId, e.id);
             }
             const d = Math.hypot(e.from[0] - this.me.x, e.from[2] - this.me.z);
             const pan = this.audio?.panFor(this.me.x, this.me.z, this.look.yaw, e.from[0], e.from[2]) || 0;

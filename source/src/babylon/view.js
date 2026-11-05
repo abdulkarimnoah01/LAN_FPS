@@ -8,6 +8,7 @@ import { createBabylonEngine } from './engine_factory.js';
 import { getPBRMaterial, hexToColor3 } from './materials.js';
 import { buildProceduralWorld } from './procedural_world.js';
 import { buildPlanetWorld } from './planet_world.js';
+import { ShotFX } from './shot_fx.js';
 import { loadBabylonMap, configureArenaLighting } from './map_loader.js';
 import { BabylonAvatar } from './character_loader.js';
 import { buildBabylonWeaponModel, preloadWeaponModels } from './weapon_viewmodel.js';
@@ -99,6 +100,7 @@ export class BabylonView {
     // Reused muzzle light: always present (intensity 0 between shots) so firing never recompiles shaders
     const ml = this.muzzleLight = new BABYLON.PointLight('muzzleLight', BABYLON.Vector3.Zero(), scene);
     ml.parent = flash; ml.diffuse = hexToColor3('#ffd27a'); ml.specular = BABYLON.Color3.Black(); ml.range = 7; ml.intensity = 0;
+    this.shotFx = new ShotFX(scene, this.activePreset);
 
     // Build map visuals
     await this.buildVisuals(this.world);
@@ -106,6 +108,7 @@ export class BabylonView {
     // Default weapon (authored GLBs when bundled, procedural otherwise)
     await preloadWeaponModels(scene, this.assets);
     this.setWeaponModel(0);
+    this.warmupFx();
 
     // Resize listener
     this._resizeHandler = () => this.resize();
@@ -171,58 +174,67 @@ export class BabylonView {
     return this.flashMesh.getAbsolutePosition();
   }
 
-  shot(from, to, own, wepId = 'ak47') {
+  shot(from, to, own, wepId = 'ak47', shooterId = null) {
     if (!this.scene) return;
-    const start = own ? this.muzzlePosition() : new BABYLON.Vector3(from[0], from[1] - 0.35, from[2]);
     const end = new BABYLON.Vector3(...to);
-
+    let start;
+    if (own) start = this.muzzlePosition();
+    else start = this.remoteMuzzle(shooterId) || new BABYLON.Vector3(from[0], from[1] - 0.35, from[2]);
     const tracerColor = wepId === 'sniper' ? '#9be8ff' : (wepId === 'shotgun' ? '#ffd066' : (wepId === 'smg' ? '#f5a6ff' : '#fff2b0'));
     const mat = this.fxMaterial(tracerColor);
-
-    // Tracer: a thin glowing beam from muzzle to impact that thins and fades (shared material,
-    // per-mesh visibility, so nothing is allocated per shot except the short-lived meshes)
-    const dir = end.subtract(start), len = dir.length();
-    let beam = null;
-    if (len > 0.3) {
-      beam = BABYLON.MeshBuilder.CreateCylinder('tracer', { height: 1, diameter: wepId === 'sniper' ? 0.05 : 0.022, tessellation: 4 }, this.scene);
-      beam.scaling.y = len;
-      beam.position.copyFrom(start.add(dir.scale(0.5)));
-      const axis = BABYLON.Vector3.Cross(BABYLON.Vector3.Up(), dir.normalize());
-      const ang = Math.acos(Math.max(-1, Math.min(1, BABYLON.Vector3.Dot(BABYLON.Vector3.Up(), dir.normalize()))));
-      beam.rotationQuaternion = axis.lengthSquared() > 1e-8 ? BABYLON.Quaternion.RotationAxis(axis.normalize(), ang) : BABYLON.Quaternion.Identity();
-      beam.material = mat; beam.isPickable = false;
-    }
-
-    // Impact pop
     const sparkSize = wepId === 'sniper' ? 0.16 : (wepId === 'shotgun' ? 0.06 : 0.09);
-    const spark = BABYLON.MeshBuilder.CreatePolyhedron('spark', { type: 1, size: sparkSize }, this.scene);
-    spark.position.copyFrom(end);
-    spark.material = mat; spark.isPickable = false;
 
-    const life = wepId === 'sniper' ? 0.22 : 0.12;
-    this.fx.push({
-      meshes: beam ? [beam, spark] : [spark],
-      life, max: life,
-      update(dt) {
-        this.life -= dt;
-        const k = Math.max(0, this.life / this.max);
-        if (beam) { beam.visibility = k; beam.scaling.x = beam.scaling.z = 0.4 + 0.6 * k; }
-        spark.visibility = k; spark.scaling.setAll(1 + (1 - k) * 1.6);
-        return this.life <= 0;
-      },
-    });
+    // Glowing bullet travels to the impact (shotgun pellets glow but do not take lights)
+    const job = { mat, sparkSize };
+    if (this.shotFx) this.shotFx.bullet(start, end, wepId, { lit: wepId !== 'shotgun' || Math.random() < 0.2, onArrive: head => this.impact(head, job) });
+    else this.impact(end, job);
 
+    // Muzzle flash: own one rides the viewmodel, remote ones sit at the shooter's weapon
+    const dir = end.subtract(start).normalize();
     if (own) {
-      if (this.flashMesh) {
-        this.flashMesh.isVisible = true;
-        this.flashMesh.rotation.z = Math.random() * Math.PI * 2;
-        this.flashMesh.scaling.setAll(wepId === 'shotgun' ? 1.9 : wepId === 'sniper' ? 1.7 : wepId === 'smg' ? 1.1 : 1.4);
-      }
+      if (this.flashMesh) this.shotFx?.muzzleFlash(null, null, wepId, this.flashMesh);
       this.flashLife = 0.05;
       if (this.muzzleLight) this.muzzleLight.intensity = wepId === 'shotgun' || wepId === 'sniper' ? 3 : 1.8;
       const kickMap = { ak47: 1.0, shotgun: 1.6, sniper: 1.9, smg: 0.55, lmg: 1.3 };
       this.kick = kickMap[wepId] || 1.0;
+    } else if (!this.lastRemoteFlash || this.lastRemoteFlash !== `${shooterId}:${this.frameNo}`) {
+      this.lastRemoteFlash = `${shooterId}:${this.frameNo}`;   // one flash per shooter per frame (pellets)
+      this.shotFx?.muzzleFlash(start, dir, wepId);
     }
+  }
+
+  /* Muzzle of the weapon a remote avatar is holding, in world space. */
+  remoteMuzzle(id) {
+    const gun = id && this.avatars.get(id)?.heldWeapon;
+    if (!gun || !gun.isEnabled()) return null;
+    gun.computeWorldMatrix(true);
+    const m = gun.metadata?.muzzle || (gun.metadata = { muzzle: gun.getDescendants(false).find(n => /^muzzle/.test(n.name)) }).muzzle;
+    if (!m) return null;
+    m.computeWorldMatrix(true);
+    return m.getAbsolutePosition().clone();
+  }
+
+  /* Renders one microscopic shot in front of the camera while the map loads, so the shader
+     variants used by flashes, bullets, impacts and the lit muzzle compile during loading
+     instead of hitching the first real shot. */
+  warmupFx() {
+    if (!this.scene || !this.camera || !this.shotFx) return;
+    const c = this.camera, f = c.getForwardRay(1).direction;
+    const at = c.position.add(f.scale(3)), to = at.add(f.scale(0.6));
+    const before = new Set(this.scene.meshes);
+    this.shotFx.bullet(at, to, 'ak47', { lit: true, onArrive: h => this.impact(h, { mat: this.fxMaterial('#fff2b0'), sparkSize: 0.001 }) });
+    this.shotFx.muzzleFlash(at, f, 'ak47');
+    if (this.flashMesh) this.shotFx.muzzleFlash(null, null, 'ak47', this.flashMesh);
+    if (this.muzzleLight) this.muzzleLight.intensity = 0.01;
+    for (const m of this.scene.meshes) if (!before.has(m)) m.scaling.scaleInPlace(0.001);
+  }
+
+  /* Impact pop when a bullet arrives. */
+  impact(head, job) {
+    const spark = BABYLON.MeshBuilder.CreatePolyhedron('spark', { type: 1, size: job.sparkSize }, this.scene);
+    spark.position.copyFrom(head);
+    spark.material = job.mat; spark.isPickable = false;
+    this.fx.push({ meshes: [spark], life: 0.14, max: 0.14, update(dt) { this.life -= dt; const k = Math.max(0, this.life / this.max); spark.visibility = k; spark.scaling.setAll(1 + (1 - k) * 1.8); return this.life <= 0; } });
   }
 
   /* Cached unlit materials for transient effects (never created per shot). */
@@ -497,6 +509,8 @@ export class BabylonView {
 
     this.updateObjectiveVisual(dt);
     this.updateGrenades(dt);
+    this.frameNo = (this.frameNo || 0) + 1;
+    this.shotFx?.update(dt);
 
     // Update active visual effects
     for (let i = this.fx.length - 1; i >= 0; i--) {
@@ -573,6 +587,7 @@ export class BabylonView {
 
   applyGraphicsSettings(presetKey) {
     this.activePreset = presetKey;
+    this.shotFx?.setPreset(presetKey);
     applyGraphicsPreset(this.engine, this.scene, this.pipeline, this.shadowGenerator, presetKey);
   }
 
@@ -584,6 +599,7 @@ export class BabylonView {
     window.removeEventListener('resize', this._resizeHandler);
     for (const [, av] of this.avatars) av.dispose();
     this.avatars.clear();
+    this.shotFx?.dispose();
     if (this.scene) this.scene.dispose();
     if (this.engine) this.engine.dispose();
     this.ready = false;
