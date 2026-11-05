@@ -1,6 +1,6 @@
 {
-  "version": "1.7.0",
+  "version": "1.8.0",
   "name": "LAN_FPS",
-  "date": "2026-11-04",
-  "notes": "New playable operative Nada J: faceted low-poly duelist in a white suit and fedora, rigged with idle, walk, run, crouch and death animations."
+  "date": "2026-11-05",
+  "notes": "Next Gen online update: four new low-poly operatives (Rico, Dante, Lucia, Nina) on one shared rig; appearance creator with outfits, skin tones, Matte/Neon Rim shaders and accents that every player sees; new Control and Capture the Flag modes; modern combat HUD; fixes for guests not rendering, loading the wrong map and remote avatars not animating."
 }
