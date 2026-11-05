@@ -3,7 +3,8 @@
 
 import assert from 'node:assert/strict';
 import { MODE_CATALOG, isTeamMode, publicModes, isKnownMode } from '../src/modes.js';
-import { CONTROL, newControlState, stepControl, controlSnapshot, zoneOccupants } from '../src/objectives.js';
+import { CONTROL, newControlState, stepControl, controlSnapshot, zoneOccupants, CTF, newCtfState, stepCtf, ctfSnapshot, ctfSupported } from '../src/objectives.js';
+import { modeSupportsMap } from '../src/modes.js';
 import { HostGame } from '../src/hostgame.js';
 import { getMap } from '../src/arena.js';
 import { GUN_ORDER, gunGameWeapon, RULES } from '../src/sim.js';
@@ -20,9 +21,11 @@ const run = (state, players, ticks) => {
 };
 
 test('catalog: public modes, team predicate, unknown ids', () => {
-  assert.deepEqual(publicModes().map(m => m.id), ['ffa', 'tdm', 'gungame', 'control']);
+  assert.deepEqual(publicModes().map(m => m.id), ['ffa', 'tdm', 'gungame', 'control', 'ctf']);
+  assert.equal(isTeamMode('ctf'), true);
+  assert.equal(modeSupportsMap('ctf', 'school'), true); assert.equal(modeSupportsMap('ctf', 'foundry'), false); assert.equal(modeSupportsMap('control', 'foundry'), true);
   assert.equal(isTeamMode('tdm'), true); assert.equal(isTeamMode('control'), true); assert.equal(isTeamMode('ffa'), false);
-  assert.equal(isKnownMode('ctf'), false, 'CTF is not shipped yet'); assert.equal(isKnownMode('__proto__'), false);
+  assert.equal(isKnownMode('ctf'), true); assert.equal(isKnownMode('koth'), false); assert.equal(isKnownMode('__proto__'), false);
   assert.equal(MODE_CATALOG.control.target, CONTROL.target);
 });
 
@@ -119,6 +122,85 @@ test('Team rules apply to Control as to TDM: no friendly-fire kills', () => {
 test('Gun Game ladder: AK → SMG → LMG → Shotgun → Sniper → Knife', () => {
   assert.deepEqual(GUN_ORDER, [0, 3, 4, 1, 2, 5]);
   assert.deepEqual([0, 1, 2, 3, 4, 5].map(k => gunGameWeapon(k)), [0, 3, 4, 1, 2, 5]);
+});
+
+/* ---- Capture the Flag ---- */
+const ctfWorld = { killY: -20, spawns: [{ x: -30, y: 0, z: 0, team: 'red' }, { x: -32, y: 0, z: 2, team: 'red' }, { x: 30, y: 0, z: 0, team: 'blue' }, { x: 32, y: 0, z: 2, team: 'blue' }] };
+const pl = (id, team, x, z = 0, extra = {}) => ({ id, team, x, y: 0, z, alive: true, g: true, ...extra });
+const ctfRun = (st, players, ticks = 1) => { let s = st, ev = [], res = null; for (let i = 0; i < ticks && !res; i++) { const r = stepCtf(s, typeof players === 'function' ? players(i) : players); s = r.state; ev.push(...r.events); res = r.result; } return { s, ev, res }; };
+
+test('CTF: only maps with both team bases support it', () => {
+  assert.equal(ctfSupported(ctfWorld), true);
+  assert.equal(ctfSupported({ spawns: [{ x: 0, y: 0, z: 0 }] }), false);
+  assert.throws(() => new HostGame(getMap('arena', 1), { mode: 'ctf' }), /not available on this map/);
+  assert.ok(new HostGame(getMap('school', 1), { mode: 'ctf' }).objective);
+});
+
+test('CTF: pickup, one carrier, capture only with own flag home, flag resets after capture', () => {
+  let st = newCtfState(ctfWorld);
+  const r = pl('r', 'red', 31), b = pl('b', 'blue', 0);
+  let { s, ev } = ctfRun(st, [r, b]);
+  assert.equal(s.flags.blue.state, 'carried'); assert.equal(s.flags.blue.carrier, 'r'); assert.deepEqual(ev[0], { t: 'flag', team: 'blue', act: 'take', by: 'r' });
+  // blue takes red's flag meanwhile → red cannot score while its own flag is away
+  ({ s } = ctfRun(s, [pl('r', 'red', -30), pl('b', 'blue', -30)]));
+  assert.equal(s.flags.red.carrier, 'b'); assert.equal(s.caps.red, 0, 'own flag not home: no capture');
+  // blue carrier killed in red base → red flag dropped there; red touches it → returns home; then red scores
+  ({ s, ev } = ctfRun(s, [pl('r', 'red', -30), pl('b', 'blue', -30, 0, { alive: false })]));
+  assert.equal(s.flags.red.state, 'home', 'dropped at red base and immediately returned by red touch');
+  assert.deepEqual(ev.map(e => e.act), ['drop', 'return', 'capture'], 'stable order: drop → return → capture in one tick');
+  assert.equal(s.caps.red, 1); assert.equal(s.flags.blue.state, 'home');
+  ({ s } = ctfRun(s, [pl('r', 'red', -30), pl('b', 'blue', 40)], 30));
+  assert.equal(s.caps.red, 1, 'no duplicate captures');
+});
+
+test('CTF: death drops at last grounded position; teammate return; 15 s auto-return; void returns home', () => {
+  let { s } = ctfRun(newCtfState(ctfWorld), [pl('r', 'red', 30), pl('b', 'blue', 0)]);
+  ({ s } = ctfRun(s, [pl('r', 'red', 10, 5), pl('b', 'blue', 0)]));
+  ({ s } = ctfRun(s, [pl('r', 'red', 10, 5, { alive: false, g: false }), pl('b', 'blue', 0)]));
+  assert.equal(s.flags.blue.state, 'dropped'); assert.deepEqual([s.flags.blue.pos.x, s.flags.blue.pos.z], [10, 5]);
+  let t = ctfRun(s, [pl('r', 'red', 10, 5, { alive: false }), pl('b', 'blue', 10, 5)]);
+  assert.equal(t.s.flags.blue.state, 'home', 'teammate touch returns');
+  t = ctfRun(s, [pl('r', 'red', -40, 0, { alive: false }), pl('b', 'blue', 0)], CTF.returnTicks);
+  assert.equal(t.s.flags.blue.state, 'home'); assert.ok(t.ev.some(e => e.why === 'timeout'));
+  // carrier falls into the void
+  ({ s } = ctfRun(newCtfState(ctfWorld), [pl('r', 'red', 30), pl('b', 'blue', 0)]));
+  t = ctfRun(s, [pl('r', 'red', 20, 0, { y: -30, g: false }), pl('b', 'blue', 0)]);
+  assert.equal(t.s.flags.blue.state, 'home'); assert.ok(t.ev.some(e => e.why === 'void'));
+});
+
+test('CTF: carrier disconnect drops the flag once and leaves no orphan carrier', () => {
+  let { s } = ctfRun(newCtfState(ctfWorld), [pl('r', 'red', 30), pl('r2', 'red', -40), pl('b', 'blue', 0)]);
+  ({ s } = ctfRun(s, [pl('r', 'red', 5, 1), pl('r2', 'red', -40), pl('b', 'blue', 0)]));
+  const t = ctfRun(s, [pl('r2', 'red', -40), pl('b', 'blue', 0)]);
+  assert.equal(t.s.flags.blue.state, 'dropped'); assert.equal(t.s.flags.blue.carrier, null);
+  assert.deepEqual([t.s.flags.blue.pos.x, t.s.flags.blue.pos.z], [5, 1]);
+  assert.equal(t.ev.filter(e => e.act === 'drop').length, 1);
+  assert.equal(ctfRun(t.s, [pl('r2', 'red', -40), pl('b', 'blue', 0)]).ev.filter(e => e.act === 'drop').length, 0);
+});
+
+test('CTF: 3 captures wins; timeout draw; snapshot is compact', () => {
+  let st = { ...newCtfState(ctfWorld), caps: { red: 2, blue: 0 } };
+  let { s } = ctfRun(st, [pl('r', 'red', 30), pl('b', 'blue', 0)]);
+  const t = ctfRun(s, [pl('r', 'red', -30), pl('b', 'blue', 0)]);
+  assert.deepEqual(t.res, { winner: 'red' });
+  st = { ...newCtfState(ctfWorld), elapsed: CTF.timeLimitTicks - 1, caps: { red: 1, blue: 1 } };
+  assert.deepEqual(stepCtf(st, [pl('r', 'red', 0), pl('b', 'blue', 0)]).result, { winner: 'draw' });
+  assert.ok(JSON.stringify(ctfSnapshot(newCtfState(ctfWorld))).length < 260);
+});
+
+test('HostGame CTF on school: late-join snapshot carries flags; restart resets flags and caps', () => {
+  const g = new HostGame(getMap('school', 1), { mode: 'ctf' });
+  const a = g.addPlayer('a', 'A'), b = g.addPlayer('b', 'B');
+  const bf = g.objective.flags.blue.home;
+  Object.assign(a, { x: bf.x, y: bf.y, z: bf.z });
+  g.step();
+  assert.equal(g.objective.flags.blue.carrier, 'a');
+  g.addPlayer('late', 'Late');
+  assert.equal(g.snapshot().obj.blue.st, 'carried');
+  g.objective = { ...g.objective, caps: { red: 3, blue: 0 } };
+  g.endRound('red', true);
+  for (let i = 0; i < (RULES.endPause + 0.2) * 60; i++) g.step();
+  assert.equal(g.phase, 'play'); assert.deepEqual(g.objective.caps, { red: 0, blue: 0 }); assert.equal(g.objective.flags.blue.state, 'home');
 });
 
 let failed = 0;

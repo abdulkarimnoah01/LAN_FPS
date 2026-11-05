@@ -181,6 +181,13 @@ export class Client {
         break;
       case 'join': hud?.feed(`${e.name} joined`); break;
       case 'leave': hud?.feed(`${this.name(e.id)} left`); break;
+      case 'flag': {
+        const who = e.by ? this.name(e.by) : '';
+        const T = (e.team || '').toUpperCase();
+        const text = e.act === 'take' ? `${who} took the ${T} flag` : e.act === 'drop' ? `${T} flag dropped` : e.act === 'capture' ? `${who} captured the ${T} flag!` : `${T} flag returned`;
+        hud?.feed(text, e.act === 'capture');
+        break;
+      }
       case 'zone':
         hud?.feed(e.owner ? `${e.owner.toUpperCase()} captured the zone` : `${(e.by || '').toUpperCase()} neutralised the zone`);
         break;

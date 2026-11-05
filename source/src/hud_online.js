@@ -34,7 +34,7 @@ export class OnlineHud extends Hud {
       p.mid.append(p.state, p.bar);
       p.blue = el('span', 'obj-team blue', '0'); p.blue.setAttribute('aria-label', 'Blue team score');
       box.append(p.red, p.mid, p.blue);
-      if (mode === 'control') { p.time = el('span', 'obj-time', ''); box.append(p.time); }
+      if (mode === 'control' || mode === 'ctf') { p.time = el('span', 'obj-time', ''); box.append(p.time); }
     } else {
       p.main = el('span', 'obj-team', '');
       p.sub = el('span', 'obj-sub', '');
@@ -52,7 +52,17 @@ export class OnlineHud extends Hud {
     if (mode !== this.objMode) this.build(mode);
     const p = this.parts;
 
-    if (mode === 'control' && s.obj) {
+    if (mode === 'ctf' && s.obj) {
+      const o = s.obj;
+      setText(p.red, String(o.cr)); setText(p.blue, String(o.cb)); setText(p.time, mmss(o.tl));
+      const flag = (t, f) => f.st === 'home' ? `${t} FLAG HOME` : f.st === 'carried' ? `${t} FLAG TAKEN${f.c === me.id ? ' (YOU)' : ''}` : `${t} FLAG DROPPED ${f.rt}s`;
+      const alert = [['RED', o.red], ['BLUE', o.blue]].find(([, f]) => f.st !== 'home');
+      setText(p.state, alert ? flag(...alert) : `BOTH FLAGS HOME · FIRST TO ${o.tgt}`);
+      setCls(p.state, alert ? `obj-state ${alert[0].toLowerCase()}` : 'obj-state');
+      const lead = Math.max(o.cr, o.cb) / o.tgt, w = `${Math.round(Math.min(1, lead) * 100)}%`;
+      setCls(p.fill, `obj-fill ${o.cr === o.cb ? '' : o.cr > o.cb ? 'red' : 'blue'}`.trim());
+      if (p.fill.style.width !== w) p.fill.style.width = w;
+    } else if (mode === 'control' && s.obj) {
       const o = s.obj;
       setText(p.red, String(o.sr)); setText(p.blue, String(o.sb)); setText(p.time, mmss(o.tl));
       let label, cls, fill, fillCls;

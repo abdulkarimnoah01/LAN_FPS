@@ -473,6 +473,7 @@ export class BabylonView {
      Purely visual and non-pickable; gameplay uses the host's objective state. */
   updateObjectiveVisual(dt) {
     const o = this.objective;
+    this.updateFlagVisuals(o);
     if (!o || o.k !== 'control') { if (this.zoneRoot) this.zoneRoot.setEnabled(false); return; }
     if (!this.zoneRoot) {
       const root = this.zoneRoot = new BABYLON.TransformNode('controlZone', this.scene);
@@ -496,6 +497,33 @@ export class BabylonView {
     this.zoneRingMat.emissiveColor = c;
     this.zoneColMat.emissiveColor = c;
     this.zoneColMat.alpha = o.con && !still ? 0.1 + 0.06 * Math.abs(Math.sin(this.zonePulse * 4)) : 0.12;
+  }
+
+  /* CTF: base ring at each home and a pole + cloth that follows the host's flag position. */
+  updateFlagVisuals(o) {
+    if (!o || o.k !== 'ctf') { for (const f of Object.values(this.flagViz || {})) { f.flag.setEnabled(false); f.base.setEnabled(false); } return; }
+    this.flagViz ||= {};
+    for (const team of ['red', 'blue']) {
+      let v = this.flagViz[team];
+      const c = BABYLON.Color3.FromHexString(team === 'red' ? '#ef4444' : '#3b82f6');
+      if (!v) {
+        const mat = new BABYLON.StandardMaterial(`flagMat_${team}`, this.scene); mat.emissiveColor = c; mat.disableLighting = true;
+        const flag = new BABYLON.TransformNode(`flag_${team}`, this.scene);
+        const pole = BABYLON.MeshBuilder.CreateCylinder(`flagPole_${team}`, { height: 2.2, diameter: 0.06 }, this.scene); pole.position.y = 1.1;
+        const cloth = BABYLON.MeshBuilder.CreateBox(`flagCloth_${team}`, { width: 0.7, height: 0.45, depth: 0.03 }, this.scene); cloth.position.set(0.36, 1.95, 0);
+        const poleMat = new BABYLON.StandardMaterial(`flagPoleMat_${team}`, this.scene); poleMat.diffuseColor = new BABYLON.Color3(0.85, 0.87, 0.9);
+        pole.material = poleMat; cloth.material = mat;
+        const base = BABYLON.MeshBuilder.CreateTorus(`flagBase_${team}`, { diameter: 4, thickness: 0.1, tessellation: 48 }, this.scene); base.material = mat;
+        for (const m of [pole, cloth]) { m.parent = flag; m.isPickable = false; }
+        base.isPickable = false;
+        v = this.flagViz[team] = { flag, base, cloth };
+      }
+      const f = o[team];
+      v.flag.setEnabled(true); v.base.setEnabled(true);
+      v.base.position.set(f.hx, f.hy + 0.05, f.hz);
+      v.flag.position.set(f.x, f.y + (f.st === 'carried' ? 0.4 : 0), f.z);
+      v.cloth.scaling.y = f.st === 'dropped' ? 0.6 : 1;
+    }
   }
 
   applyGraphicsSettings(presetKey) {

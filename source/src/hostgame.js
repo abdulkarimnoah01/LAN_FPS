@@ -1,7 +1,7 @@
 /* Authoritative match state. Only the host runs this: it applies every player's
    inputs, resolves shots, and owns health, kills, respawns, bots, barrels, grenades, and the round. */
 import { isTeamMode } from './modes.js';
-import { newControlState, stepControl, controlSnapshot } from './objectives.js';
+import { newObjective, stepObjective, objectiveSnapshot } from './objectives.js';
 import { canonicalLook, makeLookLimiter, MAX_LOOK_BYTES } from './appearance.js';
 import { GUN_ORDER, gunGameWeapon, DT, RULES, WEAPONS, newPlayer, stepPlayer, castShot, PREDICTED, aim, rayBox, supported, B } from './sim.js';
 
@@ -29,7 +29,7 @@ export class HostGame {
   constructor(world, { random = Math.random, mode = 'ffa' } = {}) {
     this.world = world;
     this.random = random;
-    this.mode = mode; // 'ffa', 'tdm', 'gungame' or 'control' (see modes.js)
+    this.mode = mode; // 'ffa', 'tdm', 'gungame', 'control' or 'ctf' (see modes.js)
     this.team = isTeamMode(mode);
     this.players = new Map();
     this.queues = new Map();
@@ -45,7 +45,8 @@ export class HostGame {
     this.endAt = 0;
     this.events = [];
     this.teams = { red: { kills: 0 }, blue: { kills: 0 } };
-    this.objective = mode === 'control' ? newControlState(world) : null;
+    this.objective = newObjective(mode, world);
+    if ((mode === 'control' || mode === 'ctf') && !this.objective) throw Error(`${mode.toUpperCase()} is not available on this map`);
   }
 
   addPlayer(id, name, char = '', team = null, look = '') {
@@ -160,7 +161,7 @@ export class HostGame {
 
     // Objective modes (host ticks, resolved once per round)
     if (this.objective && this.phase === 'play') {
-      const { state, events, result } = stepControl(this.objective, this.players.values());
+      const { state, events, result } = stepObjective(this.objective, this.players.values());
       this.objective = state;
       for (const e of events) this.events.push(e);
       if (result) this.endRound(result.winner, true);
@@ -416,7 +417,7 @@ export class HostGame {
 
   restart() {
     this.phase = 'play';
-    if (this.objective) this.objective = newControlState(this.world);
+    if (this.objective) this.objective = newObjective(this.mode, this.world);
     this.winner = null;
     this.teams.red.kills = 0;
     this.teams.blue.kills = 0;
@@ -591,7 +592,7 @@ export class HostGame {
       teams: this.teams,
       winner: this.winner,
       endIn: this.phase === 'ended' ? round(this.endAt - this.time) : 0,
-      ...(this.objective ? { obj: controlSnapshot(this.objective) } : {}),
+      ...(this.objective ? { obj: objectiveSnapshot(this.objective) } : {}),
       players,
     };
   }

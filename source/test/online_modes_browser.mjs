@@ -35,7 +35,9 @@ try {
   };
   const host = await mk('host'), guest = await mk('guest');
   const options = await host.evaluate(() => [...document.querySelectorAll('#mode-select option')].map(o => o.value));
-  assert.deepEqual(options, ['ffa', 'tdm', 'gungame', 'control'], 'selector lists only finished modes');
+  assert.deepEqual(options, ['ffa', 'tdm', 'gungame', 'control'], 'default map: CTF hidden (no team bases)');
+  const schoolModes = await host.evaluate(() => { const m = document.getElementById('map-select'); m.value = 'school'; m.dispatchEvent(new Event('change')); return [...document.querySelectorAll('#mode-select option')].map(o => o.value); });
+  assert.deepEqual(schoolModes, ['ffa', 'tdm', 'gungame', 'control', 'ctf'], 'school: CTF offered');
   await host.evaluate(() => {   // the host drawer is closed; set the same controls it would
     document.getElementById('mode-select').value = 'control';
     const map = document.getElementById('map-select'); if (map && [...map.options].some(o => o.value === 'arena')) map.value = 'arena';
@@ -82,7 +84,36 @@ try {
   await host.evaluate(() => clearInterval(window.__pin));
   await until(guest, () => { const s = window.LANFPS_ONLINE.session.client.state; return s.phase === 'play' && s.obj.sr === 0 && s.obj.sb === 0 && s.obj.own === null; }, null, 'guest sees clean restart', 20000);
   assert.equal(await host.evaluate(() => window.LANFPS_ONLINE.session.game.phase), 'play');
+  // ---- Capture the Flag on the school map: fresh pages, same flow ----
+  await host.context().close(); await guest.context().close();   // free memory before two more pages
+  const host2 = await mk('ctf-host'), guest2 = await mk('ctf-guest');
+  await host2.evaluate(() => { const m = document.getElementById('map-select'); m.value = 'school'; m.dispatchEvent(new Event('change')); document.getElementById('mode-select').value = 'ctf'; });
+  await host2.evaluate(() => window.LANFPS_ONLINE.hostOnlineMatch());
+  await until(host2, () => window.LANFPS_ONLINE.session?.code, null, 'ctf room code', 120000);
+  const code2 = await host2.evaluate(() => window.LANFPS_ONLINE.session.code);
+  await guest2.evaluate(c => window.LANFPS_ONLINE.joinOnlineMatch(c), code2);
+  await until(guest2, () => window.LANFPS_ONLINE.session?.client?.state?.obj?.k === 'ctf', null, 'guest receives flags', 120000);
+  assert.equal(await guest2.evaluate(() => window.LANFPS_ONLINE.session.map), 'school', 'guest built the host map');
+  const t2 = await host2.evaluate(() => { const g = window.LANFPS_ONLINE.session.game; return g.players.get(window.LANFPS_ONLINE.session.id).team; });
+  const enemy = t2 === 'red' ? 'blue' : 'red';
+  // host walks onto the enemy flag, then home
+  await host2.evaluate(([t, e]) => { const g = window.LANFPS_ONLINE.session.game, me = g.players.get(window.LANFPS_ONLINE.session.id), f = g.objective.flags[e].home;
+    for (const p of g.players.values()) if (p !== me) p.hp = 100000;   // keep the guest alive and away from the flag runner
+    window.__pin = setInterval(() => Object.assign(me, { x: f.x, y: f.y, z: f.z, vx: 0, vz: 0 }), 50); }, [t2, enemy]);
+  await until(guest2, e => window.LANFPS_ONLINE.session.client.state.obj[e].st === 'carried', enemy, 'guest sees flag taken', 20000);
+  await until(guest2, e => document.querySelector('#objective .obj-state')?.textContent.includes(e.toUpperCase() + ' FLAG TAKEN'), enemy, 'guest HUD flag taken', 10000);
+  await guest2.screenshot({ path: path.join(outDir, '08_ctf_flag_taken.png') });
+  await host2.evaluate(t => { clearInterval(window.__pin); const g = window.LANFPS_ONLINE.session.game, me = g.players.get(window.LANFPS_ONLINE.session.id), h = g.objective.flags[t].home;
+    window.__pin = setInterval(() => Object.assign(me, { x: h.x, y: h.y, z: h.z, vx: 0, vz: 0 }), 50); }, t2);
+  await until(guest2, t => { const o = window.LANFPS_ONLINE.session.client.state.obj; return o[t === 'red' ? 'cr' : 'cb'] === 1; }, t2, 'guest sees capture', 20000);
+  await sleep(1500);
+  const caps = await guest2.evaluate(() => { const o = window.LANFPS_ONLINE.session.client.state.obj; return [o.cr, o.cb, o.red.st, o.blue.st]; });
+  assert.equal(caps[0] + caps[1], 1, 'exactly one capture while standing on base'); assert.equal(caps[2], 'home'); assert.equal(caps[3], 'home');
+  await host2.evaluate(() => clearInterval(window.__pin));
+  await host2.screenshot({ path: path.join(outDir, '09_ctf_after_capture.png') });
+
   assert.deepEqual(errors, []);
+  console.log('CTF browser test passed (selector by map, take, HUD, single capture, flags home).');
   console.log('Control mode browser test passed (capture, contested freeze, end, restart). Screenshots:', outDir);
 } finally {
   await browser.close(); await close?.(); server.close();

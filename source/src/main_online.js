@@ -6,7 +6,7 @@ import { HostSession, GuestSession } from './game.js';
 import { View, CharacterPreview, HeroViewer, loadAssets, buildWorld } from './render_babylon.js';
 import { Sound } from './hud.js';
 import { OnlineHud } from './hud_online.js';
-import { publicModes, MODE_CATALOG } from './modes.js';
+import { publicModes, MODE_CATALOG, modeSupportsMap } from './modes.js';
 import { B } from './sim.js';
 import { initPalette } from './palette.js';
 import { HERO_ROSTER, getHeroData as legacyHeroData, SKIN_OF, baseHeroId } from './heroes.js';
@@ -42,8 +42,10 @@ function populateModeSelect() {
   const sel = $('mode-select');
   if (!sel) return;
   const prev = sel.value;
-  sel.replaceChildren(...publicModes().map(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = `${m.name} (${m.short})`; o.title = m.brief; return o; }));
-  if (MODE_CATALOG[prev]?.ready) sel.value = prev;
+  const map = $('map-select')?.value;
+  if ($('map-select') && !$('map-select').dataset.modeSync) { $('map-select').dataset.modeSync = '1'; $('map-select').addEventListener('change', populateModeSelect); }
+  sel.replaceChildren(...publicModes().filter(m => !map || modeSupportsMap(m.id, map)).map(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = `${m.name} (${m.short})`; o.title = m.brief; return o; }));
+  if (MODE_CATALOG[prev]?.ready && modeSupportsMap(prev, map)) sel.value = prev;
   const note = $('mode-brief');
   const sync = () => { if (note) note.textContent = MODE_CATALOG[sel.value]?.brief || ''; };
   sel.onchange = sync; sync();

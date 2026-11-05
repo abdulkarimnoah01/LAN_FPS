@@ -32,8 +32,8 @@ This upgrade covers the Babylon.js online edition only (`Spectre_Orbit_Light.htm
 3. **Join a match and look the same to everyone.** The host validates each look and sends it in every snapshot, so late joiners and respawns see it too.
    ![Host sees the guest's body and look](next_gen/match_host_sees_guest.jpg)
 
-4. **Play Control**, alongside FFA, TDM and Gun Game, with a new combat HUD that shows mode, score and objective at the top centre.
-   ![Control held](next_gen/control_hud_held.jpg) ![Control contested](next_gen/control_contested.jpg)
+4. **Play Control or Capture the Flag**, alongside FFA, TDM and Gun Game, with a new combat HUD that shows mode, score and objective at the top centre.
+   ![Control held](next_gen/control_hud_held.jpg) ![Control contested](next_gen/control_contested.jpg) ![CTF flag taken](next_gen/ctf_flag_taken.jpg)
 
 ## Characters and the creator
 
@@ -83,12 +83,14 @@ The generator is deterministic, and a test checks that the committed GLBs match 
 | Gun Game | Unchanged and verified: AK-47 → SMG → LMG → Shotgun → Sniper → Knife. The host forces the ladder weapon and the client blocks manual switching. A knife kill on the last rung wins. |
 | Control | 6 m zone on the spawn closest to the map's centre. Only living players inside count. One team alone captures in 5 s; on an enemy-owned zone it first neutralises (5 s), then captures (5 s). Both teams inside freezes everything (Contested). The owner scores 1 point/s while it holds the zone alone. An empty zone keeps its owner and progress but doesn't score. 100 points or 5 minutes wins; level scores at time are a Draw. No overtime. The round resolves once, then the usual 8 s pause and a full reset. Scoring needs at least one player on each team (bots count). **Bots fight but don't play the objective.** |
 
-Team checks now go through `isTeamMode`, so friendly fire, balancing, spawns and bot targeting all apply to Control. The Control rules (`source/src/objectives.js`) are pure functions counted in host ticks, and their state is part of each snapshot (`obj`).
+| Capture the Flag | Only offered on maps with red and blue team spawns: **Zenith, Rail Yard, Schoolyard**. On other maps the selector hides it, and the host refuses to start with a readable error. Each base sits on the team spawn nearest that team's spawn centroid. Touch the enemy flag (1.5 m) to carry it; a player carries at most one flag, with no speed change. You score by reaching your own base (2 m) while your own flag is home. Death or disconnect drops the flag at the carrier's last grounded position, and falling into the void returns it home. A teammate's touch returns a dropped flag, and it returns on its own after 15 s. A capture resets that flag. 3 captures or 5 minutes wins; level at time is a Draw. Each tick resolves in a stable order: carrier/drop → touches (sorted by player ID) → captures. **Bots fight but don't run flags.** |
+
+Team checks now go through `isTeamMode`, so friendly fire, balancing, spawns and bot targeting all apply to Control. The Control and CTF rules (`source/src/objectives.js`) are pure functions counted in host ticks, and their state is part of each snapshot (`obj`). Flags and base rings render in the Babylon view.
 
 ## Combat HUD
 `source/hud_online.css` and `source/src/hud_online.js` are included only in the online build:
 
-- **Top centre:** mode, team scores or progress, Control state (neutral / capturing % / holds / contested) and the remaining time.
+- **Top centre:** mode, team scores or progress, Control state (neutral / capturing % / holds / contested) or CTF flag state (home / taken / dropped with countdown), and the remaining time.
 - **Top left:** match controls, with connection status underneath.
 - **Top right:** kill feed, limited to 4 rows.
 - **Bottom left:** health with a bar, plus stance.
@@ -107,17 +109,16 @@ The objective panel's DOM is built once per mode; per-frame updates only change 
 | Command | Result |
 | --- | --- |
 | `npm --prefix source ci` / `npm --prefix server ci` | ok |
-| `npm --prefix source run test:all` | pass: 44 shared, networking, Babylon, session, **13 appearance**, **11 modes** |
+| `npm --prefix source run test:all` | pass: 44 shared, networking, Babylon, session, **13 appearance**, **17 modes** |
 | `npm --prefix server test` | pass (4) |
 | `npm --prefix source run build:online` | ok, 44.15 MB (baseline 42.76 MB; +1.4 MB for the four GLBs) |
 | `npm --prefix source run build` + `test:ui` (Classic) | ok; Classic output restored, not committed |
 | `node source/test/online_upgrade_browser.mjs` | pass. Two real browsers over WebRTC on localhost: creator save, host and guest see each other's body and look, a third client joins late and sees both, leaving cleans up the avatar. |
-| `node source/test/online_modes_browser.mjs` | pass. Two real browsers in Control: teams red/blue, the host captures and the guest HUD agrees, contested freezes scoring, the round ends at 100, then a clean restart after 8 s. |
+| `node source/test/online_modes_browser.mjs` | pass. Two real browsers in Control: teams red/blue, the host captures and the guest HUD agrees, contested freezes scoring, the round ends at 100, then a clean restart after 8 s. CTF on Schoolyard: the selector depends on the map, the guest builds the host's map, flag take shows on the guest HUD, and exactly one capture is scored with both flags back home. |
 
 Both browser scripts write screenshots to `dist/test-shots/`. They take Playwright from the local or global npm install, and accept `CHROMIUM_PATH` and `OUT_DIR`.
 
 ## Not done / unverified
-- **Capture the Flag:** not implemented, and not in the selector.
 - **Orbit Crown tiny-planet map:** not implemented.
 - **Radial-gravity planet traversal:** not attempted.
 - **Objective AI for bots:** bots only fight.
