@@ -1,6 +1,7 @@
 /* Spectre Orbit Online — Main Client Entry Point
    Babylon.js 9 (WebGPU / WebGL 2) Engine with Netrunner Command Hub & 3D Operative Turntable */
 
+import { initUpdater } from './updater.js';
 import { FolderSignalingClient, pickFolder, rememberedFolder, forgetFolderHandle } from './net_folder.js';
 import { OnlineSignalingClient, OnlineNetHost, LocalNetHost, OnlineNetGuest, LinkError } from './net_online.js';
 import { HostSession, GuestSession } from './game.js';
@@ -1527,6 +1528,7 @@ async function bootstrap() {
 }
 
 function finishBootstrap() {
+  initUpdater();
   // Auto-join if ?join=CODE in URL
   const urlParams = new URLSearchParams(window.location.search);
   const autoJoinCode = urlParams.get('join') || window.location.hash.replace('#join=', '');

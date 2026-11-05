@@ -46,6 +46,7 @@
     <header class="topbar">
       <div class="crumb">ORBIT / <strong id="breadcrumb">DEPLOY</strong><span style="color:var(--cyan)">_</span></div>
       <div class="top-right">
+        <button id="btn-check-update" type="button" class="btn">Check for updates</button>
         <div class="protocol"><span class="dot"></span><span id="protocol-status">NETWORK LINK STABLE</span></div>
         <button id="btn-palette" type="button">Arasaka</button>
         <div class="profile-chip" data-page="operative" title="Open Operative Dossier">
@@ -56,6 +57,14 @@
     </header>
 
     <main class="main">
+      <div id="update-banner" hidden>
+        <div class="update-info"><b id="update-title">New update available!</b> <span id="update-notes"></span></div>
+        <div class="update-actions">
+          <a id="btn-download-update" class="btn btn-primary" href="#" download="Spectre_Orbit_Light.html">Download Update</a>
+          <button id="btn-dismiss-update" class="btn" type="button">✕</button>
+        </div>
+      </div>
+
       <!-- VIEW 1: DEPLOY -->
       <section class="view active" id="page-play">
         <div class="viewgrid">
