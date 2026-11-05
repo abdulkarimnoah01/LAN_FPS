@@ -1,6 +1,6 @@
 {
-  "version": "1.9.1",
+  "version": "1.10.0",
   "name": "LAN_FPS",
   "date": "2026-11-05",
-  "notes": "Fix: sniper scope froze the online build. The four Next Gen characters are hidden for now."
+  "notes": "Spectre Orbit Light can now play over a local shared folder (no server needed), plus the sniper scope freeze fix and the four Next Gen characters hidden for now."
 }
