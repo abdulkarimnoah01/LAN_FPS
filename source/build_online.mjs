@@ -113,7 +113,7 @@ const script = s => '<script>' + s.replace(/<\/script/gi, '<\\/script') + '</scr
 const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' blob: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws: wss: http: https: blob: data:; media-src data: blob:; base-uri 'none'; form-action 'none'">`;
 
 // Bundle CSS
-const css = ['style.css', 'netrunner.css', 'theme.css', 'hud_online.css']
+const css = ['style.css', 'netrunner.css', 'theme.css', 'hud_online.css', 'lobby_online.css']
   .map(name => fs.existsSync(path.join(root, name)) ? fs.readFileSync(path.join(root, name), 'utf8') : '')
   .join('\n')
   .replace(/url\(["']?assets\/ui\/([^"')]+)["']?\)/g, (_, name) => {

@@ -1289,7 +1289,7 @@ function setupInputHandlers() {
 
 /* ---- Client Bootstrap ---- */
 async function bootstrap() {
-  initPalette();
+  initPalette([['orbit', 'Orbit']], 'orbit');
   populateModeSelect();
   const serverInput = $('opt-server');
   if (serverInput) {

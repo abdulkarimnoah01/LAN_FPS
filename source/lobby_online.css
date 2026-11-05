@@ -1,0 +1,120 @@
+/* Spectre Orbit Next Gen menus — online build only, loaded last.
+   Scoped to the "orbit" palette (the online default), so players can still switch back to the
+   original terminal palettes and Classic never loads this file. Deep navy, cyan + magenta,
+   rounded glass panels, modern sans-serif type; original art direction. */
+
+:root[data-palette="orbit"] {
+  --p-bg: #0a1022;
+  --p-accent: #22d3ee;
+  --p-warm: #f472b6;
+  --display-face: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --o-glass: rgba(148, 178, 230, 0.07);
+  --o-glass-hi: rgba(148, 178, 230, 0.13);
+  --o-line: rgba(148, 178, 230, 0.18);
+  --o-line-hi: rgba(34, 211, 238, 0.55);
+  --o-text: #eaf1ff;
+  --o-sub: #a9b6d3;
+  --o-grad: linear-gradient(120deg, #22d3ee 0%, #818cf8 55%, #f472b6 100%);
+  --o-radius: 14px;
+  --text: var(--o-text); --sub: var(--o-sub); --dim: #7f8cab;
+  --line: var(--o-line); --line2: rgba(148, 178, 230, 0.28); --line-soft: rgba(148, 178, 230, 0.12);
+  --panel: var(--o-glass); --panel-hi: var(--o-glass-hi); --surface: var(--o-glass); --well: rgba(5, 9, 22, 0.55);
+  --hud: rgba(10, 16, 34, 0.72);
+  --surface-scan: none; --crt-line: transparent; --crt-halo: transparent;
+}
+
+/* Backdrop: soft nebula gradients behind everything */
+:root[data-palette="orbit"] body {
+  background:
+    radial-gradient(1100px 650px at 88% -8%, rgba(244, 114, 182, 0.20), transparent 60%),
+    radial-gradient(900px 620px at -5% 105%, rgba(34, 211, 238, 0.18), transparent 60%),
+    radial-gradient(700px 500px at 50% 40%, rgba(129, 140, 248, 0.08), transparent 70%),
+    linear-gradient(180deg, #0a1022 0%, #0d1530 100%) fixed;
+  color: var(--o-text);
+}
+:root[data-palette="orbit"] #lobby { font-family: var(--display-face); }
+
+/* No CRT layers in this theme */
+:root[data-palette="orbit"] body:has(#lobby:not([hidden]))::before,
+:root[data-palette="orbit"] body:has(#lobby:not([hidden]))::after { display: none !important; }
+:root[data-palette="orbit"] #lobby * { text-shadow: none !important; }
+
+/* Headings */
+:root[data-palette="orbit"] #lobby :is(h1, h2, h3, .page-title) {
+  font-family: var(--display-face); font-weight: 800; letter-spacing: -0.02em; text-transform: none; color: var(--o-text);
+}
+:root[data-palette="orbit"] #lobby .hero h1 { font-size: clamp(40px, 6vw, 76px); line-height: 0.95; }
+:root[data-palette="orbit"] #lobby .hero h1 em,
+:root[data-palette="orbit"] #lobby .page-title {
+  background: var(--o-grad); -webkit-background-clip: text; background-clip: text; color: transparent; font-style: normal;
+}
+:root[data-palette="orbit"] #lobby .hero h1 { color: var(--o-text); }
+:root[data-palette="orbit"] #lobby :is(.section-label, .small-cap, .field-label, .toolbar-label, .hud-label) {
+  font-family: var(--mono); color: #7dd3fc; letter-spacing: 0.14em;
+}
+:root[data-palette="orbit"] #lobby .section-label .lead { background: var(--o-grad); }
+:root[data-palette="orbit"] #lobby :is(p, .page-desc, .muted-note) { color: var(--o-sub); }
+
+/* Glass panels and cards */
+:root[data-palette="orbit"] #lobby :is(.panel, .content-panel, .primary-action, .choice, .room-card, .map-card, .operative-card,
+  .roster-hero-item, .stage-viewport-panel, .roster-toolbar, .perk-card, .wep-spec-card, .settings-row, .practice-strip, .empty-rooms, .slot) {
+  background: var(--o-glass); border: 1px solid var(--o-line); border-radius: var(--o-radius);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.35); backdrop-filter: blur(10px); clip-path: none;
+}
+:root[data-palette="orbit"] #lobby :is(.choice, .room-card, .map-card, .roster-hero-item, .primary-action):hover {
+  border-color: var(--o-line-hi); background: var(--o-glass-hi); transform: translateY(-1px);
+  box-shadow: 0 14px 36px rgba(34, 211, 238, 0.12);
+}
+:root[data-palette="orbit"] #lobby .roster-hero-item.on { border-color: var(--o-line-hi); background: linear-gradient(120deg, rgba(34, 211, 238, 0.16), rgba(244, 114, 182, 0.10)); }
+:root[data-palette="orbit"] #lobby .map-card-thumb, :root[data-palette="orbit"] #lobby .sector-pic { border-radius: calc(var(--o-radius) - 4px); overflow: hidden; }
+:root[data-palette="orbit"] #lobby .primary-action { background: linear-gradient(120deg, rgba(34, 211, 238, 0.14), rgba(129, 140, 248, 0.10) 60%, rgba(244, 114, 182, 0.10)); }
+
+/* Buttons */
+:root[data-palette="orbit"] #lobby :is(.btn, .btn-primary, .small-btn, .anim-btn, .btn-choice, .btn-quiet, .side-link) {
+  border-radius: 10px; clip-path: none; font-family: var(--display-face); text-transform: none; letter-spacing: 0.01em; font-weight: 600;
+}
+:root[data-palette="orbit"] #lobby .btn-primary {
+  background: var(--o-grad); color: #06101f; border: 0; box-shadow: 0 8px 24px rgba(34, 211, 238, 0.28);
+}
+:root[data-palette="orbit"] #lobby .btn-primary:hover { filter: brightness(1.08); box-shadow: 0 10px 30px rgba(244, 114, 182, 0.32); }
+:root[data-palette="orbit"] #lobby :is(.btn:not(.btn-primary), .small-btn, .anim-btn, .btn-choice, .btn-quiet) {
+  background: rgba(148, 178, 230, 0.08); border: 1px solid var(--o-line); color: var(--o-text);
+}
+:root[data-palette="orbit"] #lobby :is(.anim-btn.on, .btn-choice.on) { background: rgba(34, 211, 238, 0.18); border-color: var(--o-line-hi); color: #e0fbff; }
+:root[data-palette="orbit"] #lobby .swatch-btn { border-radius: 50%; }
+:root[data-palette="orbit"] #lobby :is(button, .btn):focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+
+/* Side navigation */
+:root[data-palette="orbit"] #lobby .nav-btn { border-radius: 10px; border: 1px solid transparent; color: var(--o-sub); font-family: var(--display-face); text-transform: none; letter-spacing: 0; font-weight: 600; }
+:root[data-palette="orbit"] #lobby .nav-btn:hover { background: rgba(148, 178, 230, 0.08); color: var(--o-text); }
+:root[data-palette="orbit"] #lobby .nav-btn.active {
+  background: linear-gradient(120deg, rgba(34, 211, 238, 0.22), rgba(244, 114, 182, 0.14)); border-color: var(--o-line-hi); color: #fff;
+}
+:root[data-palette="orbit"] #lobby .nav-btn.active::before { display: none; }
+
+/* Inputs */
+:root[data-palette="orbit"] :is(#lobby, .overlay, .drawer) :is(.field, input.field, select.field) {
+  border-radius: 10px; background: rgba(5, 9, 22, 0.6); border: 1px solid var(--o-line); color: var(--o-text); font-family: var(--display-face);
+}
+:root[data-palette="orbit"] :is(#lobby, .overlay, .drawer) .field:focus { border-color: #22d3ee; box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18); }
+
+/* Drawers / overlays (host, join, browser) */
+:root[data-palette="orbit"] .drawer {
+  background: linear-gradient(180deg, rgba(14, 22, 46, 0.96), rgba(10, 16, 34, 0.98)); border-left: 1px solid var(--o-line);
+  box-shadow: -20px 0 60px rgba(2, 6, 23, 0.55); font-family: var(--display-face);
+}
+:root[data-palette="orbit"] .drawer :is(h1, h2, h3) { font-family: var(--display-face); font-weight: 800; letter-spacing: -0.01em; text-transform: none; }
+:root[data-palette="orbit"] .drawer .btn-primary { background: var(--o-grad); color: #06101f; border: 0; border-radius: 10px; clip-path: none; text-transform: none; letter-spacing: 0.01em; }
+:root[data-palette="orbit"] .overlay { background: rgba(4, 8, 20, 0.55); backdrop-filter: blur(6px); }
+
+/* Pills, chips, status */
+:root[data-palette="orbit"] #lobby :is(.pill, .badge, .pill-equipped, .pill-active-mini, .stance-pill) { border-radius: 999px; }
+:root[data-palette="orbit"] #lobby .pill-equipped:not(.off) { background: rgba(52, 211, 153, 0.16); color: #6ee7b7; border-color: rgba(52, 211, 153, 0.5); }
+:root[data-palette="orbit"] .toast { border-radius: 12px; background: rgba(14, 22, 46, 0.92); border: 1px solid var(--o-line); backdrop-filter: blur(8px); }
+:root[data-palette="orbit"] #lobby .stat-bar { background: var(--o-grad); border-radius: 999px; }
+:root[data-palette="orbit"] #lobby .stat-track { border-radius: 999px; background: rgba(148, 178, 230, 0.12); }
+:root[data-palette="orbit"] #lobby .orbit-mark { filter: drop-shadow(0 0 18px rgba(34, 211, 238, 0.35)); }
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-palette="orbit"] #lobby :is(.choice, .room-card, .map-card, .roster-hero-item, .primary-action):hover { transform: none; }
+}
