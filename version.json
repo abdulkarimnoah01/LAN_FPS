@@ -1,6 +1,6 @@
 {
-  "version": "1.10.0",
+  "version": "1.10.1",
   "name": "LAN_FPS",
   "date": "2026-11-05",
-  "notes": "Spectre Orbit Light can now play over a local shared folder (no server needed), plus the sniper scope freeze fix and the four Next Gen characters hidden for now."
+  "notes": "Shared-folder play in Spectre Orbit Light: signals are batched and joins wait up to 45 s on slow network shares."
 }
