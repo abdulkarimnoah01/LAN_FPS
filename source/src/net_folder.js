@@ -246,6 +246,7 @@ const idb = (mode, fn) => new Promise((resolve, reject) => {
 });
 
 export const saveFolderHandle = h => idb('readwrite', s => s.put(h, 'folder')).catch(() => {});
+export const forgetFolderHandle = () => idb('readwrite', s => s.delete('folder')).catch(() => {});
 export const savedFolderHandle = () => idb('readonly', s => s.get('folder')).catch(() => null);
 
 export async function pickFolder() {

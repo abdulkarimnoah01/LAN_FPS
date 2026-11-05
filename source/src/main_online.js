@@ -1,7 +1,7 @@
 /* Spectre Orbit Online — Main Client Entry Point
    Babylon.js 9 (WebGPU / WebGL 2) Engine with Netrunner Command Hub & 3D Operative Turntable */
 
-import { FolderSignalingClient, pickFolder, rememberedFolder } from './net_folder.js';
+import { FolderSignalingClient, pickFolder, rememberedFolder, forgetFolderHandle } from './net_folder.js';
 import { OnlineSignalingClient, OnlineNetHost, LocalNetHost, OnlineNetGuest, LinkError } from './net_online.js';
 import { HostSession, GuestSession } from './game.js';
 import { View, CharacterPreview, HeroViewer, loadAssets, buildWorld } from './render_babylon.js';
@@ -1335,12 +1335,23 @@ let wsSignaling = null, folderSignaling = null, folderTimer = 0;
 async function useFolder(interactive) {
   if (session) { toast('Leave the current match first'); return false; }
   try {
-    const dir = (await rememberedFolder(interactive)) || (interactive ? await pickFolder() : null);
-    if (!dir) return false;
-    const f = new FolderSignalingClient(dir);
+    let dir = await rememberedFolder(interactive), f = null;
+    // A remembered folder can vanish (drive unplugged, share offline): forget it and ask again once.
+    for (let attempt = 0; attempt < 2 && !f; attempt++) {
+      if (!dir) { if (!interactive) return false; dir = await pickFolder(); }
+      const c = new FolderSignalingClient(dir);
+      try { await c.connect(); f = c; }
+      catch (e) {
+        if (e?.name !== 'NotFoundError') throw e;
+        forgetFolderHandle();
+        if (attempt) throw new Error(`Cannot open folder "${dir.name}". Check that the drive or share is online and writable.`);
+        dir = null;
+        if (!interactive) return false;
+        toast('Saved folder is unavailable. Pick it again.');
+      }
+    }
     f.on('room_list', msg => { if (signaling === f) renderRoomList(msg.rooms || []); });
     f.on('error', msg => toast(msg.message || 'Shared folder error'));
-    await f.connect();
     if (folderSignaling && folderSignaling !== f) folderSignaling.close();
     wsSignaling?.close();
     folderSignaling = signaling = f;
