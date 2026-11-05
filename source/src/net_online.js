@@ -360,7 +360,7 @@ export class OnlineNetGuest {
     this.hostPeerId = null;
   }
 
-  async connect(room, { onStatus, timeout = 12000 } = {}) {
+  async connect(room, { onStatus, timeout = this.signaling.kind === 'folder' ? 45000 : 12000 } = {}) { // shared folders are slower to signal
     onStatus?.('Connecting to matchmaking server...');
     await this.signaling.connect();
     this.signaling.send({ t: 'identity', peerId: this.id, name: this.name });

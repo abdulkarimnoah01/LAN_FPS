@@ -7,6 +7,7 @@
    folder/inbox/<peerId>/*.json  messages addressed to one peer; the reader deletes each after use */
 
 const POLL_MS = 400;
+const BATCH_MS = 250;
 const ROOM_REFRESH_MS = 2000;
 const ROOM_TTL_MS = 9000;
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -72,10 +73,23 @@ export class FolderSignalingClient {
     await w.close();
   }
 
-  async _post(target, msg) {
-    const name = `${Date.now()}-${String(this.seq++).padStart(6, '0')}-${rand(3)}.json`; // named before any await so order is kept
-    const box = await this.inbox.getDirectoryHandle(target, { create: true });
-    await this._write(box, name, msg);
+  // Messages to one peer within BATCH_MS share a single file (offer + its ICE candidates arrive together).
+  // Network shares cache directory listings for several seconds, so fewer files means fewer slow hops.
+  _post(target, msg) {
+    this.out ||= new Map();
+    let q = this.out.get(target);
+    if (!q) {
+      q = { msgs: [], name: `${Date.now()}-${String(this.seq++).padStart(6, '0')}-${rand(3)}.json` };
+      this.out.set(target, q);
+      setTimeout(() => {
+        this.out.delete(target);
+        this.inbox.getDirectoryHandle(target, { create: true })
+          .then(box => this._write(box, q.name, q.msgs.length === 1 ? q.msgs[0] : { t: 'batch', msgs: q.msgs }))
+          .catch(e => console.warn('[folder] post', e));
+      }, BATCH_MS);
+    }
+    q.msgs.push(msg);
+    return Promise.resolve();
   }
 
   async _readJson(fh) {
@@ -99,7 +113,8 @@ export class FolderSignalingClient {
           continue;
         }
         await box.removeEntry(name).catch(() => {});
-        if (msg.t) this.emit(msg.t, msg);
+        if (msg.t === 'batch') { for (const m of msg.msgs || []) if (m?.t) this.emit(m.t, m); }
+        else if (msg.t) this.emit(msg.t, msg);
       }
     } catch (e) {
       console.warn('[folder] poll', e);
